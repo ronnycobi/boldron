@@ -88,7 +88,7 @@ class ProviderCatalogAPITests(TestCase):
         self.assertEqual(resp.status_code, 200)
         body = resp.json()
         names = {p["name"] for p in body}
-        self.assertEqual(names, {"stub", "anthropic"})
+        self.assertEqual(names, {"stub", "anthropic", "openai", "gemini"})
         stub = next(p for p in body if p["name"] == "stub")
         self.assertTrue(stub["available"])
         self.assertTrue(stub["is_default"])
@@ -130,3 +130,84 @@ class ProviderThroughOrchestratorTests(TestCase):
         self.assertEqual(task.status, "completed")
         self.assertIn("Design a health endpoint", task.output["text"])
         self.assertEqual(task.output["model"], "stub-1")
+
+
+class OpenAIProviderTests(SimpleTestCase):
+    @mock.patch.dict("os.environ", {"OPENAI_API_KEY": ""}, clear=False)
+    def test_unavailable_without_key(self):
+        from apps.ai_providers.openai_provider import OpenAIProvider
+        p = OpenAIProvider()
+        self.assertFalse(p.is_available())
+        with self.assertRaises(ProviderUnavailable):
+            p.complete(CompletionRequest(messages=[Message("user", "hi")]))
+
+    def test_registered_and_in_catalog(self):
+        self.assertIn("openai", registry)
+        from apps.model_router.catalog import profile_for
+        self.assertIsNotNone(profile_for("openai", "gpt-4o"))
+
+    def test_complete_maps_request_to_sdk(self):
+        import sys, types
+        from apps.ai_providers.openai_provider import OpenAIProvider
+
+        captured = {}
+
+        class _Msg: content = "Generated code."
+        class _Choice:
+            message = _Msg(); finish_reason = "stop"
+        class _Usage:
+            prompt_tokens = 12; completion_tokens = 7
+        class _Resp:
+            choices = [_Choice()]; usage = _Usage(); model = "gpt-4o"
+        class _Completions:
+            def create(self, **kw):
+                captured.update(kw); return _Resp()
+        class _Chat:
+            completions = _Completions()
+        class _Client:
+            def __init__(self, api_key=None): self.chat = _Chat()
+
+        fake = types.ModuleType("openai"); fake.OpenAI = _Client
+        with mock.patch.dict(sys.modules, {"openai": fake}), \
+             mock.patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}, clear=False):
+            p = OpenAIProvider()
+            self.assertTrue(p.is_available())
+            r = p.complete(CompletionRequest(messages=[Message("user", "build")],
+                                             system="You are helpful.", max_tokens=50))
+        self.assertEqual(r.text, "Generated code.")
+        self.assertEqual(r.provider, "openai")
+        self.assertEqual(r.usage.input_tokens, 12)
+        self.assertEqual(captured["messages"][0], {"role": "system", "content": "You are helpful."})
+
+
+class GeminiProviderTests(SimpleTestCase):
+    @mock.patch.dict("os.environ", {"GOOGLE_API_KEY": "", "GEMINI_API_KEY": ""}, clear=False)
+    def test_unavailable_without_key(self):
+        from apps.ai_providers.gemini_provider import GeminiProvider
+        p = GeminiProvider()
+        self.assertFalse(p.is_available())
+        with self.assertRaises(ProviderUnavailable):
+            p.complete(CompletionRequest(messages=[Message("user", "hi")]))
+
+    def test_registered_and_in_catalog(self):
+        self.assertIn("gemini", registry)
+        from apps.model_router.catalog import profile_for
+        self.assertIsNotNone(profile_for("gemini", "gemini-2.5-flash"))
+
+
+class GenerationStatusTests(SimpleTestCase):
+    def test_demo_mode_when_no_live_provider(self):
+        from apps.ai_providers.registry import generation_status
+        with mock.patch("apps.ai_providers.registry.live_providers", return_value=[]):
+            s = generation_status()
+        self.assertFalse(s["live"])
+        self.assertIn("demo mode", s["message"].lower())
+
+    def test_live_when_a_real_provider_available(self):
+        from apps.ai_providers.registry import generation_status
+        from apps.ai_providers.openai_provider import OpenAIProvider
+        fake = OpenAIProvider()
+        with mock.patch("apps.ai_providers.registry.live_providers", return_value=[fake]):
+            s = generation_status()
+        self.assertTrue(s["live"])
+        self.assertEqual(s["provider"], "openai")

@@ -82,18 +82,21 @@ class ModelRouter:
     # --- ranking ----------------------------------------------------------
 
     def _rank(self, profiles, required_tier, prefer_quality):
+        from apps.model_router.catalog import provider_rank
+
         def key(p: ModelProfile):
             real_first = int(p.is_fallback_only)  # real models before stub
+            pr = provider_rank(p.provider)        # Claude default; tiebreak only
             if p.tier >= required_tier:
                 group = 0  # sufficient
                 sub = (
-                    (-p.tier, p.avg_cost_per_mtok)
+                    (-p.tier, pr, p.avg_cost_per_mtok)   # top tier, preferred provider, then cheapest
                     if prefer_quality
-                    else (p.avg_cost_per_mtok, p.tier)  # cheapest sufficient
+                    else (p.avg_cost_per_mtok, p.tier, pr)  # cheapest sufficient; provider last
                 )
             else:
                 group = 1  # degraded: best available effort
-                sub = (-p.tier, p.avg_cost_per_mtok)
+                sub = (-p.tier, pr, p.avg_cost_per_mtok)
             return (real_first, group, *sub, p.model)
 
         return sorted(profiles, key=key)

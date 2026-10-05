@@ -13,14 +13,17 @@ from decimal import Decimal
 
 from apps.costs.profiles import AGENT_COMPLEXITY, AGENT_TOKEN_ESTIMATE, DEFAULT_PIPELINE
 from apps.credits.services import credits_for, plans
-from apps.model_router.catalog import MODEL_CATALOG, ModelProfile
+from apps.model_router.catalog import MODEL_CATALOG, ModelProfile, provider_rank
 from apps.model_router.router import TaskComplexity
 
 _REQUIRED_TIER = {TaskComplexity.LOW: 1, TaskComplexity.MEDIUM: 2, TaskComplexity.HIGH: 3}
 
 
 def model_for_complexity(complexity: TaskComplexity) -> ModelProfile | None:
-    """Cheapest real (non-stub) model whose tier meets the complexity."""
+    """The default model for a complexity: cheapest-sufficient from the preferred
+    provider (Claude), matching the router's quality-first default. Provider
+    preference comes first so the estimate reflects what DevForge actually uses
+    (e.g. MEDIUM -> claude-sonnet-5), not an off-default cross-provider bargain."""
     required = _REQUIRED_TIER[complexity]
     real = [p for p in MODEL_CATALOG if not p.is_fallback_only]
     sufficient = [p for p in real if p.tier >= required]
@@ -28,8 +31,8 @@ def model_for_complexity(complexity: TaskComplexity) -> ModelProfile | None:
     if not pool:
         return None
     if sufficient:
-        return min(pool, key=lambda p: (p.avg_cost_per_mtok, p.tier))
-    return max(pool, key=lambda p: p.tier)
+        return min(pool, key=lambda p: (provider_rank(p.provider), p.avg_cost_per_mtok, p.tier))
+    return max(pool, key=lambda p: (p.tier, -provider_rank(p.provider)))
 
 
 def _round2(value: Decimal) -> float:

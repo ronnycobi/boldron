@@ -13,6 +13,8 @@ from django.conf import settings
 
 from apps.ai_providers.anthropic_provider import AnthropicProvider
 from apps.ai_providers.base import AIProvider, CompletionRequest, CompletionResponse
+from apps.ai_providers.gemini_provider import GeminiProvider
+from apps.ai_providers.openai_provider import OpenAIProvider
 from apps.ai_providers.stub import StubProvider
 
 
@@ -39,6 +41,8 @@ class ProviderRegistry:
 registry = ProviderRegistry()
 registry.register(StubProvider())
 registry.register(AnthropicProvider())
+registry.register(OpenAIProvider())
+registry.register(GeminiProvider())
 
 
 def default_provider_name() -> str:

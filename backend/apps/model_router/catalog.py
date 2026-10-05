@@ -33,10 +33,27 @@ MODEL_CATALOG: list[ModelProfile] = [
     ModelProfile("anthropic", "claude-opus-5", 3, 1_000_000, 5.0, 25.0, speed=1),
     ModelProfile("anthropic", "claude-sonnet-5", 2, 1_000_000, 2.0, 10.0, speed=2),
     ModelProfile("anthropic", "claude-haiku-4-5", 1, 200_000, 1.0, 5.0, speed=3),
+    # OpenAI (list prices USD / 1M tokens; keep in sync with the provider).
+    ModelProfile("openai", "gpt-4o", 3, 128_000, 2.5, 10.0, speed=2),
+    ModelProfile("openai", "gpt-4o-mini", 1, 128_000, 0.15, 0.6, speed=3),
+    # Google Gemini.
+    ModelProfile("gemini", "gemini-2.5-pro", 3, 1_000_000, 1.25, 10.0, speed=2),
+    ModelProfile("gemini", "gemini-2.5-flash", 1, 1_000_000, 0.30, 2.5, speed=3),
     ModelProfile(
         "stub", "stub-1", 1, 1_000_000, 0.0, 0.0, speed=3, is_fallback_only=True
     ),
 ]
+
+
+# Default provider preference. DevForge defaults to Claude (latest, most capable);
+# OpenAI and Gemini are available alternatives, chosen when preferred explicitly or
+# via failover when Anthropic isn't usable. Lower = preferred; used only as a
+# tiebreak after tier/cost, so it never overrides quality or an explicit preference.
+PROVIDER_PREFERENCE = {"anthropic": 0, "openai": 1, "gemini": 2, "stub": 9}
+
+
+def provider_rank(provider: str) -> int:
+    return PROVIDER_PREFERENCE.get(provider, 5)
 
 
 def profile_for(provider: str, model: str) -> ModelProfile | None:
