@@ -23,17 +23,17 @@ from apps.technology.registry import registry as tech_registry
 # (Bringing in and modernizing a customer's EXISTING software is paused for v1 —
 # gated behind DEVFORGE_IMPORT_ENABLED.)
 _PILLARS = [
-    ("Build", "Turn ideas into working software — websites, web apps and mobile apps — in the stack you choose."),
-    ("Ship", "Publish websites to a live URL and prepare Android & iOS releases for the app stores."),
+    ("Build", "Turn ideas into working websites and web apps in the technology stack you choose."),
+    ("Ship", "Publish websites to a live URL, and design mobile apps and prepare their Android & iOS releases for the app stores."),
     ("Deploy", "Ship to dev and staging automatically; production stays behind an approval gate."),
     ("Operate", "Monitor, track cost per project, and keep improving — with a full audit trail."),
 ]
 
 _CAPABILITIES = [
     ("Build", "Turn ideas into working software.",
-     "Describe what you need and get websites, web apps and mobile apps — designed, generated and tested in the stack you choose."),
+     "Describe what you need and get websites and web apps — designed, generated and tested in the stack you choose."),
     ("Web & mobile", "Ship to the web and the app stores.",
-     "Publish websites and web apps to a live URL, and prepare Android and iOS releases for Google Play and the App Store."),
+     "Publish websites and web apps to a live URL, and design mobile apps and prepare their Android and iOS releases for Google Play and the App Store."),
     ("Test", "Validate software automatically.",
      "Generated projects come with tests that actually run."),
     ("Deploy", "Move applications into production environments.",

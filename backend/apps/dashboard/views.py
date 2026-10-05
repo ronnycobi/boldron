@@ -1363,8 +1363,8 @@ def _handle_project_action(request, proj):
 # Customer-facing capabilities — outcomes only. The internal agent roster,
 # capability model and orchestration are proprietary and never exposed here.
 _CAPABILITIES = [
-    ("Build", "Turn a brief into working, tested software — websites, web apps and mobile apps — in the stack you choose."),
-    ("Web & mobile", "Publish websites to a live URL and prepare Android & iOS releases for the app stores."),
+    ("Build", "Turn a brief into working, tested websites and web apps in the stack you choose."),
+    ("Web & mobile", "Publish websites to a live URL, and design mobile apps and prepare their Android & iOS releases for the app stores."),
     ("Test", "Every change is compiled and its tests actually run before it's called done."),
     ("Secure", "Code is scanned for secrets, injection and unsafe patterns as part of each change."),
     ("Deploy", "Promote to dev and staging; production changes stay behind an approval gate."),
