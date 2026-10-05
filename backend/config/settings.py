@@ -13,6 +13,11 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 REPO_ROOT = BASE_DIR.parent  # where .env / .env.example live
 
+# The test suite must be hermetic: it should not pick up a developer's local
+# .env or exported API keys, or its behaviour (default provider, which models
+# are "available") would vary machine to machine.
+RUNNING_TESTS = "test" in sys.argv
+
 
 def load_env_file(path, environ=None) -> int:
     """Load KEY=VALUE pairs from a .env file into the environment.
@@ -51,8 +56,9 @@ def load_env_file(path, environ=None) -> int:
 
 # Load .env from the repo root before any setting is read, so a local .env works
 # out of the box (the documented copy-.env.example-to-.env flow). A custom path
-# can be given via DEVFORGE_ENV_FILE.
-load_env_file(os.environ.get("DEVFORGE_ENV_FILE", REPO_ROOT / ".env"))
+# can be given via DEVFORGE_ENV_FILE. Skipped under tests to keep them hermetic.
+if not RUNNING_TESTS:
+    load_env_file(os.environ.get("DEVFORGE_ENV_FILE", REPO_ROOT / ".env"))
 
 
 def env(key: str, default: str | None = None) -> str | None:
@@ -228,8 +234,15 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Speed up the test suite: real password hashing dominates test setup time and
 # adds no coverage. Only applied when running tests.
-if "test" in sys.argv:
+if RUNNING_TESTS:
     PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+    # Hermetic AI config: drop any provider keys that leaked in from the shell so
+    # the stub stays the only available provider and tests are deterministic.
+    # (Individual tests inject their own keys via mock.patch.dict when they need
+    # to exercise a real provider.)
+    for _k in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY"):
+        os.environ.pop(_k, None)
+    os.environ["AI_DEFAULT_PROVIDER"] = "stub"
 
 # --- DRF --------------------------------------------------------------------
 
