@@ -109,17 +109,32 @@ def _add_button(product) -> str:
     )
 
 
+def _variant_select(product) -> str:
+    variants = [v for v in product.variants.filter(active=True)]
+    if not variants:
+        return ""
+    opts = "".join(
+        f'<option value="{v.id}"{"" if v.in_stock else " disabled"}>'
+        f'{html_lib.escape(v.label)} — {html_lib.escape(v.price_units)}'
+        f'{"" if v.in_stock else " (out of stock)"}</option>'
+        for v in variants
+    )
+    return f'<label>Option <select name="variant" required>{opts}</select></label>'
+
+
 def _buy_form(website, product) -> str:
     if not product.in_stock:
         return '<p class="oos">Out of stock</p>'
     action = f"/sites/{website.subdomain}/checkout"
+    label = "Buy" if product.has_variants else f"Buy — {html_lib.escape(product.price_display)}"
     return (
         f'<form method="post" action="{action}">'
         f'<input type="hidden" name="product_id" value="{product.id}">'
+        f'{_variant_select(product)}'
         f'<label>Quantity <input type="number" name="quantity" value="1" min="1"></label>'
         f'<label>Your name <input type="text" name="name"></label>'
         f'<label>Email <input type="email" name="email" required></label>'
-        f'<button type="submit">Buy — {html_lib.escape(product.price_display)}</button>'
+        f'<button type="submit">{label}</button>'
         f'</form>'
     )
 
@@ -135,7 +150,7 @@ def render_storefront(website) -> dict:
         f'{_img(p)}'
         f'<p class="price">{html_lib.escape(p.price_display)}</p>'
         f'{f"<p>{html_lib.escape(p.description[:160])}</p>" if p.description else ""}'
-        f'{(_add_button(p) + " ") if p.in_stock else ""}{_buy_form(website, p)}</article>'
+        f'{(_add_button(p) + " ") if p.in_stock and not p.has_variants else ""}{_buy_form(website, p)}</article>'
         for p in products
     )
     files["shop/index.html"] = _doc(website, "Shop", f'<h1>Shop</h1><div class="grid">{cards}</div>')
@@ -146,7 +161,7 @@ def render_storefront(website) -> dict:
             f"<article>{_img(p)}"
             f'<p class="price">{html_lib.escape(p.price_display)}</p>'
             f'{f"<p>{html_lib.escape(p.description)}</p>" if p.description else ""}'
-            f"{(_add_button(p) + ' ') if p.in_stock else ''}{_buy_form(website, p)}</article>"
+            f"{(_add_button(p) + ' ') if p.in_stock and not p.has_variants else ''}{_buy_form(website, p)}</article>"
         )
         files[f"shop/{p.slug}.html"] = _doc(website, p.name, body)
 

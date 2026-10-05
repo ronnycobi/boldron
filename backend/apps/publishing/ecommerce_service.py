@@ -103,6 +103,23 @@ def create_product(website, *, name, price_cents, currency="USD", description=""
     return product
 
 
+def create_variant(product, *, label, price_cents, options=None, sku="",
+                   track_inventory=True, stock=0, user=None):
+    from apps.publishing.models import ProductVariant
+    if not (label or "").strip():
+        raise EcommerceError("A variant needs a label (e.g. “Medium / Blue”).")
+    if int(price_cents) < 0:
+        raise EcommerceError("Variant price cannot be negative.")
+    variant = ProductVariant.objects.create(
+        product=product, label=label.strip(), price_cents=int(price_cents),
+        options=options or {}, sku=sku.strip(),
+        track_inventory=bool(track_inventory), stock=max(0, int(stock)),
+    )
+    audit("shop.variant", actor=user, organization=product.website.project.organization,
+          target=f"variant:{variant.id}", summary=f"{product.name} · {label}")
+    return variant
+
+
 def create_shipping_rate(website, *, name, price_cents, currency="USD",
                          free_over_cents=0, user=None) -> ShippingRate:
     if not (name or "").strip():
@@ -140,7 +157,7 @@ def create_order(website, *, items, customer_name="", customer_email="", code=""
     is validated and applied server-side."""
     if not items:
         raise EcommerceError("An order needs at least one item.")
-    # Resolve products + quantities first (outside the transaction).
+    # Resolve products (+ optional variant) + quantities first (outside the transaction).
     resolved = []
     for row in items:
         product = row.get("product")
@@ -148,7 +165,15 @@ def create_order(website, *, items, customer_name="", customer_email="", code=""
             product = website.products.filter(pk=row.get("product_id"), active=True).first()
         if product is None:
             continue
-        resolved.append((product, max(1, int(row.get("quantity", 1)))))
+        variant = None
+        variant_id = row.get("variant_id") or row.get("variant")
+        if variant_id:
+            variant = product.variants.filter(pk=variant_id, active=True).first()
+            if variant is None:
+                raise EcommerceError(f"That option for “{product.name}” isn't available.")
+        elif product.has_variants:
+            raise EcommerceError(f"Please choose an option for “{product.name}”.")
+        resolved.append((product, variant, max(1, int(row.get("quantity", 1)))))
     if not resolved:
         raise EcommerceError("None of the requested products are available.")
     currency = resolved[-1][0].currency
@@ -174,19 +199,28 @@ def create_order(website, *, items, customer_name="", customer_email="", code=""
             currency=currency, status="pending",
         )
         subtotal = 0
-        for product, qty in resolved:
-            if product.track_inventory:
-                # Atomic, race-safe reserve: only succeeds if enough stock remains.
+        for product, variant, qty in resolved:
+            unit_price = variant.price_cents if variant else product.price_cents
+            name = f"{product.name} — {variant.label}" if variant else product.name
+            # Atomic, race-safe reserve at the right level (variant or product).
+            if variant is not None and variant.track_inventory:
+                from apps.publishing.models import ProductVariant
+                reserved = ProductVariant.objects.filter(
+                    pk=variant.pk, stock__gte=qty
+                ).update(stock=F("stock") - qty)
+                if not reserved:
+                    raise EcommerceError(f"“{name}” is out of stock.")
+            elif variant is None and product.track_inventory:
                 reserved = Product.objects.filter(
                     pk=product.pk, stock__gte=qty
                 ).update(stock=F("stock") - qty)
                 if not reserved:
                     raise EcommerceError(f"“{product.name}” is out of stock.")
             OrderItem.objects.create(
-                order=order, product=product, name=product.name,
-                unit_price_cents=product.price_cents, quantity=qty,
+                order=order, product=product, variant=variant, name=name,
+                unit_price_cents=unit_price, quantity=qty,
             )
-            subtotal += product.price_cents * qty
+            subtotal += unit_price * qty
 
         discount = 0
         if code_obj is not None:
@@ -298,8 +332,11 @@ def refund_order(order: Order, *, user, reason="") -> Order:
         )
     payment = order.payments.filter(status="succeeded").first()
     with transaction.atomic():
-        for it in order.items.select_related("product"):
-            if it.product and it.product.track_inventory:
+        from apps.publishing.models import ProductVariant
+        for it in order.items.select_related("product", "variant"):
+            if it.variant_id and it.variant and it.variant.track_inventory:
+                ProductVariant.objects.filter(pk=it.variant_id).update(stock=F("stock") + it.quantity)
+            elif it.product and it.product.track_inventory:
                 Product.objects.filter(pk=it.product_id).update(stock=F("stock") + it.quantity)
         if payment:
             payment.status = "refunded"
@@ -320,9 +357,13 @@ def refund_order(order: Order, *, user, reason="") -> Order:
 
 def _release_reservations(order: Order) -> None:
     """Return an incomplete order's reserved stock to inventory and give back the
-    discount-code use. Called for both manual cancels and automatic expiry."""
-    for it in order.items.select_related("product"):
-        if it.product and it.product.track_inventory:
+    discount-code use. Restocks at the same level it was reserved (variant or product).
+    Called for both manual cancels and automatic expiry."""
+    from apps.publishing.models import ProductVariant
+    for it in order.items.select_related("product", "variant"):
+        if it.variant_id and it.variant and it.variant.track_inventory:
+            ProductVariant.objects.filter(pk=it.variant_id).update(stock=F("stock") + it.quantity)
+        elif it.product and it.product.track_inventory:
             Product.objects.filter(pk=it.product_id).update(stock=F("stock") + it.quantity)
     if order.discount_code_id and order.discount_code and order.discount_code.max_uses:
         DiscountCode.objects.filter(pk=order.discount_code_id, used_count__gt=0).update(

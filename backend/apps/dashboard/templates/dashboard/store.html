@@ -74,6 +74,23 @@
               <textarea name="description" rows="2">{{ p.description }}</textarea>
               <button class="ghost" type="submit" style="justify-self:start;padding:5px 10px;font-size:12px">Save</button>
             </form>
+            <div style="margin:4px 0 8px;font-size:12px">
+              <strong>Variants</strong>
+              {% for v in p.variants.all %}
+              <div style="display:flex;align-items:center;gap:6px;margin:3px 0">
+                <span>{{ v.label }} — {{ p.currency }} {{ v.price_units }}{% if v.track_inventory %} · stock {{ v.stock }}{% endif %}</span>
+                <form method="post" style="display:inline">{% csrf_token %}<input type="hidden" name="action" value="delete_variant">
+                  <input type="hidden" name="variant" value="{{ v.id }}"><button class="ghost" type="submit" style="padding:2px 7px;font-size:11px">×</button></form>
+              </div>
+              {% empty %}<div class="muted">No variants — this product sells at its base price.</div>{% endfor %}
+              <form method="post" style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">{% csrf_token %}
+                <input type="hidden" name="action" value="add_variant"><input type="hidden" name="product" value="{{ p.id }}">
+                <input type="text" name="label" placeholder="e.g. Medium / Blue" required style="width:140px">
+                <input type="number" name="price" step="0.01" min="0" placeholder="price" required style="width:90px">
+                <label style="font-size:11px"><input type="checkbox" name="track_inventory" checked style="width:auto"> stock <input type="number" name="stock" value="0" min="0" style="width:70px"></label>
+                <button class="ghost" type="submit" style="padding:3px 9px;font-size:11px">Add variant</button>
+              </form>
+            </div>
           </details>
           <form method="post" style="display:inline">{% csrf_token %}<input type="hidden" name="action" value="toggle_product">
             <input type="hidden" name="product" value="{{ p.id }}"><button class="ghost" type="submit" style="padding:4px 9px;font-size:12px">{% if p.active %}Deactivate{% else %}Activate{% endif %}</button></form>

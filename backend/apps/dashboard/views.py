@@ -738,6 +738,22 @@ def store(request, pk):
                     dc.active = not dc.active
                     dc.save(update_fields=["active"])
                     messages.success(request, f"Code {'activated' if dc.active else 'deactivated'}.")
+            elif action == "add_variant":
+                product = website.products.filter(pk=request.POST.get("product", 0)).first()
+                if product:
+                    shop.create_variant(
+                        product, label=(request.POST.get("label") or "").strip(),
+                        price_cents=int(round(float(request.POST.get("price") or 0) * 100)),
+                        track_inventory=bool(request.POST.get("track_inventory")),
+                        stock=int(request.POST.get("stock") or 0), user=request.user)
+                    messages.success(request, "Variant added.")
+            elif action == "delete_variant":
+                from apps.publishing.models import ProductVariant
+                v = ProductVariant.objects.filter(pk=request.POST.get("variant", 0),
+                                                  product__website=website).first()
+                if v:
+                    v.delete()
+                    messages.success(request, "Variant removed.")
             elif action == "set_tax":
                 shop.set_tax_rate(website, name=request.POST.get("name", "Tax"),
                                   percent=request.POST.get("percent", "0"), user=request.user)

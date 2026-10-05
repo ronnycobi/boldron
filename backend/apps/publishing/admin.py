@@ -122,3 +122,12 @@ from apps.publishing.models import TaxRate  # noqa: E402
 class TaxRateAdmin(admin.ModelAdmin):
     list_display = ("name", "website", "rate_bps", "active")
     list_filter = ("active",)
+
+
+from apps.publishing.models import ProductVariant  # noqa: E402
+
+
+@admin.register(ProductVariant)
+class ProductVariantAdmin(admin.ModelAdmin):
+    list_display = ("label", "product", "price_cents", "stock", "track_inventory", "active")
+    list_filter = ("active", "track_inventory")

@@ -1475,6 +1475,52 @@ class PaymentsTests(TestCase):
             o.refresh_from_db()
             self.assertEqual(o.status, "cancelled")
 
+    def test_variant_order_uses_variant_price_and_stock(self):
+        from apps.publishing import ecommerce_service as shop
+        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            site = self._site()
+            p = shop.create_product(site, name="Tee", price_cents=2000, user=self.user)  # base
+            m = shop.create_variant(p, label="M", price_cents=1800, stock=5, user=self.user)
+            shop.create_variant(p, label="L", price_cents=2200, stock=2, user=self.user)
+            order = shop.create_order(site, items=[{"product_id": p.id, "variant_id": m.id, "quantity": 2}])
+            self.assertEqual(order.subtotal_cents, 3600)          # 2 × variant price 1800
+            m.refresh_from_db(); self.assertEqual(m.stock, 3)     # variant stock reserved, not base
+            self.assertEqual(order.items.get().name, "Tee — M")
+
+    def test_variant_required_when_product_has_variants(self):
+        from apps.publishing import ecommerce_service as shop
+        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            site = self._site()
+            p = shop.create_product(site, name="Tee", price_cents=2000, user=self.user)
+            shop.create_variant(p, label="M", price_cents=1800, stock=5, user=self.user)
+            with self.assertRaises(shop.EcommerceError):
+                shop.create_order(site, items=[{"product_id": p.id, "quantity": 1}])  # no option
+
+    def test_variant_oversell_prevented_and_restocked(self):
+        from apps.publishing import ecommerce_service as shop
+        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            site = self._site()
+            p = shop.create_product(site, name="Tee", price_cents=2000, user=self.user)
+            m = shop.create_variant(p, label="M", price_cents=1800, stock=1, user=self.user)
+            with self.assertRaises(shop.EcommerceError):
+                shop.create_order(site, items=[{"product_id": p.id, "variant_id": m.id, "quantity": 3}])
+            m.refresh_from_db(); self.assertEqual(m.stock, 1)     # rolled back
+            # A valid order then cancel restocks the variant.
+            order = shop.create_order(site, items=[{"product_id": p.id, "variant_id": m.id, "quantity": 1}])
+            m.refresh_from_db(); self.assertEqual(m.stock, 0)
+            shop.cancel_order(order, user=self.user)
+            m.refresh_from_db(); self.assertEqual(m.stock, 1)     # variant restocked
+
+    def test_product_price_display_shows_from_when_variants(self):
+        from apps.publishing import ecommerce_service as shop
+        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            site = self._site()
+            p = shop.create_product(site, name="Tee", price_cents=2000, user=self.user)
+            shop.create_variant(p, label="M", price_cents=1800, stock=5, user=self.user)
+            self.assertTrue(p.has_variants)
+            self.assertIn("from", p.price_display)                # "from USD 18.00"
+            self.assertIn("18.00", p.price_display)
+
     def test_store_page_renders(self):
         Membership.objects.create(organization=self.org, user=self.user, role=Role.OWNER)
         with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):

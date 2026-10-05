@@ -171,23 +171,26 @@ def checkout(request, subdomain):
     provider_key = request.POST.get("provider", "manual")
     # Multi-item cart: repeated `line` fields "<product_id>:<qty>". Falls back to a
     # single product_id/quantity (a direct "buy now").
+    # Cart lines are "<product_id>:<qty>[:<variant_id>]".
     items = []
     for raw in request.POST.getlist("line"):
-        pid, _, q = raw.partition(":")
-        pid = pid.strip()
+        parts = raw.split(":")
+        pid = parts[0].strip() if parts else ""
         if not pid:
             continue
         try:
-            qty = max(1, int(q or 1))
+            qty = max(1, int(parts[1])) if len(parts) > 1 and parts[1] else 1
         except ValueError:
             qty = 1
-        items.append({"product_id": pid, "quantity": qty})
+        variant = parts[2].strip() if len(parts) > 2 and parts[2].strip() else None
+        items.append({"product_id": pid, "quantity": qty, "variant_id": variant})
     if not items:
         try:
             qty = max(1, int(request.POST.get("quantity", "1")))
         except (TypeError, ValueError):
             qty = 1
-        items = [{"product_id": request.POST.get("product_id"), "quantity": qty}]
+        items = [{"product_id": request.POST.get("product_id"), "quantity": qty,
+                  "variant_id": request.POST.get("variant") or None}]
     try:
         order = shop.create_order(
             website, items=items,

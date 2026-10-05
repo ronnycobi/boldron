@@ -423,11 +423,56 @@ class Product(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.name} ({self.price_display})"
+        return f"{self.name}"
 
     @property
-    def price_display(self) -> str:
-        return f"{self.currency} {self.price_cents / 100:.2f}"
+    def in_stock(self) -> bool:
+        if self.has_variants:
+            return any(v.in_stock for v in self.variants.filter(active=True))
+        return (not self.track_inventory) or self.stock > 0
+
+    @property
+    def price_units(self) -> str:
+        return f"{self.price_cents / 100:.2f}"
+
+    @property
+    def has_variants(self) -> bool:
+        return self.variants.filter(active=True).exists()
+
+    @property
+    def from_price_cents(self) -> int:
+        """Lowest active-variant price when variants exist, else the base price."""
+        if self.has_variants:
+            return min(v.price_cents for v in self.variants.filter(active=True))
+        return self.price_cents
+
+    @property
+    def price_display(self) -> str:   # overrides to reflect "from" when variants exist
+        cents = self.from_price_cents
+        prefix = "from " if self.has_variants else ""
+        return f"{prefix}{self.currency} {cents / 100:.2f}"
+
+
+class ProductVariant(models.Model):
+    """A buyable variant of a product (e.g. Size: M / Colour: Blue) with its own price
+    and stock (spec §32). When a product has active variants, orders buy variants and
+    reserve variant-level stock; the base product price is only a default."""
+
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="variants")
+    label = models.CharField(max_length=120)                 # "M / Blue"
+    options = models.JSONField(default=dict, blank=True)     # {"Size":"M","Colour":"Blue"}
+    sku = models.CharField(max_length=64, blank=True)
+    price_cents = models.PositiveIntegerField(default=0)
+    track_inventory = models.BooleanField(default=True)
+    stock = models.IntegerField(default=0)
+    active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["price_cents", "label"]
+
+    def __str__(self):
+        return f"{self.product.name} — {self.label}"
 
     @property
     def in_stock(self) -> bool:
@@ -609,6 +654,8 @@ class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
     product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True,
                                 related_name="order_items")
+    variant = models.ForeignKey("publishing.ProductVariant", on_delete=models.SET_NULL,
+                                null=True, blank=True, related_name="order_items")
     name = models.CharField(max_length=200)
     unit_price_cents = models.PositiveIntegerField(default=0)
     quantity = models.PositiveIntegerField(default=1)
