@@ -11,6 +11,48 @@ from pathlib import Path
 
 # backend/ directory (this file is backend/config/settings.py).
 BASE_DIR = Path(__file__).resolve().parent.parent
+REPO_ROOT = BASE_DIR.parent  # where .env / .env.example live
+
+
+def load_env_file(path, environ=None) -> int:
+    """Load KEY=VALUE pairs from a .env file into the environment.
+
+    Real environment variables always win — a key already set is left untouched —
+    so this only fills in what the shell/host hasn't provided. Deliberately tiny
+    and dependency-free: blank lines and `#` comments are skipped, a leading
+    `export ` is tolerated, and surrounding single/double quotes are stripped.
+    Returns the number of keys it set. Never raises on a malformed line.
+    """
+    environ = os.environ if environ is None else environ
+    path = Path(path)
+    if not path.is_file():
+        return 0
+    set_count = 0
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[len("export "):].lstrip()
+        if "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        if not key:
+            continue
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
+        if key not in environ:  # real env wins
+            environ[key] = value
+            set_count += 1
+    return set_count
+
+
+# Load .env from the repo root before any setting is read, so a local .env works
+# out of the box (the documented copy-.env.example-to-.env flow). A custom path
+# can be given via DEVFORGE_ENV_FILE.
+load_env_file(os.environ.get("DEVFORGE_ENV_FILE", REPO_ROOT / ".env"))
 
 
 def env(key: str, default: str | None = None) -> str | None:
