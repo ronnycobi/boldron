@@ -194,6 +194,56 @@ class GeminiProviderTests(SimpleTestCase):
         from apps.model_router.catalog import profile_for
         self.assertIsNotNone(profile_for("gemini", "gemini-2.5-flash"))
 
+    def test_complete_maps_request_to_sdk(self):
+        import sys, types as pytypes
+        from apps.ai_providers.gemini_provider import GeminiProvider
+
+        captured = {}
+
+        class _Part:
+            @staticmethod
+            def from_text(text): return {"text": text}
+        class _Content:
+            def __init__(self, role, parts): self.role = role; self.parts = parts
+        class _Config:
+            def __init__(self, **kw): self.kw = kw
+        class _Meta:
+            prompt_token_count = 9; candidates_token_count = 4
+        class _Resp:
+            text = "Generated code."; usage_metadata = _Meta()
+        class _Models:
+            def generate_content(self, model, contents, config):
+                captured.update(model=model, contents=contents, config=config)
+                return _Resp()
+        class _Client:
+            def __init__(self, api_key=None): self.models = _Models()
+
+        google_mod = pytypes.ModuleType("google")
+        genai_mod = pytypes.ModuleType("google.genai")
+        types_mod = pytypes.ModuleType("google.genai.types")
+        types_mod.Part = _Part
+        types_mod.Content = _Content
+        types_mod.GenerateContentConfig = _Config
+        genai_mod.Client = _Client
+        genai_mod.types = types_mod
+        google_mod.genai = genai_mod
+
+        fakes = {"google": google_mod, "google.genai": genai_mod,
+                 "google.genai.types": types_mod}
+        with mock.patch.dict(sys.modules, fakes), \
+             mock.patch.dict("os.environ", {"GEMINI_API_KEY": "key-test"}, clear=False):
+            p = GeminiProvider()
+            self.assertTrue(p.is_available())
+            r = p.complete(CompletionRequest(
+                messages=[Message("user", "build")], system="Be helpful.",
+                model="gemini-2.5-pro", max_tokens=50))
+        self.assertEqual(r.text, "Generated code.")
+        self.assertEqual(r.provider, "gemini")
+        self.assertEqual(r.model, "gemini-2.5-pro")
+        self.assertEqual(r.usage.input_tokens, 9)
+        self.assertEqual(captured["config"].kw["system_instruction"], "Be helpful.")
+        self.assertEqual(captured["contents"][0].role, "user")
+
 
 class GenerationStatusTests(SimpleTestCase):
     def test_demo_mode_when_no_live_provider(self):

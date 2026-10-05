@@ -10,6 +10,13 @@ djangorestframework==3.17.1
 # in-process, no network).
 fastapi==0.141.1
 
+# AI provider SDKs. Each provider is credential-gated: the adapter only calls the
+# SDK when the matching API key is set in the environment, so these being present
+# never triggers a live call on their own. Anthropic is the default provider.
+anthropic==0.69.0
+openai==3.24.0
+google-genai==2.12.1
+
 # --- Added in later phases (kept here as commented targets) ------------------
 # psycopg[binary]        # Phase 1+: PostgreSQL driver
 # redis                  # Phase 4+: cache / queue
