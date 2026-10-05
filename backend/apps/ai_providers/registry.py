@@ -46,6 +46,27 @@ def default_provider_name() -> str:
     return getattr(settings, "AI_DEFAULT_PROVIDER", "stub")
 
 
+def live_providers() -> list:
+    """Real (non-stub) models that are actually available right now."""
+    return [p for p in registry.all() if getattr(p, "name", "") != "stub" and p.is_available()]
+
+
+def generation_available() -> bool:
+    """True when a real AI model is connected (not the offline stub)."""
+    return bool(live_providers())
+
+
+def generation_status() -> dict:
+    """Honest status for the UI: is real AI generation available, and what to do if not."""
+    live = live_providers()
+    if live:
+        return {"live": True, "provider": live[0].name,
+                "message": f"Connected to {live[0].name} — real generation is enabled."}
+    return {"live": False, "provider": None,
+            "message": ("No AI model connected — code generation runs in offline demo mode. "
+                        "Set an API key (e.g. ANTHROPIC_API_KEY) to enable real app generation.")}
+
+
 def get_provider(name: str | None = None) -> AIProvider:
     resolved = name or default_provider_name()
     if resolved not in registry:

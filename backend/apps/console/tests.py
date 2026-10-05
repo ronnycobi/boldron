@@ -116,6 +116,18 @@ class ControlCenterTests(TestCase):
         self.assertEqual(checks["Database"]["status"], "ok")       # a real SELECT 1
         self.assertEqual(checks["Storage"]["status"], "ok")        # workspaces writable
         self.assertEqual(checks["Deployment"]["status"], "unknown")  # no live target — honest
+        # AI is honest about demo mode: ok only when a real model is connected.
+        self.assertIn(checks["AI model"]["status"], ("ok", "unknown"))
+
+    def test_ai_demo_mode_surfaced_on_overview(self):
+        from unittest import mock
+        self.client.force_login(self.staff)
+        # No live model → the demo-mode banner shows.
+        with mock.patch("apps.ai_providers.registry.live_providers", return_value=[]):
+            r = self.client.get(reverse("console:overview"))
+            self.assertFalse(r.context["ai_status"]["live"])
+            self.assertContains(r, "demo mode")
+            self.assertContains(r, "ANTHROPIC_API_KEY")
 
 
 class LoginRedirectTests(TestCase):

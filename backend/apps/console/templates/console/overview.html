@@ -5,6 +5,14 @@
   <h1>Control Center</h1>
   <p class="sub">Is DevForge healthy? The whole platform, across every tenant, at a glance.</p>
 
+  {% if ai_status and not ai_status.live %}
+  <div class="card" style="border:1px solid var(--wait,#f59e0b);background:rgba(245,158,11,.10);margin-bottom:16px">
+    <div style="font-weight:700">⚠ No AI model connected — demo mode</div>
+    <p class="muted" style="margin:6px 0 0;font-size:13px">{{ ai_status.message }}
+      Builds will run, but generated code is a placeholder until a model key is set.</p>
+  </div>
+  {% endif %}
+
   <div class="cards">
     <div class="card stat"><div class="k">Organizations</div><div class="v grad">{{ stats.orgs }}</div></div>
     <div class="card stat"><div class="k">Users</div><div class="v">{{ stats.users }}</div></div>

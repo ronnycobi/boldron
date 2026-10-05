@@ -72,6 +72,8 @@ def overview(request):
 
     from apps.console.health import all_ok, system_health
     health = system_health()
+    from apps.ai_providers.registry import generation_status
+    ai_status = generation_status()
 
     # Live activity: the real audit trail, newest first.
     from apps.audit.models import AuditEvent
@@ -81,7 +83,7 @@ def overview(request):
     recent_orgs = Organization.objects.order_by("-created_at")[:6]
     awaiting = AgentTask.objects.filter(status=TaskStatus.WAITING_FOR_APPROVAL).count()
     return render(request, "console/overview.html", {
-        "active": "overview", "stats": stats,
+        "active": "overview", "stats": stats, "ai_status": ai_status,
         "health": health, "health_ok": all_ok(health),
         "activity": activity, "recent_orgs": recent_orgs, "awaiting": awaiting,
     })

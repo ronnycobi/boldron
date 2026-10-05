@@ -27,17 +27,6 @@ def _database():
     return True, connection.vendor
 
 
-def _ai_provider():
-    from apps.ai_providers.registry import default_provider_name, get_provider
-    name = default_provider_name()
-    prov = get_provider(name)
-    if prov.is_available():
-        return True, f"{name} available"
-    # The offline stub is the intended default when no key is set — that's healthy,
-    # not broken; it just isn't a live model.
-    return True, f"{name} (offline stub — no live model configured)"
-
-
 def _sandbox():
     from apps.build_sandbox.service import get_sandbox
     get_sandbox()
@@ -50,10 +39,19 @@ def _storage():
     return os.access(root, os.W_OK), str(root)
 
 
+def _ai_check() -> dict:
+    # AI gets its own status: "ok" when a real model is connected, otherwise
+    # "unknown" (demo mode) — not "down", since the offline stub still serves.
+    from apps.ai_providers.registry import generation_status
+    s = generation_status()
+    return {"name": "AI model", "status": "ok" if s["live"] else "unknown",
+            "detail": s["message"]}
+
+
 def system_health() -> list[dict]:
     checks = [
         _check("Database", _database),
-        _check("AI providers", _ai_provider),
+        _ai_check(),
         _check("Build sandbox", _sandbox),
         _check("Storage", _storage),
     ]

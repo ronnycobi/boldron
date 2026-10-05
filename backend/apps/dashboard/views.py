@@ -193,6 +193,11 @@ def overview(request):
             content=brief, source="builder")
         _start_build(project, brief, user)
         messages.success(request, "DevForge is building your project.")
+        from apps.ai_providers.registry import generation_available
+        if not generation_available():
+            messages.warning(request, "Heads up: no AI model is connected, so DevForge is "
+                                      "running in demo mode — generated output is a placeholder "
+                                      "until a model is connected.")
         return redirect("dashboard:project", pk=project.id)
 
     projects = Project.objects.filter(
