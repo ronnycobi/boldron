@@ -231,6 +231,11 @@ DEVFORGE_DOMAIN_TARGET = env("DEVFORGE_DOMAIN_TARGET", "hosting.devforge.app")
 # expire_orders job auto-cancels it (minutes). Default 24h.
 DEVFORGE_ORDER_RESERVATION_TTL_MINUTES = int(env("DEVFORGE_ORDER_RESERVATION_TTL_MINUTES", "1440"))
 
+# v1 ships "build new software" only. Bringing in and modernizing a customer's
+# EXISTING software (the import/analyze path) is paused until after v1; the code
+# stays, gated here. Set true to re-enable.
+DEVFORGE_IMPORT_ENABLED = env_bool("DEVFORGE_IMPORT_ENABLED", False)
+
 # Email. Real delivery when EMAIL_BACKEND points at SMTP and the host is set;
 # dev defaults to the console backend (prints emails) so nothing is faked and no
 # server is required. Tests capture via the locmem backend automatically.

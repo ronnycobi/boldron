@@ -1093,7 +1093,15 @@ def preview_live(request, pk, path=""):
 
 @login_required
 def import_software(request):
-    """Import an existing codebase (ZIP upload or Git connect) and analyze it."""
+    """Import an existing codebase (ZIP upload or Git connect) and analyze it.
+
+    Paused for v1 (DEVFORGE_IMPORT_ENABLED). DevForge v1 ships "build new software";
+    bringing in a customer's existing software returns to the dashboard with a note."""
+    from django.conf import settings
+    if not settings.DEVFORGE_IMPORT_ENABLED:
+        messages.info(request, "Importing existing software isn't available yet — "
+                               "DevForge v1 focuses on building new software. It's coming soon.")
+        return redirect("dashboard:home")
     from apps.ingest.analyzer import IngestError, extract_zip, import_codebase
     from apps.ingest.connect import PROVIDERS, fetch_repo_archive, parse_repo
 
@@ -1355,9 +1363,8 @@ def _handle_project_action(request, proj):
 # Customer-facing capabilities — outcomes only. The internal agent roster,
 # capability model and orchestration are proprietary and never exposed here.
 _CAPABILITIES = [
-    ("Build", "Turn a brief into working, tested software in the stack you choose."),
-    ("Understand", "Bring in an existing app and get a clear model of its architecture, APIs and data."),
-    ("Improve", "Modernize, refactor and fix — described in plain language, implemented and verified."),
+    ("Build", "Turn a brief into working, tested software — websites, web apps and mobile apps — in the stack you choose."),
+    ("Web & mobile", "Publish websites to a live URL and prepare Android & iOS releases for the app stores."),
     ("Test", "Every change is compiled and its tests actually run before it's called done."),
     ("Secure", "Code is scanned for secrets, injection and unsafe patterns as part of each change."),
     ("Deploy", "Promote to dev and staging; production changes stay behind an approval gate."),

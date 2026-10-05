@@ -149,6 +149,7 @@ class ImportCodebaseTests(TestCase):
         self.assertFalse(decision.data["capabilities"]["redis"]["foreign_keys"])
 
 
+@override_settings(DEVFORGE_IMPORT_ENABLED=True)   # the import capability (paused in v1 UX) still works
 class GitImportViewTests(TestCase):
     """The Analyze-Software page importing from a Git provider (fetch mocked)."""
 

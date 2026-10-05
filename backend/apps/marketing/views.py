@@ -19,20 +19,21 @@ from apps.technology.registry import registry as tech_registry
 # Public messaging shows OUTCOMES across the software lifecycle — never the
 # internal machinery (no agent names, orchestration, routing, permissions, or
 # model-selection logic). That topology is proprietary and stays behind auth.
+# v1 scope: DevForge builds NEW software — websites, web apps and mobile apps.
+# (Bringing in and modernizing a customer's EXISTING software is paused for v1 —
+# gated behind DEVFORGE_IMPORT_ENABLED.)
 _PILLARS = [
-    ("Build", "Turn ideas into working software in the technology stack you choose."),
-    ("Improve", "Analyze existing software, then fix, refactor, secure, and extend it."),
+    ("Build", "Turn ideas into working software — websites, web apps and mobile apps — in the stack you choose."),
+    ("Ship", "Publish websites to a live URL and prepare Android & iOS releases for the app stores."),
     ("Deploy", "Ship to dev and staging automatically; production stays behind an approval gate."),
     ("Operate", "Monitor, track cost per project, and keep improving — with a full audit trail."),
 ]
 
 _CAPABILITIES = [
     ("Build", "Turn ideas into working software.",
-     "Describe what you need and get designed, generated, and tested software you can run and export."),
-    ("Understand", "Analyze existing applications and codebases.",
-     "Bring in a repository and get a clear picture of its architecture, APIs, and data."),
-    ("Improve", "Find and resolve technical, security and performance issues.",
-     "Modernize, refactor and harden the software you already have."),
+     "Describe what you need and get websites, web apps and mobile apps — designed, generated and tested in the stack you choose."),
+    ("Web & mobile", "Ship to the web and the app stores.",
+     "Publish websites and web apps to a live URL, and prepare Android and iOS releases for Google Play and the App Store."),
     ("Test", "Validate software automatically.",
      "Generated projects come with tests that actually run."),
     ("Deploy", "Move applications into production environments.",
@@ -46,6 +47,7 @@ _BUILD_CATEGORIES = [
     ("Business applications", ["CRM", "ERP", "Operations software", "HR systems", "Finance systems"]),
     ("Customer products", ["SaaS", "Marketplaces", "Booking systems", "E-commerce", "Customer portals"]),
     ("Websites", ["Business websites", "Landing pages", "Marketing sites", "Directories"]),
+    ("Mobile apps", ["Android apps", "iOS apps", "App-store releases"]),
     ("Internal tools", ["Dashboards", "Approval systems", "Workflow tools", "Reporting"]),
     ("Developer products", ["APIs", "Backend systems", "Data applications", "Developer tools"]),
 ]
@@ -54,13 +56,8 @@ _EXAMPLES = [
     ("SaaS", "Build a SaaS platform where teams sign up, manage members and subscribe."),
     ("Website", "Build a professional website for my business with services and contact pages."),
     ("E-commerce", "Build an online store with a product catalog, cart, checkout and orders."),
-    ("Customer Portal", "Build a portal where clients log in, submit requests and track status."),
+    ("Mobile app", "Build a mobile app for Android and iOS with sign-in and a home feed."),
     ("Internal Tool", "Build an internal tool to manage tasks, approvals and reports."),
-]
-_IMPROVE_EXAMPLES = [
-    "Add WhatsApp support.", "Fix the checkout.", "Make the dashboard faster.",
-    "Add employee leave management.", "Add PayFast payments.",
-    "Redesign the customer portal.", "Modernize this old application.",
 ]
 
 
@@ -79,7 +76,6 @@ def home(request):
     ctx.update({
         "build_categories": _BUILD_CATEGORIES,
         "examples": _EXAMPLES,
-        "improve_examples": _IMPROVE_EXAMPLES,
         "capability_groups": by_group(),
     })
     return render(request, "marketing/home.html", ctx)
@@ -117,7 +113,7 @@ def pricing(request):
          "highlight": True},
         {"name": "Pro", "price": "$99", "credits": plans().get("business", 0),
          "blurb": "For businesses.",
-         "features": ["Higher AI allowance", "Improve existing software", "Team collaboration",
+         "features": ["Higher AI allowance", "Mobile apps (Android & iOS)", "Team collaboration",
                       "Monitoring", "More deployment capacity"]},
         {"name": "Business", "price": "Custom", "credits": None,
          "blurb": "For growing teams.",
