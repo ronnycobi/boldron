@@ -31,6 +31,28 @@ class BrandingTests(TestCase):
         self.assertIn("Application", html)  # the neutral default identity
 
 
+class TechnologyConfidentialityTests(TestCase):
+    """The platform's own implementation stack must never appear on customer-facing
+    pages. (Customer-project technologies like Python/Go/React may appear — they
+    belong to the customer; these platform-specific terms must not.)"""
+
+    FORBIDDEN = ["Django", "Django REST", "DRF", "PostgreSQL", "psycopg",
+                 "Celery", "Redis", "Docker", "Kubernetes"]
+    PAGES = ["home", "platform", "how_it_works", "capabilities", "pricing", "about"]
+
+    def test_public_pages_hide_the_implementation_stack(self):
+        for name in self.PAGES:
+            body = self.client.get(reverse("marketing:" + name)).content.decode()
+            for term in self.FORBIDDEN:
+                self.assertNotIn(term, body, f"{term!r} leaked on marketing:{name}")
+
+    def test_health_endpoint_reveals_no_framework(self):
+        body = self.client.get("/api/v1/health/").json()
+        self.assertEqual(set(body), {"service", "status"})
+        for term in ("django", "version", "framework", "python"):
+            self.assertNotIn(term, body)
+
+
 class PublicPagesTests(TestCase):
     PAGES = ["home", "platform", "how_it_works", "capabilities", "pricing", "about", "contact", "signup"]
 

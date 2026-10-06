@@ -124,7 +124,7 @@
       <a href="{% url 'marketing:signup' %}">Sign up</a>
     </div>
   </div>
-  <div class="wrap" style="margin-top:24px">© {{ app_name }}. Built on Django · DRF · PostgreSQL.</div>
+  <div class="wrap" style="margin-top:24px">© {% now "Y" %} {{ app_company_name }}. All rights reserved.</div>
   </footer>
 </body>
 </html>

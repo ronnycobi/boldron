@@ -49,7 +49,9 @@ class HealthEndpointTests(TestCase):
         body = resp.json()
         self.assertEqual(body["service"], "application")  # slug of default APP_NAME
         self.assertEqual(body["status"], "ok")
-        self.assertIn("django", body)
+        # Tech-confidentiality: the probe must not leak the framework or its version.
+        self.assertNotIn("django", body)
+        self.assertNotIn("version", body)
 
     def test_health_is_public(self):
         # No authentication set up; the probe must still be reachable.

@@ -81,19 +81,20 @@ def _deterministic(project, detected: dict) -> dict:
     top = ", ".join(features[:3]) if features else "the tools your team needs"
     short = f"{name}: {top}"[:_SHORT_MAX]
 
+    # The listing is the CUSTOMER's app-store copy — it must not carry platform
+    # attribution or implementation details. It describes their app only.
     if features:
         bullets = "\n".join(f"• {f}" for f in features)
         full = (
             f"{name} brings your workflow together in one app.\n\n"
-            f"What you can do:\n{bullets}\n\n"
-            f"Built with {settings.APP_NAME}."
+            f"What you can do:\n{bullets}"
         )
         feature_descriptions = [
             {"title": f, "description": f"Manage {f.lower()} directly from {name}."}
             for f in features
         ]
     else:
-        full = f"{name} — built with {settings.APP_NAME}."
+        full = f"{name} — {top}."
         feature_descriptions = []
 
     keywords = []

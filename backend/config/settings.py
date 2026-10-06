@@ -181,6 +181,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Strip implementation/technology fingerprint headers from every response.
+    "apps.core.middleware.TechnologyConfidentialityMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -345,6 +347,14 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
+    # JSON only in production. The browsable API advertises the framework (its UI
+    # is branded "Django REST framework"), so it is enabled only in local DEBUG.
+    "DEFAULT_RENDERER_CLASSES": (
+        ["rest_framework.renderers.JSONRenderer"]
+        + (["rest_framework.renderers.BrowsableAPIRenderer"] if DEBUG else [])
+    ),
+    # Unhandled errors return a generic message; details go to internal logs only.
+    "EXCEPTION_HANDLER": "apps.core.exceptions.confidential_exception_handler",
 }
 
 # --- Security (tightened automatically when DEBUG is off) -------------------
