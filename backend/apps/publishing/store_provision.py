@@ -1,11 +1,11 @@
 """Wire the e-commerce engine into the build flow (spec §32).
 
-When a build's brief implies a store, DevForge sets up the store CAPABILITY for that
+When a build's brief implies a store, the platform sets up the store CAPABILITY for that
 project — a Website, a starter catalogue, a default shipping option, and generated
 storefront pages — all connected to the tested engine (products/cart/checkout/
 payments/inventory), rather than an agent hand-writing a bespoke store.
 
-Starter products are DRAFTS the merchant edits: DevForge doesn't know the real
+Starter products are DRAFTS the merchant edits: the platform doesn't know the real
 catalogue, so it proposes editable starters (AI when a model is available, otherwise
 one clearly-labelled sample). Nothing is faked as a real product.
 """

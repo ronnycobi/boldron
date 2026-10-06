@@ -1,11 +1,11 @@
-"""The DevForge Capability Platform — the building blocks an app can be given.
+"""The Capability Platform — the building blocks an app can be given.
 
-A customer describes an outcome ("a CRM for my construction company"); DevForge
+A customer describes an outcome ("a CRM for my construction company"); the platform
 infers the capabilities that outcome needs (auth, database, email, …) instead of
 making them configure each one. This registry is the catalogue, grouped, with an
 HONEST status per capability:
 
-  - "available"  : DevForge genuinely provides or builds this today.
+  - "available"  : the platform genuinely provides or builds this today.
   - "planned"    : on the roadmap; not offered yet.
 
 Status is the guardrail behind the product principle "market only what we

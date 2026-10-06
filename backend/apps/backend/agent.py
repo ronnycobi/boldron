@@ -1,10 +1,10 @@
 """Backend Agent — implements the backend in the project's chosen stack.
 
 The stack comes from (in order) task input `stack`, the project's technology
-profile (`technology.backend`), or the default `python-stdlib`. DevForge is
+profile (`technology.backend`), or the default `python-stdlib`. the platform is
 stack-agnostic: the agent resolves a Stack runner (technology.stacks) and uses its
 scaffolder + guidance, so Django, a stdlib project, or any future stack all flow
-through the same code. A requested stack that DevForge can't yet generate fails
+through the same code. A requested stack that the platform can't yet generate fails
 honestly (it names the blocker) rather than silently generating the wrong thing.
 
 It persists the API design (pipeline intact), writes files into the project git
@@ -13,6 +13,7 @@ compile failures are reported, not hidden.
 """
 from __future__ import annotations
 
+from django.conf import settings
 from django.utils.text import slugify
 
 from apps.agents.base import AgentContext, AgentResult, BaseAgent
@@ -59,7 +60,7 @@ class BackendAgent(BaseAgent):
         if tech is not None:
             return None, (
                 f"Stack '{stack_id}' ({tech.name}) is a known technology but "
-                "DevForge cannot generate it yet (generation planned)."
+                f"{settings.APP_NAME} cannot generate it yet (generation planned)."
             )
         return None, f"Unknown stack '{stack_id}'."
 

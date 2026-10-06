@@ -2,7 +2,7 @@
 
 python-stdlib is the generic Python baseline — usually plain modules + unittest,
 not a web app. So this scaffolder is a no-op UNLESS the app opts into being a web
-server by exposing a WSGI callable `application` in app.py. When it does, DevForge
+server by exposing a WSGI callable `application` in app.py. When it does, the platform
 adds a wsgiref server entrypoint (stdlib only, no installs) and a devforge.json
 `run` block so the preview runner can serve it on $PORT. Non-web projects are left
 exactly as generated.

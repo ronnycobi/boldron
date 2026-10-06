@@ -4,7 +4,7 @@ Always persists screens as SCREEN context entries (keyed by name, upsert). When
 the project's frontend technology maps to a runnable frontend Stack (e.g. React),
 it also generates real source and runs it through the shared verify → repair loop
 (codegen.repair): the framework app is committed for export, and its framework-
-free logic layer is unit-tested here with `node --test`. Frameworks DevForge
+free logic layer is unit-tested here with `node --test`. Frameworks the platform
 can't run yet (no toolchain) stay design-only — recorded, honestly not faked.
 
 Declares/enforces only read-architecture + read/write-frontend + run-tests — it
@@ -84,7 +84,7 @@ class FrontendAgent(BaseAgent):
         response = self._complete(system, [Message("user", user_prompt)])
 
         # Generate + verify runnable source through the shared loop (when the
-        # chosen framework is one DevForge can run). Otherwise stay design-only.
+        # chosen framework is one the platform can run). Otherwise stay design-only.
         outcome = None
         if stack is not None:
             outcome = verify_and_repair(

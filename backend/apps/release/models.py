@@ -10,7 +10,7 @@ or a raw secret. Store and signing credentials are held only as opaque *referenc
 never receive the secret material; a signing service resolves references out of
 band. Reference fields are documented as such and must never be logged.
 
-Relationships reuse existing DevForge infrastructure (spec §44): Organization,
+Relationships reuse existing the platform infrastructure (spec §44): Organization,
 Project, User, and the Deployment/Build/Audit systems — no duplicate tenanting.
 """
 from __future__ import annotations
@@ -34,7 +34,7 @@ class MobilePlatform(models.TextChoices):
 
 
 class SigningMode(models.TextChoices):
-    DEVFORGE_MANAGED = "managed", "DevForge-managed"
+    DEVFORGE_MANAGED = "managed", "Platform-managed"
     CUSTOMER_MANAGED = "customer", "Customer-managed"
 
 
@@ -65,7 +65,7 @@ class StoreConnection(models.Model):
 
     `credential_reference` is an OPAQUE handle into a vault — never the secret. A
     connection is CONNECTED only after a live verify succeeds; until then it stays
-    NOT_CONNECTED/INCOMPLETE. DevForge never stores broader scopes than granted and
+    NOT_CONNECTED/INCOMPLETE. the platform never stores broader scopes than granted and
     never requests broader silently (spec §6)."""
 
     provider = models.CharField(max_length=32)  # providers.get_provider key
@@ -158,7 +158,7 @@ class StoreApplication(models.Model):
 
 # --- builds & signing ----------------------------------------------------------
 class MobileBuild(models.Model):
-    """A produced artifact for one platform (spec §36). Offline, DevForge records
+    """A produced artifact for one platform (spec §36). Offline, the platform records
     the intent to build; it does not fake a compiled binary it cannot produce."""
 
     mobile_application = models.ForeignKey(
@@ -360,7 +360,7 @@ class ReleaseEvent(models.Model):
 
 
 class ReleaseRejection(models.Model):
-    """A store rejection and DevForge's analysis of it (spec §23).
+    """A store rejection and the platform's analysis of it (spec §23).
 
     `raw_text` is the store's actual message — from the store API when connected, or
     pasted by the customer from the rejection they received. `source` records which."""
@@ -375,7 +375,7 @@ class ReleaseRejection(models.Model):
     recommendation = models.CharField(max_length=1000, blank=True)
     compliance_sensitive = models.BooleanField(default=False)
     affected_capabilities = models.JSONField(default=list, blank=True)
-    # The DevForge change created to fix it (its normal approval-gated modify loop).
+    # The the platform change created to fix it (its normal approval-gated modify loop).
     change = models.ForeignKey(
         "changes.ChangeRequest", on_delete=models.SET_NULL, null=True, blank=True,
         related_name="rejections",

@@ -128,7 +128,7 @@ def _notify(form: Form, cleaned: dict) -> bool:
 
 
 def embed_html(form: Form, *, action_base="") -> str:
-    """A copy-paste HTML snippet for the customer's site. Posts to the DevForge form
+    """A copy-paste HTML snippet for the customer's site. Posts to the platform form
     endpoint; includes a honeypot field for spam."""
     action = f"{action_base}/sites/{form.website.subdomain}/f/{form.slug}"
     rows = []

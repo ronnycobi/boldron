@@ -1,7 +1,7 @@
 """Website publishing orchestration (spec §4, §12, §15, §17, §18, §41, §50).
 
 publish(): compute readiness → build the site into an immutable versioned snapshot
-via the host → serve it at a working DevForge URL → real health check → mark LIVE
+via the host → serve it at a working the platform URL → real health check → mark LIVE
 and make it the current version. If the build produces nothing servable, it fails
 honestly (state FAILED) rather than showing a fake "Live".
 

@@ -1,6 +1,6 @@
 """Customer-facing translation of internal work into plain outcomes.
 
-The Client Transparency Boundary (docs/PRODUCT.md): the customer sees WHAT DevForge
+The Client Transparency Boundary (docs/PRODUCT.md): the customer sees WHAT the platform
 did, never the internal agent that did it. Every customer-facing view runs task /
 step identifiers through friendly_step() so proprietary agent names, capabilities
 and orchestration never reach the UI.

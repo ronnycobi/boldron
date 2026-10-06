@@ -91,7 +91,7 @@ class ArchitectAgent(BaseAgent):
             )
 
         # Propose a technology stack per role for the user to select. The model
-        # recommends + explains; DevForge fills the options from the registry
+        # recommends + explains; the platform fills the options from the registry
         # (so the proposal is reliable even when the model returns nothing).
         proposal = self._build_stack_proposal(parse_stacks(response.text))
         ctx.set(

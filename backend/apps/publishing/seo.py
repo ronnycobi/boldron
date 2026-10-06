@@ -4,7 +4,7 @@ Works on the site's REAL built pages: it audits the actual HTML, drafts metadata
 from real page content (AI when a model is available, otherwise a deterministic
 draft from headings/filename), and produces genuine sitemap.xml / robots.txt. AI
 output is a draft the customer edits and approves — nothing is applied to the pages
-until an explicit apply step, and DevForge never guarantees rankings (spec §27).
+until an explicit apply step, and the platform never guarantees rankings (spec §27).
 """
 from __future__ import annotations
 
@@ -199,7 +199,7 @@ def build_robots(website, *, allow=True) -> str:
 # --- apply metadata into HTML (idempotent) -------------------------------------
 def apply_meta_to_html(html: str, meta: dict) -> str:
     """Insert/replace title + description + canonical + OG in <head>. Idempotent:
-    re-applying replaces DevForge-managed tags rather than duplicating them."""
+    re-applying replaces the platform-managed tags rather than duplicating them."""
     tags = _managed_tags(meta)
     # Remove any previously managed block, then existing title/description we manage.
     html = re.sub(r"\n?\s*<!-- devforge:seo -->.*?<!-- /devforge:seo -->", "", html, flags=re.S)

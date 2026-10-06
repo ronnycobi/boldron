@@ -1,4 +1,4 @@
-"""Built-in tools — capability-gated wrappers over DevForge's real services.
+"""Built-in tools — capability-gated wrappers over the platform's real services.
 
 These are the concrete tools agents use: read/write the project repo, search
 code, run the test suite, and execute code in the sandbox. Each wraps an existing,
@@ -106,7 +106,7 @@ class RepoWriteTool(Tool):
             return ToolResult.success({"written": len(files)})
         if action == "commit":
             try:
-                sha = repo.commit(kwargs.get("message", "DevForge change"))
+                sha = repo.commit(kwargs.get("message", "the platform change"))
             except GitError:
                 sha = None  # nothing actually changed — not an error
             return ToolResult.success({"commit": sha})

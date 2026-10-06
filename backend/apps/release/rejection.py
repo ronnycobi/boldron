@@ -1,6 +1,6 @@
 """Store rejection analysis (spec §23).
 
-When a store rejects a release, DevForge parses the reason, explains it, points to
+When a store rejects a release, the platform parses the reason, explains it, points to
 the feature it affects, and suggests a fix — then a human approves before anything
 is changed. Compliance-sensitive functionality is never modified automatically.
 
@@ -106,7 +106,7 @@ def _summarize(cat: Category, text: str) -> str:
 
 
 def fix_description(analysis: dict, *, app_name: str) -> str:
-    """The change-request description used to drive DevForge's normal modify→test→
+    """The change-request description used to drive the platform's normal modify→test→
     build loop. For compliance categories it asks for a reviewed change, not a
     silent automated one."""
     lead = f"Address the app-store rejection for {app_name} in the “{analysis['label']}” area."

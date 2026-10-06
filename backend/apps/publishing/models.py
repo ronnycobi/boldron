@@ -1,11 +1,11 @@
 """Website Creation & Publishing — data model (spec §5, §17, §41, §42).
 
 Phase 1 (spec §51): a project's website facet, versioned publishes, a working
-DevForge URL, health, and rollback. Reuses existing DevForge infrastructure
+the platform URL, health, and rollback. Reuses existing the platform infrastructure
 (Project/Organization/Repository/Audit) rather than duplicating it (spec §1).
 
 HONESTY (spec §50): a PublishVersion is only LIVE when its build was actually
-snapshotted and is served by DevForge. Public custom-domain + SSL hosting needs
+snapshotted and is served by the platform. Public custom-domain + SSL hosting needs
 cloud/DNS infra that isn't configured here; that stays a Phase-2 gated path and is
 never shown as active until it is.
 """
@@ -58,7 +58,7 @@ class PublishVersion(models.Model):
     environment = models.CharField(max_length=20, default="production")
     host = models.CharField(max_length=32, default="devforge_local")
     state = models.CharField(max_length=20, choices=PublishState.choices, default=PublishState.DRAFT)
-    url = models.CharField(max_length=1024, blank=True)       # working DevForge URL when live
+    url = models.CharField(max_length=1024, blank=True)       # working the platform URL when live
     artifact_dir = models.CharField(max_length=1024, blank=True)  # snapshot served for this version
     commit = models.CharField(max_length=40, blank=True)
     health = models.CharField(max_length=16, default="unknown")   # unknown / healthy / down
@@ -80,7 +80,7 @@ class PublishVersion(models.Model):
 
 
 class CustomDomain(models.Model):
-    """A custom domain a customer wants to point at their DevForge site (spec §19).
+    """A custom domain a customer wants to point at their published site (spec §19).
 
     HONESTY: `verification_status` becomes 'verified' only when a real DNS lookup
     finds the token; `ssl_status` becomes 'active' only when a real certificate is
@@ -305,9 +305,9 @@ class PageView(models.Model):
 class HealthCheck(models.Model):
     """One recorded health probe of a published site (spec §36).
 
-    HONEST SCOPE: this probes the site DevForge actually serves — is the current
+    HONEST SCOPE: this probes the site the platform actually serves — is the current
     published snapshot present and readable, and how long did serving it take. Remote
-    server metrics (CPU/memory/traffic of a box DevForge doesn't run) are not
+    server metrics (CPU/memory/traffic of a box the platform doesn't run) are not
     monitored here and are shown as such, never faked."""
 
     website = models.ForeignKey(Website, on_delete=models.CASCADE, related_name="health_checks")
@@ -377,7 +377,7 @@ class ContentItem(models.Model):
 
 
 class AcmeChallenge(models.Model):
-    """An ACME HTTP-01 challenge DevForge serves for SSL issuance (spec §22).
+    """An ACME HTTP-01 challenge the platform serves for SSL issuance (spec §22).
 
     During issuance an ACME client (Let's Encrypt et al.) stores a token + key
     authorization here; the CA then fetches /.well-known/acme-challenge/<token> and

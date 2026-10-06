@@ -1,5 +1,5 @@
 {% extends "dashboard/base_dash.html" %}
-{% block title %}Build · {{ brand_name }}{% endblock %}
+{% block title %}Build · {{ app_name }}{% endblock %}
 {% block crumb %}Home{% endblock %}
 {% block content %}
   <style>
@@ -20,7 +20,7 @@
 
   <div class="builder">
     <h1>What do you want to build?</h1>
-    <p class="sub">Describe it in your own words. {{ brand_name }} turns your idea into working software.</p>
+    <p class="sub">Describe it in your own words. {{ app_name }} turns your idea into working software.</p>
 
     <form method="post" id="buildform">
       {% csrf_token %}
@@ -52,7 +52,7 @@
     {% endfor %}
   </div>
   {% else %}
-  <div class="card"><p class="empty">No projects yet — describe one above and {{ brand_name }} will build it.</p></div>
+  <div class="card"><p class="empty">No projects yet — describe one above and {{ app_name }} will build it.</p></div>
   {% endif %}
 
   {{ placeholders|json_script:"phs" }}

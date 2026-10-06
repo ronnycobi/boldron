@@ -1,4 +1,4 @@
-"""Connectors — DevForge's MCP-style layer for reaching external systems.
+"""Connectors — the platform's MCP-style layer for reaching external systems.
 
 A Connector is a Tool (so it registers in the same Tool Registry and is enforced by
 the same Toolbelt — one permission choke point), plus two extra rules that matter for

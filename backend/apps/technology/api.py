@@ -36,7 +36,7 @@ class TechnologyListView(APIView):
 
 
 class StackListView(APIView):
-    """Stacks DevForge can generate AND run today (the executable subset)."""
+    """Stacks the platform can generate AND run today (the executable subset)."""
 
     def get(self, request):
         return Response(

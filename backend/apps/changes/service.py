@@ -123,7 +123,7 @@ def approve(change: ChangeRequest, user) -> ChangeRequest:
         change.status = ChangeStatus.PLANNED
     change.save(update_fields=["approved", "approved_by", "status", "updated_at"])
     # Approving the change approves its migration too, so it's ready to apply at
-    # deploy (DevForge doesn't apply to a customer DB it has no connection to).
+    # deploy (the platform doesn't apply to a customer DB it has no connection to).
     if change.migration_id and not change.migration.approved:
         migration_service.approve(change.migration, user)
     from apps.audit.service import record

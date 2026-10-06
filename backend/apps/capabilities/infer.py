@@ -1,7 +1,7 @@
 """Infer the capabilities an app needs from a plain-language brief.
 
 Deterministic and offline: keyword rules map what the customer said to capability
-ids, on top of a baseline every app gets. This is what lets DevForge "understand"
+ids, on top of a baseline every app gets. This is what lets the platform "understand"
 that a CRM needs auth, a database, email and a dashboard without the customer
 configuring each — an AI pass can refine it later. Returns Capability objects so
 callers can show names + honest availability.

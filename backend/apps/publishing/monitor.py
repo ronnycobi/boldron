@@ -1,12 +1,12 @@
 """Website health monitoring (spec §36).
 
-run_check() performs a REAL probe of the site DevForge serves: it asks the host
+run_check() performs a REAL probe of the site the platform serves: it asks the host
 whether the current published snapshot is present and readable and times how long
 that takes, recording a HealthCheck row. uptime_summary() aggregates those real
 checks into current status, uptime %, average response time, and incidents.
 
-HONEST SCOPE (spec §50): this monitors what DevForge actually hosts. Remote-server
-resource metrics (CPU/memory/bandwidth of a box DevForge doesn't run), and true
+HONEST SCOPE (spec §50): this monitors what the platform actually hosts. Remote-server
+resource metrics (CPU/memory/bandwidth of a box the platform doesn't run), and true
 network-RTT uptime from external probes, need a connected server / probe network
 that isn't configured here — those are reported as "not monitored", never faked.
 Automatic scheduled probing needs a scheduler; checks here run on publish and on

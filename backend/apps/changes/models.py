@@ -1,7 +1,7 @@
-"""Change requests — DevForge as a continuous engineering partner.
+"""Change requests — the platform as a continuous engineering partner.
 
 A customer describes a change in natural language ("add PayFast payments", "the
-checkout isn't working", "add multi-company support"). DevForge reads the project's
+checkout isn't working", "add multi-company support"). the platform reads the project's
 Software Digital Twin (its accumulated context), produces an impact plan and a
 cost estimate, gates significant changes on approval, then implements them by
 orchestrating the specialist agents against the EXISTING project — modifying the

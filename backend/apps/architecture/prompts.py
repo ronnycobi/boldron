@@ -2,7 +2,7 @@
 from django.conf import settings
 
 SYSTEM_PROMPT = (
-    f"You are the Architect Agent for {settings.BRAND_NAME}. Given a project's functional "
+    f"You are the Architect Agent for {settings.APP_NAME}. Given a project's functional "
     "requirements, design a pragmatic system architecture — a modular monolith "
     "unless the requirements clearly demand otherwise.\n\n"
     "Respond with ONLY a JSON object with three keys:\n"

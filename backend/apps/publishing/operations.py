@@ -1,13 +1,13 @@
 """AI operations advisor (spec §37).
 
 BUILD → OPERATE → IMPROVE. After a site is published, this inspects the REAL
-operational signals DevForge already collects — monitoring (response time, incidents),
+operational signals the platform already collects — monitoring (response time, incidents),
 analytics (traffic, conversion), asset sizes, page weight, the SEO and accessibility
 audits, publish state and domain/SSL status — and turns them into prioritized,
 explained findings with a concrete recommended action.
 
 HONESTY: every finding is derived from actual measured data (never invented
-metrics). Fixes that mean a code change go through DevForge's existing approval-gated
+metrics). Fixes that mean a code change go through the platform's existing approval-gated
 ChangeRequest loop — nothing is auto-applied. Tool-level fixes (optimize an image,
 generate SEO, add a form) link to the real tool that does it.
 """
@@ -15,6 +15,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+
+from django.conf import settings
 
 from apps.repositories.service import repo_for_project
 
@@ -113,7 +115,7 @@ def _performance(website, out):
                 "page_weight", "Performance", "medium",
                 f"{len(big)} page(s) are heavy",
                 f"These pages are over {LARGE_PAGE // 1024} KB of HTML: {', '.join(big[:3])}.",
-                "Trim inline assets and split large pages; DevForge can propose a fix.",
+                f"Trim inline assets and split large pages; {settings.APP_NAME} can propose a fix.",
                 _change("Create a performance fix")))
 
 

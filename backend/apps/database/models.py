@@ -5,7 +5,7 @@ it does, how to undo it, its risk, whether it needs approval, and â€” once run â
 whether it applied. It is engine-agnostic (the SQL/ops are the caller's; the
 provider runs them) and safety-gated: destructive operations require explicit
 approval before they can be applied. This is the customer-project migration
-record; it is unrelated to DevForge's own Django migrations.
+record; it is unrelated to the platform's own Django migrations.
 """
 from __future__ import annotations
 

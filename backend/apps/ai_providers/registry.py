@@ -1,6 +1,6 @@
 """Registry of AI providers, and the gateway used to call them.
 
-The gateway is the single entry point the rest of DevForge uses to run a
+The gateway is the single entry point the rest of the platform uses to run a
 completion. It resolves a provider (explicit, or the configured default) and
 delegates. The Model Router (Phase 7) will layer smart provider/model selection
 on top of this; today the choice is "explicit provider, or the default".

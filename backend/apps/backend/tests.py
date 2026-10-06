@@ -40,7 +40,7 @@ BROKEN_JSON = json.dumps(
     {"endpoints": [], "files": [{"path": "bad.py", "content": "def broken(:\n  pass\n"}]}
 )
 
-# A Django app (models + ORM tests) — DevForge scaffolds the project around it.
+# A Django app (models + ORM tests) — the platform scaffolds the project around it.
 DJANGO_JSON = json.dumps(
     {
         "app_label": "shop",
@@ -133,7 +133,7 @@ class BackendCodegenFlowTests(TestCase):
         self.assertEqual(task.output["stack"], "django")
         self.assertEqual(task.output["app_label"], "shop")
         self.assertTrue(task.output["verified"])
-        # DevForge supplied the scaffold; the model supplied the app.
+        # the platform supplied the scaffold; the model supplied the app.
         self.assertIn("manage.py", files)
         self.assertIn("settings.py", files)
         self.assertIn("devforge.json", files)
@@ -179,7 +179,7 @@ class BackendCodegenFlowTests(TestCase):
         self.assertEqual(task.status, "completed")
         self.assertEqual(task.output["stack"], "node")
         self.assertIn("app.js", files)
-        self.assertIn("package.json", files)  # DevForge scaffolded
+        self.assertIn("package.json", files)  # the platform scaffolded
         self.assertIn("devforge.json", files)
 
     def test_go_mode_scaffolds_module(self):
@@ -199,7 +199,7 @@ class BackendCodegenFlowTests(TestCase):
         self.assertEqual(task.status, "completed")
         self.assertEqual(task.output["stack"], "go")
         self.assertIn("app.go", files)
-        self.assertIn("go.mod", files)  # DevForge scaffolded
+        self.assertIn("go.mod", files)  # the platform scaffolded
         self.assertIn("devforge.json", files)
 
     def test_stack_comes_from_project_technology_profile(self):
@@ -211,7 +211,7 @@ class BackendCodegenFlowTests(TestCase):
         self.assertIn("manage.py", files)
 
     def test_unsupported_stack_fails_honestly(self):
-        # A known technology DevForge can't generate yet -> honest blocker, no fake.
+        # A known technology the platform can't generate yet -> honest blocker, no fake.
         task, _ = self._run(GOOD_JSON, task_input={"stack": "nextjs"})
         self.assertEqual(task.status, "failed")
         self.assertIn("cannot generate it yet", task.error)

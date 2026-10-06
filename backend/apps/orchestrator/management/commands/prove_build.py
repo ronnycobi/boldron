@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import shutil
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 
 from apps.accounts.models import User
@@ -45,7 +46,7 @@ class Command(BaseCommand):
         provider = default_provider_name()
         available = get_provider(provider).is_available()
         w = self.stdout.write
-        w(self.style.MIGRATE_HEADING(f"\nDevForge end-to-end build: {brief!r}"))
+        w(self.style.MIGRATE_HEADING(f"\n{settings.APP_NAME} end-to-end build: {brief!r}"))
         w(f"Provider: {provider} (available={available})")
         if provider == "stub" or not available:
             w(self.style.WARNING(
@@ -54,7 +55,7 @@ class Command(BaseCommand):
             ))
 
         user, _ = User.objects.get_or_create(
-            email="proof@devforge.local", defaults={"full_name": "Proof Runner"}
+            email="proof@example.com", defaults={"full_name": "Proof Runner"}
         )
         organization = Organization.objects.create(name=org, created_by=user)
         organization.add_member(user, role=Role.OWNER)

@@ -14,9 +14,9 @@ from django.shortcuts import redirect, render
 
 def _brand(text: str) -> str:
     """Fill the {brand} placeholder in marketing copy with the configured brand
-    name, so a rebrand (settings.BRAND_NAME) flows through the Python-side copy
+    name, so a rebrand (settings.APP_NAME) flows through the Python-side copy
     just like it does through {{ brand_name }} in templates."""
-    return text.replace("{brand}", settings.BRAND_NAME)
+    return text.replace("{brand}", settings.APP_NAME)
 
 from apps.credits.services import ensure_account, plans
 from apps.marketing.models import ContactMessage
@@ -27,7 +27,7 @@ from apps.technology.registry import registry as tech_registry
 # Public messaging shows OUTCOMES across the software lifecycle — never the
 # internal machinery (no agent names, orchestration, routing, permissions, or
 # model-selection logic). That topology is proprietary and stays behind auth.
-# v1 scope: DevForge builds NEW software — websites, web apps and mobile apps.
+# v1 scope: the platform builds NEW software — websites, web apps and mobile apps.
 # (Bringing in and modernizing a customer's EXISTING software is paused for v1 —
 # gated behind DEVFORGE_IMPORT_ENABLED.)
 _PILLARS = [

@@ -1,4 +1,4 @@
-"""Built-in, code-defined global skills. These ship with DevForge; org/project skills
+"""Built-in, code-defined global skills. These ship with the platform; org/project skills
 are authored on top of them in the DB. Each is a plain dict so builtins and DB rows
 share one shape in the selector."""
 
@@ -7,7 +7,7 @@ BUILTIN_SKILLS = [
         "slug": "ecommerce",
         "name": "E-commerce store",
         "keywords": ["shop", "store", "ecommerce", "e-commerce", "product", "cart", "checkout", "sell"],
-        "body": ("This is an online store. Use DevForge's commerce engine (products, "
+        "body": ("This is an online store. Use the platform's commerce engine (products, "
                  "cart, checkout, inventory, discounts, tax, shipping, orders) as the "
                  "source of truth — do not hand-write payment or stock logic. Include a "
                  "product listing, product pages, a cart and a checkout flow."),

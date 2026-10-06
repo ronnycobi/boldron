@@ -7,7 +7,7 @@ flow. The model is asked for a strict JSON array; the agent parses defensively
 from django.conf import settings
 
 SYSTEM_PROMPT = (
-    f"You are the Requirements Agent for {settings.BRAND_NAME}, an AI software-engineering "
+    f"You are the Requirements Agent for {settings.APP_NAME}, an AI software-engineering "
     "platform. Given a short product brief, produce clear, testable functional "
     "requirements.\n\n"
     "Respond with ONLY a JSON array. Each element is an object with:\n"

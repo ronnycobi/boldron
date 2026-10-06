@@ -1,7 +1,7 @@
 """Deterministic static security scanner for generated/imported code.
 
 No model, no network — a focused set of high-signal rules over source text, so it
-runs offline and never fabricates. It catches the classes DevForge must never
+runs offline and never fabricates. It catches the classes the platform must never
 ship: hard-coded secrets, code/command injection sinks, unsafe deserialization,
 and a few framework foot-guns. Rules are intentionally conservative (a quoted
 literal for secrets, specific sink calls) to keep false positives low; it is a

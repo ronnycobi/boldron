@@ -1,9 +1,9 @@
 """Custom-domain host routing (spec §19, §40).
 
 When a request arrives on a customer's own domain (e.g. www.acme.com) that is
-VERIFIED in DevForge, serve that website's current published snapshot — real
+VERIFIED in the platform, serve that website's current published snapshot — real
 Host-header virtual hosting. This is what makes a verified custom domain actually
-serve the site once DevForge is deployed publicly with the domain pointed at it.
+serve the site once the platform is deployed publicly with the domain pointed at it.
 
 Honest scope: only domains that are verified in our database are served (a
 controlled allowlist), and only their published files (no code execution). Requests

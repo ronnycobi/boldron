@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import io
 import re
+
+from django.conf import settings
 from urllib.parse import quote
 
 import requests
@@ -92,7 +94,7 @@ def fetch_repo_archive(provider: str, owner: str, repo: str,
         if ref:
             url += f"/{quote(ref, safe='')}"
         headers = {"Accept": "application/vnd.github+json",
-                   "User-Agent": "DevForge-Ingest"}
+                   "User-Agent": f"{settings.APP_NAME}-Ingest"}
         if token:
             headers["Authorization"] = f"Bearer {token}"
     else:  # gitlab
@@ -100,7 +102,7 @@ def fetch_repo_archive(provider: str, owner: str, repo: str,
         url = f"https://gitlab.com/api/v4/projects/{project}/repository/archive.zip"
         if ref:
             url += f"?sha={quote(ref, safe='')}"
-        headers = {"User-Agent": "DevForge-Ingest"}
+        headers = {"User-Agent": f"{settings.APP_NAME}-Ingest"}
         if token:
             headers["PRIVATE-TOKEN"] = token
 

@@ -1,10 +1,10 @@
 {% extends "dashboard/base_dash.html" %}
 {% load devforge %}
-{% block title %}Activity · {{ brand_name }}{% endblock %}
+{% block title %}Activity · {{ app_name }}{% endblock %}
 {% block crumb %}Activity{% endblock %}
 {% block content %}
   <h1>Activity</h1>
-  <p class="sub">Recent work {{ brand_name }} has done across your projects.</p>
+  <p class="sub">Recent work {{ app_name }} has done across your projects.</p>
   <div class="card">
     {% if tasks %}
     <table>

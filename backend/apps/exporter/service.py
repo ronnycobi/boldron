@@ -1,6 +1,6 @@
 """Project export.
 
-Packages everything DevForge knows about a project into a single, independently
+Packages everything the platform knows about a project into a single, independently
 understandable zip (docs/PRODUCT.md §26): human-readable docs generated from the
 project context, a machine-readable API spec and data model, an env template, and
 any git-tracked generated source. No artificial lock-in — a user can take this and
@@ -11,6 +11,8 @@ from __future__ import annotations
 import io
 import json
 import zipfile
+
+from django.conf import settings
 
 from apps.project_context.models import ContextKind
 from apps.project_context.services import ProjectContext
@@ -53,7 +55,7 @@ def _readme(project, ctx: ProjectContext) -> str:
     lines = [
         f"# {project.name}",
         "",
-        (project.description or "Exported from DevForge.").strip(),
+        (project.description or f"Exported from {settings.APP_NAME}.").strip(),
         "",
         "## Contents",
         "- `docs/` — requirements, architecture, API, data model, screens, tests, review",
@@ -67,7 +69,7 @@ def _readme(project, ctx: ProjectContext) -> str:
     for _, _, label in _DOC_SECTIONS:
         lines.append(f"- {label}: {counts[label]}")
     lines.append("")
-    lines.append("_Exported from DevForge. This project is yours to run anywhere._")
+    lines.append(f"_Exported from {settings.APP_NAME}. This project is yours to run anywhere._")
     return "\n".join(lines) + "\n"
 
 

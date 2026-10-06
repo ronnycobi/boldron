@@ -27,7 +27,7 @@ class InvitationEmailTests(TestCase):
     def test_invitation_email_contains_accept_link(self):
         org = Organization.objects.create(name="Acme")
         inv = invitations.create_invitation(org, "new@x.com", role=Role.ADMIN)
-        url = "https://devforge.example/app/invite/TOKEN123/"
+        url = "https://example.com/app/invite/TOKEN123/"
         send_invitation_email(inv, url)
         self.assertEqual(len(mail.outbox), 1)
         msg = mail.outbox[0]

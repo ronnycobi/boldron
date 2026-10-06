@@ -18,7 +18,7 @@ from apps.projects.models import Project
 
 class ConsoleAccessTests(TestCase):
     def setUp(self):
-        self.staff = User.objects.create_user(email="staff@devforge.local", password="x", is_staff=True)
+        self.staff = User.objects.create_user(email="staff@example.com", password="x", is_staff=True)
         self.customer = User.objects.create_user(email="cust@acme.com", password="x")
 
     def test_anonymous_redirected_to_login(self):
@@ -43,7 +43,7 @@ class ConsoleAccessTests(TestCase):
 
 class ConsoleDataTests(TestCase):
     def setUp(self):
-        self.staff = User.objects.create_user(email="staff@devforge.local", password="x", is_staff=True)
+        self.staff = User.objects.create_user(email="staff@example.com", password="x", is_staff=True)
         self.owner = User.objects.create_user(email="owner@acme.com", password="x")
         self.org = Organization.objects.create(name="Acme Corp", created_by=self.owner)
         Membership.objects.create(organization=self.org, user=self.owner, role=Role.OWNER)
@@ -58,7 +58,7 @@ class ConsoleDataTests(TestCase):
             provider="anthropic", model="claude-sonnet-5", total_tokens=1200,
             cost_usd=Decimal("0.045000"), credits_charged=Decimal("4.5"),
         )
-        ContactMessage.objects.create(name="Jo Buyer", email="jo@lead.com", message="Interested in DevForge")
+        ContactMessage.objects.create(name="Jo Buyer", email="jo@lead.com", message="Interested in the platform")
         self.client.force_login(self.staff)
 
     def test_overview_shows_platform_totals(self):
@@ -89,7 +89,7 @@ class ConsoleDataTests(TestCase):
 
 class ControlCenterTests(TestCase):
     def setUp(self):
-        self.staff = User.objects.create_user(email="cc@devforge.local", password="x", is_staff=True)
+        self.staff = User.objects.create_user(email="cc@example.com", password="x", is_staff=True)
 
     def test_overview_shows_health_and_kpis(self):
         self.client.force_login(self.staff)
@@ -132,7 +132,7 @@ class ControlCenterTests(TestCase):
 
 class LoginRedirectTests(TestCase):
     def setUp(self):
-        self.staff = User.objects.create_user(email="owner@devforge.local", password="pw12345!", is_staff=True)
+        self.staff = User.objects.create_user(email="owner@example.com", password="pw12345!", is_staff=True)
         self.customer = User.objects.create_user(email="cust@acme.com", password="pw12345!")
 
     def _login(self, email, data_extra=None):
@@ -140,7 +140,7 @@ class LoginRedirectTests(TestCase):
                                 {"username": email, "password": "pw12345!", **(data_extra or {})})
 
     def test_staff_land_on_control_center(self):
-        r = self._login("owner@devforge.local")
+        r = self._login("owner@example.com")
         self.assertRedirects(r, reverse("console:overview"), fetch_redirect_response=False)
 
     def test_customer_lands_on_builder(self):
@@ -150,5 +150,5 @@ class LoginRedirectTests(TestCase):
     def test_explicit_next_is_honored_for_staff(self):
         target = reverse("dashboard:home")
         r = self.client.post(reverse("dashboard:login") + f"?next={target}",
-                             {"username": "owner@devforge.local", "password": "pw12345!"})
+                             {"username": "owner@example.com", "password": "pw12345!"})
         self.assertRedirects(r, target, fetch_redirect_response=False)

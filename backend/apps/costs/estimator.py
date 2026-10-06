@@ -22,7 +22,7 @@ _REQUIRED_TIER = {TaskComplexity.LOW: 1, TaskComplexity.MEDIUM: 2, TaskComplexit
 def model_for_complexity(complexity: TaskComplexity) -> ModelProfile | None:
     """The default model for a complexity: cheapest-sufficient from the preferred
     provider (Claude), matching the router's quality-first default. Provider
-    preference comes first so the estimate reflects what DevForge actually uses
+    preference comes first so the estimate reflects what the platform actually uses
     (e.g. MEDIUM -> claude-sonnet-5), not an off-default cross-provider bargain."""
     required = _REQUIRED_TIER[complexity]
     real = [p for p in MODEL_CATALOG if not p.is_fallback_only]

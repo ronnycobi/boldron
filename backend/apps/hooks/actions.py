@@ -1,6 +1,6 @@
 """Hook action handlers — each returns (status, detail) where status is pass/fail/skip.
 
-They reuse real DevForge services (the test runner, the security scanner). None
+They reuse real the platform services (the test runner, the security scanner). None
 fabricates a result: if there's nothing to check, the handler returns 'skip'.
 """
 from __future__ import annotations

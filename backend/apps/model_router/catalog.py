@@ -46,7 +46,7 @@ MODEL_CATALOG: list[ModelProfile] = [
 ]
 
 
-# Default provider preference. DevForge defaults to Claude (latest, most capable);
+# Default provider preference. the platform defaults to Claude (latest, most capable);
 # OpenAI and Gemini are available alternatives, chosen when preferred explicitly or
 # via failover when Anthropic isn't usable. Lower = preferred; used only as a
 # tiebreak after tier/cost, so it never overrides quality or an explicit preference.

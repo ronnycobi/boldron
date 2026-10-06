@@ -68,7 +68,7 @@ class DatabaseAgent(BaseAgent):
         tid = context.metadata.get("task_id", "")
         response = self._complete(system, [Message("user", user_prompt)])
 
-        # Model source is generated only for a backend DevForge can build and
+        # Model source is generated only for a backend the platform can build and
         # verify today (Django). For other backends the schema design is recorded
         # but code generation is honestly deferred, not faked.
         backend_tech = technology_for_role(project, "backend")

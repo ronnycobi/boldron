@@ -2,7 +2,7 @@
 
 A Hook fires at a pipeline EVENT (pre_deploy, post_build, …) and runs an ACTION
 (run the tests, run the security scan, a manual gate). A *blocking* hook that fails
-stops promotion; a non-blocking one just records a HookRun. Actions reuse DevForge's
+stops promotion; a non-blocking one just records a HookRun. Actions reuse the platform's
 existing machinery (the test runner, the security scanner) — they orchestrate, they
 don't reinvent.
 """

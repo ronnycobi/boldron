@@ -1,4 +1,4 @@
-"""WSGI config for DevForge."""
+"""WSGI config for the platform."""
 import os
 
 from django.core.wsgi import get_wsgi_application

@@ -2,7 +2,7 @@
 
 Drafts a store listing (name, short/long description, keywords, feature blurbs,
 screenshot captions) from the app's *actual* detected features — the screens in
-its Software Twin plus the capabilities DevForge inferred — never from thin air.
+its Software Twin plus the capabilities the platform inferred — never from thin air.
 
 Two honest paths:
   1. A real model (via the quality-first router) writes the copy, constrained by a
@@ -30,7 +30,7 @@ _NAME_MAX = 30
 _SHORT_MAX = 80
 
 SYSTEM_PROMPT = (
-    f"You are {settings.BRAND_NAME}'s app-store copywriter. Given an application's name and the "
+    f"You are {settings.APP_NAME}'s app-store copywriter. Given an application's name and the "
     "list of features it ACTUALLY has, write a store listing.\n\n"
     "Hard rules:\n"
     "- Only describe features from the provided list. NEVER invent features, "
@@ -86,14 +86,14 @@ def _deterministic(project, detected: dict) -> dict:
         full = (
             f"{name} brings your workflow together in one app.\n\n"
             f"What you can do:\n{bullets}\n\n"
-            f"Built with {settings.BRAND_NAME}."
+            f"Built with {settings.APP_NAME}."
         )
         feature_descriptions = [
             {"title": f, "description": f"Manage {f.lower()} directly from {name}."}
             for f in features
         ]
     else:
-        full = f"{name} — built with DevForge."
+        full = f"{name} — built with {settings.APP_NAME}."
         feature_descriptions = []
 
     keywords = []

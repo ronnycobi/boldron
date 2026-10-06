@@ -1,6 +1,6 @@
 """Store-provider capabilities (spec §3).
 
-Every store supports a *different* subset of operations, and DevForge must never
+Every store supports a *different* subset of operations, and the platform must never
 assume otherwise. Each provider declares the capabilities it actually implements;
 callers check `provider.supports(...)` before offering an action, and the UI shows
 "Manual action required" for anything a store can't do through an official API.

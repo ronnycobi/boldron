@@ -1,4 +1,4 @@
-"""Stack runners — the technologies DevForge can generate AND run today.
+"""Stack runners — the technologies the platform can generate AND run today.
 
 A Stack pairs a technology profile with the concrete mechanics code generation
 needs: how to scaffold a runnable project around the model's output, what code-gen
@@ -6,7 +6,7 @@ guidance to give the model, and whether it can run in the current sandbox. This 
 the extensible seam: adding a stack (FastAPI, Go, Next.js, …) means adding a Stack
 here with a scaffolder — the agents don't change.
 
-Only stacks that genuinely work are registered. The broader ecosystem DevForge
+Only stacks that genuinely work are registered. The broader ecosystem the platform
 *knows* about lives in the Technology Registry (registry.py) marked "planned".
 """
 from __future__ import annotations
@@ -30,7 +30,7 @@ _STDLIB_HINT = (
 )
 
 _DJANGO_HINT = (
-    "Generate a Django app. DevForge supplies the project scaffold "
+    "Generate a Django app. the platform supplies the project scaffold "
     "(settings/manage.py/migration-free test DB) — do NOT generate them or any "
     "migrations. Provide app-relative files (models.py, tests.py, optionally "
     "serializers.py/views.py). tests.py MUST use django.test.TestCase and exercise "
@@ -63,7 +63,7 @@ _GO_HINT = (
     "sandbox has no network. Use package name `app`. Put the app in app.go and "
     "tests in *_test.go using the testing package and net/http/httptest. Expose "
     "`func Handler() http.Handler` returning your router/mux (tests and the "
-    "preview server both use it). DevForge supplies go.mod and the server "
+    "preview server both use it). the platform supplies go.mod and the server "
     "entrypoint. It must pass `go test .`."
 )
 
@@ -81,7 +81,7 @@ _REACT_HINT = (
     "(import { test } from 'node:test'; import assert from 'node:assert';) and "
     "importing ONLY from the logic modules — never the .jsx components — so they "
     "pass `node --test` with no npm packages and no browser.\n"
-    "The .jsx components import and use the logic. DevForge supplies package.json, "
+    "The .jsx components import and use the logic. the platform supplies package.json, "
     "index.html and the Vite config — do NOT generate those. Keep it small and "
     "coherent."
 )

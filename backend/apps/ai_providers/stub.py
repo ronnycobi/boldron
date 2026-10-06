@@ -1,7 +1,7 @@
 """Deterministic offline provider.
 
 This is NOT a language model and does not pretend to be one. It produces a
-deterministic, echo-style response so DevForge can run, be developed against, and
+deterministic, echo-style response so the platform can run, be developed against, and
 be tested with no API key and no network. It is the default provider until a real
 key is configured (AI_DEFAULT_PROVIDER). Use it wherever a real model isn't
 needed; never present its output as model output.

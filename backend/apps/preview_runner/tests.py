@@ -21,7 +21,7 @@ class PreviewRunnerTests(TestCase):
     def _seed(self, tmp):
         repo = repo_for_project(self.project)
         repo.init()
-        repo.write_files({"index.html": "<h1>Hello from DevForge</h1>"})
+        repo.write_files({"index.html": "<h1>Hello from the platform</h1>"})
         repo.commit("seed")
 
     def test_start_serves_files_then_stop(self):
@@ -33,7 +33,7 @@ class PreviewRunnerTests(TestCase):
                 try:
                     self.assertTrue(pv.alive)
                     body = urllib.request.urlopen(f"http://127.0.0.1:{pv.port}/", timeout=5).read()
-                    self.assertIn(b"Hello from DevForge", body)
+                    self.assertIn(b"Hello from the platform", body)
                 finally:
                     runner.stop(self.project.id)
                 self.assertIsNone(runner.get(self.project.id))  # stopped
@@ -53,7 +53,7 @@ class PreviewRunnerTests(TestCase):
                     self.client.force_login(self.user)
                     r = self.client.get(reverse("dashboard:preview_live", args=[self.project.id]))
                     self.assertEqual(r.status_code, 200)
-                    self.assertIn(b"Hello from DevForge", r.content)
+                    self.assertIn(b"Hello from the platform", r.content)
                 finally:
                     runner.stop(self.project.id)
 

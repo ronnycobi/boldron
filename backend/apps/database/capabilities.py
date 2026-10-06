@@ -1,6 +1,6 @@
 """Database capability registry — technology-agnostic, extensible.
 
-DevForge must not assume PostgreSQL, SQL, or a relational model. Each database is
+the platform must not assume PostgreSQL, SQL, or a relational model. Each database is
 described by what it *can actually do* (a capability profile), keyed by the same
 ids as the Technology Registry. Agents reason from capabilities rather than
 hard-coding one engine's behaviour: e.g. only emit foreign keys / migrations for a
@@ -57,7 +57,7 @@ class DatabaseProfile:
     full_text_search: bool = False
     vector: bool = False
     replication: bool = False
-    # Whether DevForge has a live provider (real connect/inspect) for it yet.
+    # Whether the platform has a live provider (real connect/inspect) for it yet.
     has_provider: bool = False
 
     def supports(self, capability: str) -> bool:

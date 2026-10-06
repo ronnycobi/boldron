@@ -1,11 +1,11 @@
-"""Technology Registry — the catalog of ecosystems DevForge reasons about.
+"""Technology Registry — the catalog of ecosystems the platform reasons about.
 
-DevForge is stack-agnostic: it builds software in the technology the customer
+the platform is stack-agnostic: it builds software in the technology the customer
 chooses. This registry is the authoritative catalog of languages, frameworks,
-databases, and infra targets. It is intentionally broad (DevForge *knows* these
-ecosystems) and honest about reach: `codegen` marks whether DevForge can actually
+databases, and infra targets. It is intentionally broad (the platform *knows* these
+ecosystems) and honest about reach: `codegen` marks whether the platform can actually
 generate and run that technology today ("supported") or knows it but hasn't wired
-generation yet ("planned"). Django + Flutter are DevForge's reference stack — the
+generation yet ("planned"). Django + Flutter are the platform's reference stack — the
 one it bootstraps itself in — not a restriction on customers.
 """
 from __future__ import annotations
@@ -24,7 +24,7 @@ class Category(StrEnum):
 
 
 class CodegenStatus(StrEnum):
-    SUPPORTED = "supported"  # DevForge can generate AND run this today
+    SUPPORTED = "supported"  # the platform can generate AND run this today
     PLANNED = "planned"      # known ecosystem, generation not yet wired
 
 

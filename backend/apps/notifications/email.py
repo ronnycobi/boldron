@@ -33,7 +33,7 @@ def send_email(*, subject: str, to, text: str, html: str | None = None,
 def send_invitation_email(invitation, accept_url: str) -> int:
     """Email an organization invitation with its accept link."""
     org = invitation.organization.name
-    brand = settings.BRAND_NAME
+    brand = settings.APP_NAME
     subject = f"You're invited to {org} on {brand}"
     text = (
         f"You've been invited to join {org} on {brand} as "

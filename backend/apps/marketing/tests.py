@@ -8,21 +8,27 @@ from apps.organizations.models import Membership, Organization
 User = get_user_model()
 
 
-class BrandNameTests(TestCase):
-    """The product name is a single configurable value (settings.BRAND_NAME), so a
-    future rebrand is one change. Pages must render the configured name and never
-    leak the old hard-coded one."""
+class BrandingTests(TestCase):
+    """The app is white-label: all customer-facing identity comes from the APP_*
+    settings, never a hard-coded brand. Changing APP_NAME (and logo/url/…) changes
+    the displayed identity with no source change, and the old brand never appears."""
 
-    @override_settings(BRAND_NAME="Forgewright")
-    def test_rebrand_flows_through_templates_and_copy(self):
+    @override_settings(APP_NAME="Forgewright", APP_TAGLINE="Ship faster",
+                       APP_LOGO_URL="https://cdn.example.com/logo.svg")
+    def test_rebrand_flows_through_the_ui_from_config(self):
         for name in ["home", "how_it_works", "pricing"]:
             html = self.client.get(reverse("marketing:" + name)).content.decode()
             self.assertIn("Forgewright", html, name)
             self.assertNotIn("DevForge", html, name)
+        # The configured logo URL is used in the page chrome.
+        home = self.client.get(reverse("marketing:home")).content.decode()
+        self.assertIn("https://cdn.example.com/logo.svg", home)
 
-    def test_default_brand_is_devforge(self):
+    def test_no_hard_coded_brand_leaks_by_default(self):
+        # With only the neutral default APP_NAME, the retired brand must be absent.
         html = self.client.get(reverse("marketing:home")).content.decode()
-        self.assertIn("DevForge", html)
+        self.assertNotIn("DevForge", html)
+        self.assertIn("Application", html)  # the neutral default identity
 
 
 class PublicPagesTests(TestCase):

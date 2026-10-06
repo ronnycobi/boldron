@@ -2,11 +2,11 @@
 
 Scores a release from checks against the *actual* records — a build that really
 exists, signing that is really configured, metadata that is really filled in. It
-never claims that passing DevForge's checks guarantees store approval; the verdict
+never claims that passing the platform's checks guarantees store approval; the verdict
 is "Ready to submit", not "Guaranteed approval" (spec §18).
 
 Statuses: ok / warn / fail / manual. `manual` means the store needs a human step
-DevForge can't do through an official API — it does not drag the score down to
+the platform can't do through an official API — it does not drag the score down to
 zero, but it is surfaced honestly.
 """
 from __future__ import annotations

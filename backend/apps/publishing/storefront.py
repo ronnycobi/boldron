@@ -94,7 +94,7 @@ def _js_str(s: str) -> str:
 
 def _img(product) -> str:
     """Product image, referenced relative to the /shop/ page so it works both on the
-    DevForge /sites/<sub>/ URL and on a custom domain (site root)."""
+    the platform /sites/<sub>/ URL and on a custom domain (site root)."""
     if not product.image:
         return ""
     return (f'<img src="../{html_lib.escape(product.image.path)}" '

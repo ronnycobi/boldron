@@ -1,6 +1,6 @@
 """Tests for the Website Creation & Publishing platform (Phase 1).
 
-Through-line: DevForge really builds, snapshots, serves, health-checks and rolls
+Through-line: the platform really builds, snapshots, serves, health-checks and rolls
 back a site — and never shows "Live"/served when it isn't (spec §50).
 """
 import tempfile
@@ -352,7 +352,7 @@ class FormsAndLeadsTests(TestCase):
         with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
             site = self._site(tmp)
             form = forms.create_form(site, kind="contact", user=self.user)
-            html = forms.embed_html(form, action_base="https://devforge.app")
+            html = forms.embed_html(form, action_base="https://example.com")
             self.assertIn(f"/sites/{site.subdomain}/f/{form.slug}", html)
             self.assertIn('name="_gotcha"', html)    # honeypot present
 
@@ -685,7 +685,7 @@ class MonitoringTests(TestCase):
             r = self.client.get(reverse("dashboard:monitoring", args=[self.project.id]))
             self.assertEqual(r.status_code, 200)
             self.assertContains(r, "Uptime")
-            self.assertContains(r, "Not monitored on DevForge hosting yet")
+            self.assertContains(r, "Not monitored on Application hosting yet")
 
 
 CLEAN_PAGE = (
@@ -1826,7 +1826,7 @@ class PublishUITests(TestCase):
             self.assertContains(r, "Pending verification")
 
     def test_admin_websites_page(self):
-        staff = User.objects.create_user(email="s@devforge.local", password="x", is_staff=True)
+        staff = User.objects.create_user(email="s@example.com", password="x", is_staff=True)
         self.client.force_login(staff)
         r = self.client.get(reverse("console:websites"))
         self.assertEqual(r.status_code, 200)

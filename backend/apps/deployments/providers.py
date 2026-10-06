@@ -1,9 +1,9 @@
 """Cloud provider abstraction.
 
-DevForge must not be locked to one cloud (docs/PRODUCT.md §23): deploys go
+the platform must not be locked to one cloud (docs/PRODUCT.md §23): deploys go
 through a common CloudProvider interface. The `local` provider is real — it
 materializes the project's export archive into a local deployment directory (a
-DevForge-Cloud-style local target, honest about being local, not a fake cloud).
+the platform-Cloud-style local target, honest about being local, not a fake cloud).
 Real cloud backends (AWS/GCP/…) are gated on SDK+credentials exactly like AI
 providers; until configured they report unavailable and refuse to deploy rather
 than pretend.

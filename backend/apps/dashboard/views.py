@@ -1,8 +1,8 @@
-"""Server-rendered Django UI for DevForge (the customer control plane).
+"""Server-rendered Django UI for the platform (the customer control plane).
 
 Session-authenticated, tenant-scoped through org membership. Dark developer-
-platform experience. This is DevForge's own operator UI — distinct from the
-software DevForge generates for customers. UI layer only: it reads the same
+platform experience. This is the platform's own operator UI — distinct from the
+software the platform generates for customers. UI layer only: it reads the same
 models/services as the API and never bypasses tenant scoping.
 
 Pages backed by real data are implemented; areas without a backend yet render an
@@ -13,6 +13,7 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
@@ -177,7 +178,7 @@ def overview(request):
     if request.method == "POST" and request.POST.get("action") == "build":
         brief = (request.POST.get("brief") or "").strip()
         if not brief:
-            messages.error(request, "Tell DevForge what you want to build.")
+            messages.error(request, f"Tell {settings.APP_NAME} what you want to build.")
             return redirect("dashboard:home")
         org = next((o for o in orgs if o.id in manageable), None)
         if org is None:
@@ -192,11 +193,11 @@ def overview(request):
             ContextKind.REQUIREMENT, "brief", title="What to build",
             content=brief, source="builder")
         _start_build(project, brief, user)
-        messages.success(request, "DevForge is building your project.")
+        messages.success(request, f"{settings.APP_NAME} is building your project.")
         from apps.ai_providers.registry import generation_available
         if not generation_available():
-            messages.warning(request, "Heads up: no AI model is connected, so DevForge is "
-                                      "running in demo mode — generated output is a placeholder "
+            messages.warning(request, f"Heads up: no AI model is connected, so {settings.APP_NAME} "
+                                      "is running in demo mode — generated output is a placeholder "
                                       "until a model is connected.")
         return redirect("dashboard:project", pk=project.id)
 
@@ -314,7 +315,8 @@ def release_center(request, pk):
             # Idempotent: reuse an existing app rather than creating a duplicate.
             if app is None:
                 slug = (proj.slug or proj.name).lower().replace("-", "").replace(" ", "")
-                pkg = f"com.devforge.{slug}"[:250] or "com.devforge.app"
+                prefix = settings.APP_BUNDLE_ID_PREFIX
+                pkg = (f"{prefix}.{slug}"[:250] if slug else f"{prefix}.app")
                 app = rel.create_mobile_application(
                     project=proj, name=proj.name, package_identifier=pkg, bundle_identifier=pkg,
                 )
@@ -432,7 +434,7 @@ def release_center(request, pk):
 @login_required
 def publish_center(request, pk):
     """Website Release Center (spec §41): Publish → Live URL, with an honest publish
-    checklist, versioned publishes served by DevForge, health, and rollback. Public
+    checklist, versioned publishes served by the platform, health, and rollback. Public
     custom domains + SSL are a Phase-2 gated path, shown as not-yet-available."""
     from apps.publishing import readiness as pub_readiness
     from apps.publishing import service as pub
@@ -1038,7 +1040,7 @@ def preview(request, pk):
                 messages.success(request, "Planned — this change needs your approval.")
             else:
                 changes_service.implement(change)
-                messages.success(request, "Done — DevForge applied your change.")
+                messages.success(request, f"Done — {settings.APP_NAME} applied your change.")
         return redirect("dashboard:preview", pk=pk)
 
     ctx = ProjectContext(proj)
@@ -1100,12 +1102,12 @@ def preview_live(request, pk, path=""):
 def import_software(request):
     """Import an existing codebase (ZIP upload or Git connect) and analyze it.
 
-    Paused for v1 (DEVFORGE_IMPORT_ENABLED). DevForge v1 ships "build new software";
+    Paused for v1 (DEVFORGE_IMPORT_ENABLED). the platform v1 ships "build new software";
     bringing in a customer's existing software returns to the dashboard with a note."""
     from django.conf import settings
     if not settings.DEVFORGE_IMPORT_ENABLED:
-        messages.info(request, "Importing existing software isn't available yet — "
-                               "DevForge v1 focuses on building new software. It's coming soon.")
+        messages.info(request, f"Importing existing software isn't available yet — {settings.APP_NAME} "
+                               "v1 focuses on building new software. It's coming soon.")
         return redirect("dashboard:home")
     from apps.ingest.analyzer import IngestError, extract_zip, import_codebase
     from apps.ingest.connect import PROVIDERS, fetch_repo_archive, parse_repo
@@ -1155,7 +1157,7 @@ def import_software(request):
         messages.success(
             request,
             f"Imported {summary['files']} files {origin}· detected {stack}. "
-            "DevForge now understands this app — request changes below.",
+            f"{settings.APP_NAME} now understands this app — request changes below.",
         )
         return redirect("dashboard:project", pk=project.id)
 
@@ -1451,9 +1453,9 @@ def soon(request, slug):
 # --- Real workspace pages (were SOON) ---------------------------------------
 
 _SECTION = {
-    "apis": ([ContextKind.API], "APIs", "HTTP endpoints DevForge has designed for your apps."),
+    "apis": ([ContextKind.API], "APIs", f"HTTP endpoints {settings.APP_NAME} has designed for your apps."),
     "database": ([ContextKind.SCHEMA], "Database", "Data models, detected databases, and migrations."),
-    "tests": ([ContextKind.TESTING], "Tests", "Test cases DevForge has designed across your projects."),
+    "tests": ([ContextKind.TESTING], "Tests", f"Test cases {settings.APP_NAME} has designed across your projects."),
     "code-issues": ([ContextKind.REVIEW, ContextKind.SECURITY], "Code Issues",
                     "Review findings and security scan results across your projects."),
 }
@@ -1501,7 +1503,7 @@ def repository(request):
 
 @login_required
 def templates_page(request):
-    """Starter templates = the technology stacks DevForge can build and run."""
+    """Starter templates = the technology stacks the platform can build and run."""
     from apps.technology.stacks import all_stacks
     stacks = [
         {"id": s.id, "language": s.language, "framework": s.framework,

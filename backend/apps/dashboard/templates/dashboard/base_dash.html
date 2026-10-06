@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}{{ brand_name }}{% endblock %}</title>
-  <link rel="icon" type="image/svg+xml" href="{% static 'img/devforge-mark.svg' %}">
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <link rel="icon" href="{% if app_favicon_url %}{{ app_favicon_url }}{% else %}{% static 'img/devforge-mark.svg' %}{% endif %}">
   <style>
     :root{
       --bg:#080c18; --bg2:#0b1124; --sidebar:#080b16; --panel:#111a30;
@@ -117,7 +117,7 @@
 <body>
 <div class="layout">
   <aside class="side">
-    <div class="logo"><span class="mark"><img src="{% static 'img/devforge-mark.svg' %}" alt="" onerror="this.remove()"></span><b>{{ brand_name }}</b></div>
+    <div class="logo"><span class="mark"><img src="{% if app_logo_url %}{{ app_logo_url }}{% else %}{% static 'img/devforge-mark.svg' %}{% endif %}" alt="{{ app_name }}" onerror="this.remove()"></span><b>{{ app_name }}</b></div>
     {% include "dashboard/_nav.html" %}
   </aside>
   <main class="main">

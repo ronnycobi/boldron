@@ -44,7 +44,7 @@ class ActionLoggingTests(TestCase):
 
 class ConsoleAuditPageTests(TestCase):
     def setUp(self):
-        self.staff = User.objects.create_user(email="s@devforge.local", password="x", is_staff=True)
+        self.staff = User.objects.create_user(email="s@example.com", password="x", is_staff=True)
         self.customer = User.objects.create_user(email="c@x.com", password="x")
         record("change.approved", organization=Organization.objects.create(name="Acme"),
                target="change:1", summary="seed")

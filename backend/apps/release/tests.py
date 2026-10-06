@@ -290,7 +290,7 @@ class RejectionHandlingTests(TestCase):
                                    user=self.owner)
         change = rel.plan_fix(rec, user=self.owner)
         rec.refresh_from_db()
-        # A ChangeRequest is created + planned (DevForge's approval-gated loop) —
+        # A ChangeRequest is created + planned (the platform's approval-gated loop) —
         # nothing is edited directly here.
         self.assertEqual(rec.change_id, change.id)
         self.assertEqual(change.project_id, self.project.id)
@@ -358,7 +358,7 @@ class ReleaseCenterUITests(TestCase):
         self.assertContains(r, "Not connected")   # never a fake green light
 
     def test_admin_mobile_page(self):
-        staff = User.objects.create_user(email="s@devforge.local", password="x", is_staff=True)
+        staff = User.objects.create_user(email="s@example.com", password="x", is_staff=True)
         self.client.force_login(staff)
         r = self.client.get(reverse("console:mobile"))
         self.assertEqual(r.status_code, 200)

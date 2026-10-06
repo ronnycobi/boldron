@@ -15,7 +15,7 @@ from apps.model_router.router import ModelRouter, RoutingRequest, TaskComplexity
 _AREAS = ["database", "backend", "api", "frontend", "testing", "infrastructure"]
 
 SYSTEM_PROMPT = (
-    f"You are {settings.BRAND_NAME}'s change planner. Given an existing application's design and "
+    f"You are {settings.APP_NAME}'s change planner. Given an existing application's design and "
     "a requested change, produce a focused impact plan — do NOT propose rewriting "
     "the whole app.\n\n"
     "Respond with ONLY a JSON object:\n"

@@ -1,6 +1,6 @@
 """Per-project git working trees.
 
-DevForge version-controls each project's generated code in its own local git
+the platform version-controls each project's generated code in its own local git
 repository (docs/PRODUCT.md §17). This wraps the git operations the code-gen and
 export phases need: init, write files, commit, branch, diff, log. It performs
 LOCAL operations only — pushing to remotes belongs to deployment/external phases
@@ -17,8 +17,8 @@ from pathlib import Path
 
 from django.conf import settings
 
-BOT_NAME = "DevForge"
-BOT_EMAIL = "devforge@localhost"
+BOT_NAME = settings.APP_NAME  # git author for generated-project commits
+BOT_EMAIL = "bot@localhost"
 
 
 class GitError(Exception):

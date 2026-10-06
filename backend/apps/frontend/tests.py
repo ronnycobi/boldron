@@ -151,7 +151,7 @@ class FrontendFlowTests(TestCase):
         self.assertTrue(task.output["tests_passed"])          # node --test logic passed
         self.assertIn("src/App.jsx", files)
         self.assertIn("src/logic/cart.js", files)
-        self.assertIn("package.json", files)                  # DevForge scaffolded
+        self.assertIn("package.json", files)                  # the platform scaffolded
         self.assertIn("devforge.json", files)
 
     def test_repairs_failing_logic_tests(self):

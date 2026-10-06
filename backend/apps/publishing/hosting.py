@@ -1,7 +1,7 @@
 """Deployment/hosting abstraction for websites (spec §13, §14, §50).
 
 One interface, many hosts. The `devforge_local` host is REAL: it snapshots the
-project's built site into an immutable per-version directory that DevForge serves
+project's built site into an immutable per-version directory that the platform serves
 over HTTP at a working URL. It executes no customer code — it serves files — so it
 is safe for local/single-tenant hosting (same posture as the preview runner).
 
@@ -11,6 +11,8 @@ fake a deploy (spec §13/§50). Adding a working one = implement the adapter; th
 publish flow doesn't change.
 """
 from __future__ import annotations
+
+from django.conf import settings
 
 import shutil
 from pathlib import Path
@@ -44,10 +46,10 @@ class HostTarget:
 
 
 class DevForgeLocalHost(HostTarget):
-    """Snapshots the built site and serves it from DevForge at a stable URL."""
+    """Snapshots the built site and serves it from the platform at a stable URL."""
 
     key = "devforge_local"
-    name = "DevForge hosting"
+    name = f"{settings.APP_NAME} hosting"
 
     def is_available(self) -> bool:
         return True
@@ -101,7 +103,7 @@ class _UnavailableHost(HostTarget):
     def publish(self, version):
         raise HostError(
             f"{self.name} hosting is not configured on this host "
-            "(credentials/integration required). DevForge does not fake a deploy."
+            f"(credentials/integration required). {settings.APP_NAME} does not fake a deploy."
         )
 
     def health(self, version):

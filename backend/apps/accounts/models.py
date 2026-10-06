@@ -1,4 +1,4 @@
-"""User model for DevForge.
+"""User model for the platform.
 
 Email is the identity — there is no username. A custom user model is introduced
 here, before any other app references it, because swapping AUTH_USER_MODEL later

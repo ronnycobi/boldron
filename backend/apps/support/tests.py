@@ -24,7 +24,7 @@ class SupportServiceTests(TestCase):
         self.assertIn(t.number, mail.outbox[0].subject)
 
     def test_staff_reply_waits_on_customer_and_emails(self):
-        staff = User.objects.create_user(email="agent@devforge.local", password="x", is_staff=True)
+        staff = User.objects.create_user(email="agent@example.com", password="x", is_staff=True)
         t = service.create_ticket(organization=self.org, user=self.user, subject="Q", body="hi")
         mail.outbox.clear()
         service.add_message(t, author=staff, body="Try a reset link.", from_staff=True)
@@ -37,7 +37,7 @@ class SupportServiceTests(TestCase):
         self.assertEqual(t.status, TicketStatus.OPEN)
 
     def test_internal_note_not_emailed(self):
-        staff = User.objects.create_user(email="agent2@devforge.local", password="x", is_staff=True)
+        staff = User.objects.create_user(email="agent2@example.com", password="x", is_staff=True)
         t = service.create_ticket(organization=self.org, user=self.user, subject="Q", body="hi")
         mail.outbox.clear()
         service.add_message(t, author=staff, body="check their plan", internal=True, from_staff=True)
@@ -50,7 +50,7 @@ class SupportAccessTests(TestCase):
         self.org = Organization.objects.create(name="Acme", created_by=self.owner)
         Membership.objects.create(organization=self.org, user=self.owner, role=Role.OWNER)
         self.other = User.objects.create_user(email="stranger@x.com", password="x")
-        self.staff = User.objects.create_user(email="agent@devforge.local", password="x", is_staff=True)
+        self.staff = User.objects.create_user(email="agent@example.com", password="x", is_staff=True)
 
     def test_customer_creates_and_sees_own_ticket_only(self):
         self.client.force_login(self.owner)

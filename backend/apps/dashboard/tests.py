@@ -289,7 +289,7 @@ class BuilderHomeTests(TestCase):
 
     def test_empty_brief_rejected(self):
         r = self.client.post(reverse("dashboard:home"), {"action": "build", "brief": "  "}, follow=True)
-        self.assertContains(r, "Tell DevForge what you want to build")
+        self.assertContains(r, "Tell Application what you want to build")
 
 
 class FriendlyLabelTests(TestCase):
@@ -318,7 +318,7 @@ class PreviewTests(TestCase):
         )
         r = self.client.get(reverse("dashboard:preview", args=[self.project.id]))
         self.assertEqual(r.status_code, 200)
-        self.assertContains(r, "Ask DevForge")     # chat control
+        self.assertContains(r, "Ask Application")   # chat control (brand from APP_NAME)
         self.assertContains(r, "Dashboard")         # screen wireframe from the twin
         self.assertContains(r, "design preview")    # honest label, not a fake running app
 

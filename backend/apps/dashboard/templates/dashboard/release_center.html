@@ -12,9 +12,9 @@
   <div class="card">
     <h2 style="margin-top:0">Publish {{ project.name }} as a mobile app</h2>
     <p class="muted" style="font-size:13px">
-      {{ brand_name }} prepares the build, signing, store listing and release checks. You connect
+      {{ app_name }} prepares the build, signing, store listing and release checks. You connect
       your own Google, Apple and Huawei developer accounts when you're ready to publish —
-      {{ brand_name }} never asks for your store passwords.
+      {{ app_name }} never asks for your store passwords.
     </p>
     {% if can_manage %}
     <form method="post">{% csrf_token %}
@@ -47,7 +47,7 @@
 
     {% if not s.connected %}
     <p class="muted" style="font-size:13px;margin:8px 0 0">
-      Connect your {{ s.provider.name }} developer account to publish. {{ brand_name }} uses your
+      Connect your {{ s.provider.name }} developer account to publish. {{ app_name }} uses your
       official {{ s.provider.auth_mechanism }} — never a password.
       {% if s.connection and s.connection.detail %}<br><span class="fail">{{ s.connection.detail }}</span>{% endif %}
     </p>
@@ -99,7 +99,7 @@
       {% if md and md.ai_generated %}
       <p class="muted" style="font-size:11px;margin:8px 0 0">
         Drafted from your app's detected features. Review and approve before
-        publishing — {{ brand_name }} never submits copy for you.
+        publishing — {{ app_name }} never submits copy for you.
       </p>
       {% endif %}
       {% endif %}

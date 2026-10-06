@@ -21,6 +21,8 @@ captures come from LiveCaptureSource once the app is running.
 """
 from __future__ import annotations
 
+from django.conf import settings
+
 import html
 from dataclasses import dataclass
 
@@ -78,7 +80,7 @@ class LiveCaptureSource(ScreenshotSource):
         raise ScreenshotError(
             "Live device capture needs the application running under a headless "
             "browser or simulator, which is not configured here. Deploy/run the app "
-            "to capture real submission-grade screenshots; DevForge does not fake them."
+            f"to capture real submission-grade screenshots; {settings.APP_NAME} does not fake them."
         )
 
 

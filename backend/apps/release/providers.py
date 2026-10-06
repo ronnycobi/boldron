@@ -13,12 +13,14 @@ StoreError explaining that, rather than returning a fake success. This mirrors t
 cloud-deploy providers (apps.deployments.providers): named backends that report
 "not configured" until real credentials exist.
 
-DevForge automates the official process; it never bypasses store auth, signing,
+the platform automates the official process; it never bypasses store auth, signing,
 testing or review, and it never asks for or stores a Google/Apple/Huawei password
 (spec §1) — only official API keys / service accounts / tokens, held as opaque
 references (apps.release.credentials), never as plaintext.
 """
 from __future__ import annotations
+
+from django.conf import settings
 
 from apps.release.capabilities import StoreCapability as Cap
 
@@ -83,7 +85,7 @@ class StoreProvider:
         return StoreError(
             f"{self.name} is not connected on this host. Live publishing needs the "
             f"developer's own {self.auth_mechanism or 'official API credentials'} and "
-            f"network access to {self.name}, which are not configured. DevForge has "
+            f"network access to {self.name}, which are not configured. {settings.APP_NAME} has "
             f"prepared everything it can offline; the store step is a manual action."
         )
 
@@ -132,7 +134,7 @@ class HuaweiAppGalleryProvider(StoreProvider):
         Cap.ACCOUNT_CONNECTION, Cap.APPLICATION_DISCOVERY, Cap.METADATA_MANAGEMENT,
         Cap.BUILD_UPLOAD, Cap.SUBMISSION, Cap.RELEASE_MANAGEMENT, Cap.REVIEW_STATUS,
         # No first-class beta-testing API surface assumed → those caps absent →
-        # DevForge will show "Manual action required" for testing on AppGallery.
+        # the platform will show "Manual action required" for testing on AppGallery.
     })
 
 

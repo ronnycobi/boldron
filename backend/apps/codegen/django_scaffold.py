@@ -1,6 +1,6 @@
 """Deterministic Django project scaffold.
 
-DevForge owns the project scaffolding — settings, manage.py, a migration-free test
+the platform owns the project scaffolding — settings, manage.py, a migration-free test
 database — so a generated Django *app* (models.py, tests.py, …) becomes a complete
 project that runs `manage.py test <app>` against a real (in-memory sqlite) test DB.
 The model only has to produce correct app code; the scaffold guarantees it runs.

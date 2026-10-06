@@ -1,4 +1,4 @@
-"""ASGI config for DevForge."""
+"""ASGI config for the platform."""
 import os
 
 from django.core.asgi import get_asgi_application

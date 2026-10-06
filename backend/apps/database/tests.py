@@ -360,7 +360,7 @@ class DatabaseFlowTests(TestCase):
         self.assertFalse(task.output["database_recommended"])  # respected the choice
 
     def test_non_django_backend_records_schema_only(self):
-        # A backend DevForge can't generate yet -> design recorded, no code, honest.
+        # A backend the platform can't generate yet -> design recorded, no code, honest.
         self.project.technology = {"backend": "fastapi", "database": "postgresql"}
         self.project.save(update_fields=["technology"])
         with mock.patch("apps.model_router.router.gateway_complete", side_effect=_fake(SCHEMA_JSON)):

@@ -1,6 +1,6 @@
 """Provider-independent AI interface.
 
-The rest of DevForge speaks only in these types — CompletionRequest and
+The rest of the platform speaks only in these types — CompletionRequest and
 CompletionResponse — never a vendor SDK's objects (docs/PRODUCT.md §3). Swapping
 Claude for another provider is implementing one AIProvider subclass; nothing
 upstream changes. The Model Router (Phase 7) chooses which provider/model to use;

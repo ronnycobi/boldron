@@ -1,7 +1,7 @@
 """Go module scaffold.
 
 Wraps a generated Go app (package `app`, app.go + *_test.go) with a go.mod, a
-DevForge-owned server entrypoint (cmd/server) that serves the app's Handler() on
+the platform-owned server entrypoint (cmd/server) that serves the app's Handler() on
 $PORT for the preview runner, and a devforge.json manifest declaring both the
 test command (root package only, so the entrypoint never affects tests) and a
 `run` block. Standard-library-only, module downloads disabled (GOPROXY=off), so it
@@ -13,7 +13,7 @@ import json
 
 _GO_MOD = "module app\n\ngo 1.21\n"
 
-# DevForge-owned entrypoint: boots the app's exported Handler() on $PORT. Lives in
+# the platform-owned entrypoint: boots the app's exported Handler() on $PORT. Lives in
 # its own package/dir so `go test .` (root) never compiles it.
 _MAIN_GO = (
     "package main\n\n"

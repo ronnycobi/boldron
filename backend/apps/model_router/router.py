@@ -5,7 +5,7 @@ context size, budget, customer preference — subject to what's actually availab
 then executes with failover down an ordered candidate list (docs/PRODUCT.md §3).
 
 Two standing policies:
-- **Quality-first by default.** DevForge optimizes for the best output, so for a
+- **Quality-first by default.** the platform optimizes for the best output, so for a
   given complexity the router picks the *most capable* model whose tier meets it.
   A task may opt into economy (`prefer_quality=False`) or a hard `max_cost_per_mtok`
   ceiling. The default is configurable via settings.DEVFORGE_PREFER_QUALITY.

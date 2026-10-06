@@ -1,5 +1,5 @@
 {% extends "dashboard/base_dash.html" %}
-{% block title %}{{ title }} · {{ brand_name }}{% endblock %}
+{% block title %}{{ title }} · {{ app_name }}{% endblock %}
 {% block crumb %}{{ title }}{% endblock %}
 {% block content %}
   <h1>{{ title }}</h1>
@@ -29,6 +29,6 @@
   </div>
   {% endfor %}
   {% else %}
-  <div class="card"><p class="empty">Nothing here yet — {{ title|lower }} appear as {{ brand_name }} builds or analyzes your projects.</p></div>
+  <div class="card"><p class="empty">Nothing here yet — {{ title|lower }} appear as {{ app_name }} builds or analyzes your projects.</p></div>
   {% endif %}
 {% endblock %}

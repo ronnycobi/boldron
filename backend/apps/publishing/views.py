@@ -1,9 +1,9 @@
-"""Serve published websites from DevForge at a stable URL (spec §10, §11).
+"""Serve published websites from the platform at a stable URL (spec §10, §11).
 
 This serves the immutable per-version snapshot for a website's CURRENT version. It
 only ever returns files — it executes no customer code — and it refuses any path
 that escapes the version's directory (path-traversal guard). This is the working
-DevForge URL a customer gets on publish; a public *.devforge.app domain with real
+platform URL a customer gets on publish; a public custom domain with real
 DNS/SSL is the Phase-2 gated path and is not served here.
 """
 from __future__ import annotations

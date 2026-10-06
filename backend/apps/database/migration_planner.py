@@ -19,7 +19,7 @@ from apps.model_router.router import ModelRouter, RoutingRequest, TaskComplexity
 
 def _system_prompt(dialect: str) -> str:
     return (
-        f"You are {settings.BRAND_NAME}'s database migration planner. Given an existing schema "
+        f"You are {settings.APP_NAME}'s database migration planner. Given an existing schema "
         "and a requested change, produce exactly ONE migration for the change — "
         "not a rewrite of the schema.\n\n"
         f"Target SQL dialect: {dialect}.\n"

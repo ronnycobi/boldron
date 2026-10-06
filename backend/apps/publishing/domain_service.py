@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import secrets
 
+from django.conf import settings
+
 from django.utils import timezone
 
 from apps.audit.service import record as audit
@@ -30,7 +32,7 @@ def connect_domain(website, *, hostname, user=None, provider="manual") -> Custom
     if not domains.is_valid_hostname(hostname):
         raise DomainServiceError(f"'{hostname}' is not a valid domain name.")
     if CustomDomain.objects.filter(hostname=hostname).exists():
-        raise DomainServiceError(f"{hostname} is already connected to a DevForge site.")
+        raise DomainServiceError(f"{hostname} is already connected to a {settings.APP_NAME} site.")
     if domains.get_dns_provider(provider) is None:
         raise DomainServiceError(f"Unknown DNS provider '{provider}'.")
 

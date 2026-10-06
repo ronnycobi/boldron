@@ -1,6 +1,6 @@
 """Credits and usage.
 
-A CreditAccount holds an organization's DevForge credit balance (credits are a
+A CreditAccount holds an organization's the platform credit balance (credits are a
 platform abstraction over raw tokens; docs/PRODUCT.md §20). Every agent run that
 uses a model writes a UsageRecord attributable to org / project / task / provider
 / model, and debits the account. An org with no account is treated as unlimited

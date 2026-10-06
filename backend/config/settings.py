@@ -1,5 +1,5 @@
 """
-Django settings for DevForge.
+Django settings for the platform.
 
 Configuration is driven entirely by environment variables so the same code runs
 locally, in CI, and in production without edits. See `.env.example` for the full
@@ -83,6 +83,28 @@ SECRET_KEY = env("DJANGO_SECRET_KEY", "dev-insecure-change-me")
 DEBUG = env_bool("DJANGO_DEBUG", True)
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
 
+# --- Application identity (white-label branding) ----------------------------
+# The product is brand-agnostic: NO product name, company, domain, logo, support
+# address, locale or currency is hard-coded in the code. Everything customer-
+# facing is configured here from the environment, so the same codebase ships as
+# any brand by changing env vars only. This is the single source of truth —
+# templates read it via apps.core.context_processors.branding ({{ app_name }}…),
+# Python reads settings.APP_*. Internal platform concepts (agents, projects,
+# builds, deployments, capabilities, providers, commerce, the "devforge" app
+# label and DEVFORGE_ operational vars) are implementation identifiers and stay.
+APP_NAME = env("APP_NAME", "Application")
+APP_COMPANY_NAME = env("APP_COMPANY_NAME", "")  # falls back to APP_NAME in the branding layer
+APP_TAGLINE = env("APP_TAGLINE", "")
+APP_URL = env("APP_URL", "")
+APP_LOGO_URL = env("APP_LOGO_URL", "")          # empty -> bundled fallback mark
+APP_FAVICON_URL = env("APP_FAVICON_URL", "")    # empty -> bundled fallback favicon
+APP_SUPPORT_EMAIL = env("APP_SUPPORT_EMAIL", "")
+APP_SUPPORT_URL = env("APP_SUPPORT_URL", "")
+APP_DEFAULT_LOCALE = env("APP_DEFAULT_LOCALE", "en-us")
+# Back-compat: honour the older DJANGO_TIME_ZONE if APP_DEFAULT_TIMEZONE is unset.
+APP_DEFAULT_TIMEZONE = env("APP_DEFAULT_TIMEZONE", env("DJANGO_TIME_ZONE", "UTC"))
+APP_DEFAULT_CURRENCY = env("APP_DEFAULT_CURRENCY", "USD")
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -92,7 +114,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # Third-party
     "rest_framework",
-    # DevForge apps (modular monolith; add phased apps here — see docs/PRODUCT.md)
+    # the platform apps (modular monolith; add phased apps here — see docs/PRODUCT.md)
     "apps.core",
     "apps.accounts",
     "apps.organizations",
@@ -144,7 +166,7 @@ LOGIN_URL = "dashboard:login"
 LOGIN_REDIRECT_URL = "dashboard:home"
 LOGOUT_REDIRECT_URL = "dashboard:login"
 
-# Email is the identity across DevForge; set before any migrations reference it.
+# Email is the identity across the platform; set before any migrations reference it.
 AUTH_USER_MODEL = "accounts.User"
 
 MIDDLEWARE = [
@@ -173,7 +195,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "apps.core.context_processors.brand",
+                "apps.core.context_processors.branding",
             ],
         },
     },
@@ -216,10 +238,10 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # --- i18n / tz --------------------------------------------------------------
-# DevForge builds software for customers worldwide — do not assume one locale.
+# the platform builds software for customers worldwide — do not assume one locale.
 
-LANGUAGE_CODE = "en-us"
-TIME_ZONE = env("DJANGO_TIME_ZONE", "UTC")
+LANGUAGE_CODE = APP_DEFAULT_LOCALE
+TIME_ZONE = APP_DEFAULT_TIMEZONE
 USE_I18N = True
 USE_TZ = True
 
@@ -254,16 +276,6 @@ if RUNNING_TESTS:
 # from the environment by each provider — never stored here.
 AI_DEFAULT_PROVIDER = env("AI_DEFAULT_PROVIDER", "stub")
 
-# --- Brand ------------------------------------------------------------------
-# The product's user-facing display name. Single source of truth so a future
-# rebrand is one change (or one env var) instead of a codebase-wide find/replace.
-# Templates read it via the apps.core.context_processors.brand context processor
-# as {{ brand_name }}; Python code reads settings.BRAND_NAME. Internal identifiers
-# (the "devforge" app label, the DEVFORGE_ env prefix, package/repo/DB names) are
-# deliberately NOT driven by this — those are code, not branding.
-BRAND_NAME = env("DEVFORGE_BRAND_NAME", "DevForge")
-BRAND_TAGLINE = env("DEVFORGE_BRAND_TAGLINE", "AI software engineering")
-
 # --- Generated-project storage ----------------------------------------------
 # Where per-project git working trees live (apps.repositories). Defaults to a
 # gitignored dir beside the backend; set DEVFORGE_WORKSPACES_ROOT in production.
@@ -286,12 +298,17 @@ DEVFORGE_ORG_DAILY_USD_CAP = env("DEVFORGE_ORG_DAILY_USD_CAP", "") or None
 # other way per request, or set a hard max_cost_per_mtok ceiling.
 DEVFORGE_PREFER_QUALITY = env("DEVFORGE_PREFER_QUALITY", "true").lower() in ("1", "true", "yes", "on")
 
-# Website publishing domains. BASE_DOMAIN is the DevForge subdomain zone; TARGET is
+# Website publishing domains. BASE_DOMAIN is the platform's subdomain zone; TARGET is
 # the hostname a customer points their custom domain at (CNAME target). These are
-# the correct DNS instructions to give; routing/SSL only complete once DevForge
-# hosting actually serves the domain (a later, infra-gated phase).
-DEVFORGE_BASE_DOMAIN = env("DEVFORGE_BASE_DOMAIN", "devforge.app")
-DEVFORGE_DOMAIN_TARGET = env("DEVFORGE_DOMAIN_TARGET", "hosting.devforge.app")
+# customer-facing (shown in DNS instructions, used in published URLs), so they are
+# brand-neutral by default and set per deployment via the environment. Prefer the
+# APP_* names; the DEVFORGE_* names remain as back-compat aliases.
+DEVFORGE_BASE_DOMAIN = env("APP_BASE_DOMAIN", env("DEVFORGE_BASE_DOMAIN", "example.com"))
+DEVFORGE_DOMAIN_TARGET = env("APP_DOMAIN_TARGET", env("DEVFORGE_DOMAIN_TARGET", "hosting.example.com"))
+
+# Reverse-DNS prefix for generated mobile app IDs (Android applicationId / iOS
+# bundle id). Brand-neutral default; set per deployment.
+APP_BUNDLE_ID_PREFIX = env("APP_BUNDLE_ID_PREFIX", "com.example")
 
 # How long an unpaid order may hold its stock/discount reservations before the
 # expire_orders job auto-cancels it (minutes). Default 24h.
@@ -313,7 +330,10 @@ EMAIL_PORT = int(env("EMAIL_PORT", "587"))
 EMAIL_HOST_USER = env("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
-DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "DevForge <no-reply@devforge.local>")
+# Sender identity is brand-driven: "<App Name> <support@…>". Both halves are
+# configurable; DEFAULT_FROM_EMAIL can still be set explicitly to override.
+_default_sender_addr = APP_SUPPORT_EMAIL or "no-reply@localhost"
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", f"{APP_NAME} <{_default_sender_addr}>")
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [

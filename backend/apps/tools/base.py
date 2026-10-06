@@ -1,4 +1,4 @@
-"""Tool base types for DevForge's Tool Registry.
+"""Tool base types for the platform's Tool Registry.
 
 A Tool is a capability-gated operation surface an agent can invoke — the formal
 seam between an agent and the outside world (files, git, sandbox, tests, …).

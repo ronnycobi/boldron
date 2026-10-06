@@ -1,4 +1,4 @@
-"""Projects — a unit of software DevForge builds, imports, or operates.
+"""Projects — a unit of software the platform builds, imports, or operates.
 
 A Project belongs to exactly one Organization (the tenant). Everything the agents
 eventually produce for it — requirements, architecture, code, builds, runs — is
@@ -40,7 +40,7 @@ class Project(models.Model):
         max_length=20, choices=Status.choices, default=Status.ACTIVE
     )
     # Chosen technology per role, e.g. {"backend": "django", "frontend": "nextjs",
-    # "database": "postgresql", "mobile": "flutter"}. DevForge is stack-agnostic;
+    # "database": "postgresql", "mobile": "flutter"}. the platform is stack-agnostic;
     # agents read this to generate in the customer's chosen stack. Empty => the
     # agent's default (python-stdlib for backend).
     technology = models.JSONField(default=dict, blank=True)

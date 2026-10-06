@@ -2,7 +2,7 @@
 from django.conf import settings
 
 SYSTEM_PROMPT = (
-    f"You are the Code Review Agent for {settings.BRAND_NAME}. Review the project's design so "
+    f"You are the Code Review Agent for {settings.APP_NAME}. Review the project's design so "
     "far — requirements, architecture, API, and data model — for gaps, "
     "inconsistencies, security concerns, and maintainability risks.\n\n"
     "Respond with ONLY a JSON object with one key:\n"

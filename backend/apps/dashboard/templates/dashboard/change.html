@@ -1,6 +1,6 @@
 {% extends "dashboard/base_dash.html" %}
 {% load devforge %}
-{% block title %}Change · {{ brand_name }}{% endblock %}
+{% block title %}Change · {{ app_name }}{% endblock %}
 {% block crumb %}Build / {{ change.project.name }} / Change{% endblock %}
 {% block content %}
   <p class="sub"><a href="{% url 'dashboard:project' change.project.id %}">← {{ change.project.name }}</a></p>
@@ -30,7 +30,7 @@
           <ol style="margin:0;padding-left:18px" class="muted">{% for s in change.plan.steps %}<li>{{ s }}</li>{% endfor %}</ol>
         {% endif %}
       {% else %}
-        <p class="empty">No plan was produced (the offline model can't analyze the app). With a real AI provider configured, {{ brand_name }} produces a full impact plan here.</p>
+        <p class="empty">No plan was produced (the offline model can't analyze the app). With a real AI provider configured, {{ app_name }} produces a full impact plan here.</p>
       {% endif %}
 
       {% if change.migration %}

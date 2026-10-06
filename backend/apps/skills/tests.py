@@ -50,7 +50,7 @@ class SelectionTests(TestCase):
 
 class SkillsAdminPageTests(TestCase):
     def setUp(self):
-        self.staff = User.objects.create_user(email="s@devforge.local", password="x", is_staff=True)
+        self.staff = User.objects.create_user(email="s@example.com", password="x", is_staff=True)
 
     def test_page_lists_builtins_and_can_add(self):
         self.client.force_login(self.staff)

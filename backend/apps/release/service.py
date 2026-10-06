@@ -1,6 +1,6 @@
 """Release orchestration (spec §5, §7, §18, §21, §28, §43).
 
-Provider-neutral: callers talk to DevForge concepts (connect, build, readiness,
+Provider-neutral: callers talk to the platform concepts (connect, build, readiness,
 release, submit); the store-specific work lives in the adapters. Every state-
 changing step writes a ReleaseEvent and an audit record, and submission is gated
 behind explicit human approval (spec §28).
@@ -323,7 +323,7 @@ def record_rejection(release: Release, *, text, source="manual", user=None):
 
 
 def plan_fix(rejection, *, user=None):
-    """Turn a rejection into DevForge's normal approval-gated change (spec §23).
+    """Turn a rejection into the platform's normal approval-gated change (spec §23).
 
     This never edits the app directly — it creates a ChangeRequest and plans it, so
     the modify→test→build loop runs under the existing human-approval gate. For

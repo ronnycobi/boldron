@@ -1,4 +1,4 @@
-"""Organizations — the tenant boundary for DevForge.
+"""Organizations — the tenant boundary for the platform.
 
 Every project, agent run, credit balance, and cost record will ultimately hang
 off an Organization. Users join organizations through Membership, which carries

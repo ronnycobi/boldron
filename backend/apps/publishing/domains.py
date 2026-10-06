@@ -33,7 +33,7 @@ def is_apex(hostname: str) -> bool:
 
 def required_records(hostname: str, token: str) -> list[dict]:
     """The DNS records the customer must create. Correct standard practice; routing
-    completes once DevForge hosting serves the domain."""
+    completes once the platform hosting serves the domain."""
     target = settings.DEVFORGE_DOMAIN_TARGET
     records = [
         {"type": "TXT", "name": f"{_VERIFY_PREFIX}.{hostname}", "value": token,
@@ -42,13 +42,13 @@ def required_records(hostname: str, token: str) -> list[dict]:
     if is_apex(hostname):
         records.append({
             "type": "ALIAS/ANAME", "name": hostname, "value": target,
-            "purpose": "Routes the apex domain to DevForge (or use the www subdomain if "
-                       "your DNS has no ALIAS support).",
+            "purpose": f"Routes the apex domain to {settings.APP_NAME} (or use the www "
+                       "subdomain if your DNS has no ALIAS support).",
         })
     else:
         records.append({
             "type": "CNAME", "name": hostname, "value": target,
-            "purpose": "Routes this domain to DevForge.",
+            "purpose": f"Routes this domain to {settings.APP_NAME}.",
         })
     return records
 
@@ -102,7 +102,7 @@ class DomainProvider:
 
 
 class ManualDNSProvider(DomainProvider):
-    """The customer sets the records at their own registrar. DevForge only tells
+    """The customer sets the records at their own registrar. the platform only tells
     them what to set and verifies — it never touches unrelated records (spec §21)."""
 
     key = "manual"
@@ -159,10 +159,10 @@ class SSLProvider:
 
     def issue(self, domain):
         raise DomainError(
-            "SSL issuance needs the domain routed to live DevForge hosting so the "
-            "certificate challenge can be answered. That isn't configured here, so "
-            "the certificate stays pending — DevForge never reports SSL active until "
-            "a real certificate is installed."
+            f"SSL issuance needs the domain routed to live {settings.APP_NAME} hosting "
+            "so the certificate challenge can be answered. That isn't configured here, "
+            f"so the certificate stays pending — {settings.APP_NAME} never reports SSL "
+            "active until a real certificate is installed."
         )
 
 

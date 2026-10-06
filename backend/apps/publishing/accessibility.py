@@ -6,7 +6,7 @@ unlabeled form fields, empty interactive controls, positive tabindex, and focus
 removal in CSS. Things that genuinely need a rendered page (full colour contrast,
 real keyboard navigation) are reported as "needs manual review", never as a pass.
 
-DevForge never claims guaranteed accessibility compliance (spec §30) — it surfaces
+the platform never claims guaranteed accessibility compliance (spec §30) — it surfaces
 concrete findings a human can act on.
 """
 from __future__ import annotations

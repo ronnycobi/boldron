@@ -9,6 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from django.conf import settings
+
 from apps.project_context.models import ContextKind
 from apps.project_context.services import ProjectContext
 from apps.repositories.service import repo_for_project
@@ -55,8 +57,8 @@ def evaluate(website) -> list[Check]:
     checks.append(Check("forms", "Forms", "ok" if has_forms else "manual",
                         "" if has_forms else "No forms detected (fine for a static site)."))
 
-    # Environment — the DevForge host is always available locally.
-    checks.append(Check("environment", "Environment", "ok", "DevForge hosting available."))
+    # Environment — the platform host is always available locally.
+    checks.append(Check("environment", "Environment", "ok", f"{settings.APP_NAME} hosting available."))
 
     return checks
 

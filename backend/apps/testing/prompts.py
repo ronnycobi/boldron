@@ -2,7 +2,7 @@
 from django.conf import settings
 
 SYSTEM_PROMPT = (
-    f"You are the Testing Agent for {settings.BRAND_NAME}. Given a project's requirements and "
+    f"You are the Testing Agent for {settings.APP_NAME}. Given a project's requirements and "
     "API, design the test cases that verify the system meets its requirements.\n\n"
     "Respond with ONLY a JSON object with one key:\n"
     '  "test_cases": array of objects with "title", "kind" '

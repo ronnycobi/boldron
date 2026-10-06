@@ -63,7 +63,7 @@ _MANIFEST = json.dumps(
         "runnable": True,
         "test_command": ["node", "--test"],
         "note": (
-            "React app builds with Vite (npm). DevForge verifies the framework-free "
+            "React app builds with Vite (npm). the platform verifies the framework-free "
             "src/logic layer with `node --test` here; the full build runs where npm "
             "is available."
         ),

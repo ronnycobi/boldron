@@ -1,6 +1,6 @@
 """Access control for the internal staff console.
 
-The console is DevForge's own operations cockpit — it spans every tenant and
+The console is the platform's own operations cockpit — it spans every tenant and
 exposes internal machinery (orchestrator, model routing, economics). It is
 strictly staff-only: anonymous users are sent to log in, authenticated
 non-staff get a hard 403. Never widen this to customers.
@@ -19,7 +19,7 @@ def staff_required(view):
         if not user.is_authenticated:
             return redirect(f"{reverse('dashboard:login')}?next={request.path}")
         if not user.is_staff:
-            raise PermissionDenied("The staff console is restricted to DevForge staff.")
+            raise PermissionDenied("The staff console is restricted to platform staff.")
         return view(request, *args, **kwargs)
 
     return _wrapped

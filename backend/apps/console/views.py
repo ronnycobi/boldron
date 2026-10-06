@@ -1,9 +1,9 @@
-"""Internal staff console — DevForge's cross-tenant operations cockpit.
+"""Internal staff console — the platform's cross-tenant operations cockpit.
 
 Read-first: every page surfaces real platform state (no fabrication). Unlike the
 customer dashboard, this is where the machinery is legitimately visible —
 orchestrator activity, model routing, and unit economics — because the audience
-is DevForge staff, not customers.
+is the platform staff, not customers.
 """
 from __future__ import annotations
 
