@@ -63,7 +63,7 @@ class SubprocessSandbox(Sandbox):
 
     def run(self, command, *, files=None, limits=None, stdin="", env=None) -> SandboxResult:
         limits = limits or SandboxLimits()
-        workdir = Path(tempfile.mkdtemp(prefix="devforge-sbx-"))
+        workdir = Path(tempfile.mkdtemp(prefix="build-sbx-"))
         try:
             if files:
                 self._write_files(workdir, files)

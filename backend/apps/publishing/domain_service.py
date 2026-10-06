@@ -36,7 +36,7 @@ def connect_domain(website, *, hostname, user=None, provider="manual") -> Custom
     if domains.get_dns_provider(provider) is None:
         raise DomainServiceError(f"Unknown DNS provider '{provider}'.")
 
-    token = "devforge-verify=" + secrets.token_urlsafe(24)
+    token = f"{settings.APP_DNS_VERIFY_LABEL}=" + secrets.token_urlsafe(24)
     domain = CustomDomain.objects.create(
         website=website, hostname=hostname, provider=provider,
         verification_token=token, required_records=domains.required_records(hostname, token),

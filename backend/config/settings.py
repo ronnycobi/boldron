@@ -213,8 +213,8 @@ if env("DB_ENGINE", "sqlite") == "postgres":
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
-            "NAME": env("DB_NAME", "devforge"),
-            "USER": env("DB_USER", "devforge"),
+            "NAME": env("DB_NAME", "app"),
+            "USER": env("DB_USER", "app"),
             "PASSWORD": env("DB_PASSWORD", ""),
             "HOST": env("DB_HOST", "127.0.0.1"),
             "PORT": env("DB_PORT", "5432"),
@@ -309,6 +309,9 @@ DEVFORGE_DOMAIN_TARGET = env("APP_DOMAIN_TARGET", env("DEVFORGE_DOMAIN_TARGET", 
 # Reverse-DNS prefix for generated mobile app IDs (Android applicationId / iOS
 # bundle id). Brand-neutral default; set per deployment.
 APP_BUNDLE_ID_PREFIX = env("APP_BUNDLE_ID_PREFIX", "com.example")
+# Label used in the DNS TXT record that proves custom-domain ownership — it is
+# shown to the customer and lives on their domain, so it is brand-neutral.
+APP_DNS_VERIFY_LABEL = env("APP_DNS_VERIFY_LABEL", "site-verify")
 
 # How long an unpaid order may hold its stock/discount reservations before the
 # expire_orders job auto-cancels it (minutes). Default 24h.

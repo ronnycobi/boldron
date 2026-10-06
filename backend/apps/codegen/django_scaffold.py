@@ -9,6 +9,7 @@ Migrations are disabled (MIGRATION_MODULES → None) so the test runner creates
 tables directly from the models — no generated migration files required.
 """
 from __future__ import annotations
+from apps.codegen.manifest import MANIFEST_FILENAME
 
 import re
 
@@ -66,7 +67,7 @@ def normalize_app_label(label: str) -> str:
 def scaffold_django_project(app_label: str, app_files: dict[str, str]) -> dict[str, str]:
     """Wrap app files (relative to the app package) into a runnable project.
 
-    Returns a full path->content map, plus a devforge.json manifest naming the
+    Returns a full path->content map, plus a app.manifest.json manifest naming the
     test command so the runner knows to use `manage.py test <app>`.
     """
     app = normalize_app_label(app_label)
@@ -77,7 +78,7 @@ def scaffold_django_project(app_label: str, app_files: dict[str, str]) -> dict[s
         "settings.py": _SETTINGS_PY.format(app=app),
         f"{app}/__init__.py": "",
         f"{app}/apps.py": _APPS_PY.format(cls=cls, app=app),
-        "devforge.json": (
+        MANIFEST_FILENAME: (
             '{\n'
             '  "stack": "django",\n'
             f'  "app": "{app}",\n'

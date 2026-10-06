@@ -86,7 +86,7 @@ class ServerPreviewTests(TestCase):
     def test_scaffold_declares_a_run_block(self):
         import json
         from apps.codegen.node_scaffold import scaffold_node_project
-        manifest = json.loads(scaffold_node_project("app", {"app.js": "x"})["devforge.json"])
+        manifest = json.loads(scaffold_node_project("app", {"app.js": "x"})["app.manifest.json"])
         self.assertIn("run", manifest)
         self.assertEqual(manifest["run"]["command"], ["node", "server.js"])
 
@@ -130,15 +130,15 @@ class GoAndStdlibPreviewTests(TestCase):
         from apps.codegen.go_scaffold import scaffold_go_project
         out = scaffold_go_project("app", {"app.go": "package app\n"})
         self.assertIn("cmd/server/main.go", out)
-        self.assertEqual(json.loads(out["devforge.json"])["run"]["command"], ["go", "run", "./cmd/server"])
+        self.assertEqual(json.loads(out["app.manifest.json"])["run"]["command"], ["go", "run", "./cmd/server"])
 
     def test_stdlib_scaffold_only_serves_a_wsgi_app(self):
         from apps.codegen.stdlib_scaffold import scaffold_stdlib_project
         plain = scaffold_stdlib_project("app", {"calc.py": "def add(a,b): return a+b\n"})
-        self.assertNotIn("devforge.json", plain)          # non-web: untouched
+        self.assertNotIn("app.manifest.json", plain)          # non-web: untouched
         web = scaffold_stdlib_project("app", {"app.py": "def application(environ, start_response):\n    pass\n"})
         self.assertIn("server.py", web)
-        self.assertIn("devforge.json", web)
+        self.assertIn("app.manifest.json", web)
 
     def test_runs_stdlib_wsgi_server(self):
         import urllib.request

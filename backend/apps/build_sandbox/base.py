@@ -1,7 +1,7 @@
 """Sandbox contract for executing generated/untrusted code.
 
 Generated code is untrusted until tested and reviewed (CLAUDE.md §18), and must
-never run inside the the platform process. This defines the interface and the limits;
+never run inside the platform process. This defines the interface and the limits;
 concrete backends enforce them to the extent the host allows.
 
 Isolation honesty: the SubprocessSandbox backend enforces wall-clock timeout,

@@ -47,7 +47,7 @@ class HealthEndpointTests(TestCase):
         resp = self.client.get(reverse("core:health"))
         self.assertEqual(resp.status_code, 200)
         body = resp.json()
-        self.assertEqual(body["service"], "devforge")
+        self.assertEqual(body["service"], "application")  # slug of default APP_NAME
         self.assertEqual(body["status"], "ok")
         self.assertIn("django", body)
 

@@ -16,7 +16,7 @@ import re
 
 from django.conf import settings
 
-_VERIFY_PREFIX = "_devforge-verify"
+_VERIFY_PREFIX = f"_{settings.APP_DNS_VERIFY_LABEL}"
 _HOSTNAME_RE = re.compile(
     r"^(?=.{1,253}$)([a-z0-9](-?[a-z0-9])*\.)+[a-z]{2,}$"
 )

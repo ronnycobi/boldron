@@ -263,7 +263,7 @@ class SeoEngineTests(TestCase):
             html = (repo.path / "index.html").read_text()
             self.assertIn("<title>", html)                 # meta injected
             self.assertIn('name="description"', html)
-            self.assertIn("devforge:seo", html)
+            self.assertIn("managed:seo", html)
 
     def test_apply_is_idempotent(self):
         from apps.publishing import seo
@@ -271,7 +271,7 @@ class SeoEngineTests(TestCase):
             "<html><head></head><body>x</body></html>",
             {"title": "A", "description": "B"})
         twice = seo.apply_meta_to_html(applied, {"title": "A", "description": "B"})
-        self.assertEqual(twice.count("devforge:seo -->"), 2)  # one open + one close marker only
+        self.assertEqual(twice.count("managed:seo -->"), 2)  # one open + one close marker only
 
 
 class FormsAndLeadsTests(TestCase):
@@ -1561,8 +1561,8 @@ class StorefrontTests(TestCase):
             shop.create_product(site, name="Mug", price_cents=1500, user=self.user)
             files = storefront.render_storefront(site)
             self.assertIn("shop/cart.html", files)
-            self.assertIn("devforgeAdd(this)", files["shop/index.html"])       # add-to-cart button
-            self.assertIn("devforge-checkout", files["shop/cart.html"])        # checkout form
+            self.assertIn("addToCart(this)", files["shop/index.html"])       # add-to-cart button
+            self.assertIn("checkout-form", files["shop/cart.html"])        # checkout form
             self.assertIn("i.name='line'", files["shop/cart.html"])            # JS posts line items
             self.assertIn(f'action="/sites/{site.subdomain}/checkout"', files["shop/cart.html"])
 
@@ -1822,7 +1822,7 @@ class PublishUITests(TestCase):
             self.client.post(url, {"action": "connect_domain", "hostname": "www.acme.com"})
             r = self.client.get(url)
             self.assertContains(r, "www.acme.com")
-            self.assertContains(r, "_devforge-verify.www.acme.com")
+            self.assertContains(r, "_site-verify.www.acme.com")
             self.assertContains(r, "Pending verification")
 
     def test_admin_websites_page(self):

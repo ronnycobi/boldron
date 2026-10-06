@@ -8,11 +8,12 @@ Produces two things around the model's output:
      built-in test runner — this DOES run in the sandbox via `node --test`, so the
      repair loop can verify and fix the app's logic with no npm and no browser.
 
-The devforge.json manifest points the test runner at `node --test`, which only
+The app.manifest.json manifest points the test runner at `node --test`, which only
 discovers the *.test.js logic tests (never the .jsx components), so verification
 needs no build step.
 """
 from __future__ import annotations
+from apps.codegen.manifest import MANIFEST_FILENAME
 
 import json
 
@@ -78,5 +79,5 @@ def scaffold_react_project(app_label: str, app_files: dict[str, str]) -> dict[st
     files.setdefault("index.html", _INDEX_HTML)
     files.setdefault("vite.config.js", _VITE_CONFIG)
     files.setdefault("src/main.jsx", _MAIN_JSX)
-    files["devforge.json"] = _MANIFEST
+    files[MANIFEST_FILENAME] = _MANIFEST
     return files

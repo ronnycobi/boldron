@@ -3,11 +3,12 @@
 python-stdlib is the generic Python baseline — usually plain modules + unittest,
 not a web app. So this scaffolder is a no-op UNLESS the app opts into being a web
 server by exposing a WSGI callable `application` in app.py. When it does, the platform
-adds a wsgiref server entrypoint (stdlib only, no installs) and a devforge.json
+adds a wsgiref server entrypoint (stdlib only, no installs) and a app.manifest.json
 `run` block so the preview runner can serve it on $PORT. Non-web projects are left
 exactly as generated.
 """
 from __future__ import annotations
+from apps.codegen.manifest import MANIFEST_FILENAME
 
 import json
 import re
@@ -42,5 +43,5 @@ def scaffold_stdlib_project(app_label: str, app_files: dict[str, str]) -> dict[s
     files = dict(app_files)
     if "app.py" in files and _WSGI.search(files["app.py"]):
         files.setdefault("server.py", _SERVER_PY)
-        files["devforge.json"] = _MANIFEST
+        files[MANIFEST_FILENAME] = _MANIFEST
     return files  # non-web project: unchanged

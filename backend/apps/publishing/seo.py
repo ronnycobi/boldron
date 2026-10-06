@@ -202,8 +202,8 @@ def apply_meta_to_html(html: str, meta: dict) -> str:
     re-applying replaces the platform-managed tags rather than duplicating them."""
     tags = _managed_tags(meta)
     # Remove any previously managed block, then existing title/description we manage.
-    html = re.sub(r"\n?\s*<!-- devforge:seo -->.*?<!-- /devforge:seo -->", "", html, flags=re.S)
-    block = "<!-- devforge:seo -->\n" + tags + "<!-- /devforge:seo -->"
+    html = re.sub(r"\n?\s*<!-- managed:seo -->.*?<!-- /managed:seo -->", "", html, flags=re.S)
+    block = "<!-- managed:seo -->\n" + tags + "<!-- /managed:seo -->"
     if re.search(r"</head>", html, re.I):
         return re.sub(r"</head>", block + "\n</head>", html, count=1, flags=re.I)
     # No head — prepend a minimal one.

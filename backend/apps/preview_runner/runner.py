@@ -24,6 +24,7 @@ import urllib.request
 from dataclasses import dataclass
 
 from apps.repositories.service import repo_for_project
+from apps.codegen.manifest import MANIFEST_FILENAME
 
 # Env keys never passed into a preview process (best-effort secret scrubbing).
 _SECRETY = ("SECRET", "KEY", "TOKEN", "PASSWORD", "PASSWD", "CREDENTIAL")
@@ -79,7 +80,7 @@ class PreviewRunner:
         repo = repo_for_project(project)
         if not repo.is_initialized:
             return None
-        path = repo.path / "devforge.json"
+        path = repo.path / MANIFEST_FILENAME
         if not path.exists():
             return None
         try:

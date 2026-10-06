@@ -1,12 +1,13 @@
 """Node.js project scaffold.
 
 Wraps a generated Node app (flat app.js + *.test.js) with a minimal package.json,
-a the platform-supplied server entrypoint (server.js) that boots the app on $PORT for
-the preview runner, and a devforge.json manifest declaring both `test_command`
+a platform-supplied server entrypoint (server.js) that boots the app on $PORT for
+the preview runner, and a app.manifest.json manifest declaring both `test_command`
 (`node --test`) and a `run` block. Built-in Node only — no npm packages — so it
 runs in the network-free sandbox and previews without any install step.
 """
 from __future__ import annotations
+from apps.codegen.manifest import MANIFEST_FILENAME
 
 import json
 
@@ -50,5 +51,5 @@ def scaffold_node_project(app_label: str, app_files: dict[str, str]) -> dict[str
     files = dict(app_files)
     files.setdefault("package.json", _PACKAGE_JSON)
     files.setdefault("server.js", _SERVER_JS)
-    files["devforge.json"] = _MANIFEST
+    files[MANIFEST_FILENAME] = _MANIFEST
     return files

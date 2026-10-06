@@ -17,6 +17,7 @@ import sys
 from apps.build_sandbox.base import SandboxLimits
 from apps.build_sandbox.service import get_sandbox
 from apps.repositories.service import GitError, repo_for_project
+from apps.codegen.manifest import MANIFEST_FILENAME
 
 
 def materialize(project, files: list[dict], *, message: str):
@@ -54,11 +55,11 @@ def _int(match) -> int:
 def _test_command_for(files: dict[str, str]) -> list[str]:
     """Choose how to run a repo's tests.
 
-    Honours a devforge.json manifest's `test_command` (used by the Django
+    Honours a app.manifest.json manifest's `test_command` (used by the Django
     scaffold, e.g. `manage.py test <app>`); otherwise `python -m unittest`.
     The literal "python" is replaced with this interpreter.
     """
-    manifest = files.get("devforge.json")
+    manifest = files.get(MANIFEST_FILENAME)
     if manifest:
         try:
             command = json.loads(manifest).get("test_command")
@@ -93,9 +94,9 @@ def run_repo_tests(project, *, command=None) -> dict:
         except (OSError, UnicodeDecodeError):
             continue
     manifest = {}
-    if "devforge.json" in files:
+    if MANIFEST_FILENAME in files:
         try:
-            manifest = json.loads(files["devforge.json"])
+            manifest = json.loads(files[MANIFEST_FILENAME])
         except (json.JSONDecodeError, TypeError):
             manifest = {}
     if manifest.get("runnable") is False:

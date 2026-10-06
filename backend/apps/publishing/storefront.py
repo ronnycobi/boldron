@@ -65,22 +65,22 @@ def _cart_script(website) -> str:
     """A small dependency-free cart: keeps selections in localStorage, and on the cart
     page renders line items and submits them to the checkout endpoint as `line`
     fields. Runs on the customer's own published site."""
-    key = f"devforge_cart_{website.subdomain}"
+    key = f"cart_{website.subdomain}"
     return (
         "<script>(function(){var KEY=" + _js_str(key) + ";"
         "function get(){try{return JSON.parse(localStorage.getItem(KEY))||[]}catch(e){return[]}}"
         "function save(c){try{localStorage.setItem(KEY,JSON.stringify(c))}catch(e){}}"
-        "window.devforgeAdd=function(b){var c=get(),id=b.getAttribute('data-id');"
+        "window.addToCart=function(b){var c=get(),id=b.getAttribute('data-id');"
         "var f=c.filter(function(x){return x.id===id})[0];"
         "if(f){f.qty++}else{c.push({id:id,name:b.getAttribute('data-name'),price:+b.getAttribute('data-price'),qty:1})}"
         "save(c);b.textContent='Added \\u2713';setTimeout(function(){b.textContent='Add to cart'},1200)};"
-        "var box=document.getElementById('devforge-cart-items');"
+        "var box=document.getElementById('cart-items');"
         "if(box){var c=get(),h='',total=0;"
         "c.forEach(function(x){var l=x.price*x.qty;total+=l;"
         "h+='<li>'+x.qty+' \\u00d7 '+x.name+' \\u2014 '+(l/100).toFixed(2)+'</li>'});"
         "box.innerHTML=h||'<li>Your cart is empty.</li>';"
-        "var t=document.getElementById('devforge-cart-total');if(t)t.textContent=(total/100).toFixed(2);"
-        "var form=document.getElementById('devforge-checkout');"
+        "var t=document.getElementById('cart-total');if(t)t.textContent=(total/100).toFixed(2);"
+        "var form=document.getElementById('checkout-form');"
         "if(form)form.addEventListener('submit',function(){if(!c.length){return}"
         "c.forEach(function(x){var i=document.createElement('input');i.type='hidden';i.name='line';i.value=x.id+':'+x.qty;form.appendChild(i)});"
         "try{localStorage.removeItem(KEY)}catch(e){}})}"
@@ -93,8 +93,7 @@ def _js_str(s: str) -> str:
 
 
 def _img(product) -> str:
-    """Product image, referenced relative to the /shop/ page so it works both on the
-    the platform /sites/<sub>/ URL and on a custom domain (site root)."""
+    """Product image, referenced relative to the /shop/ page so it works both on the platform's /sites/<sub>/ URL and on a custom domain (site root)."""
     if not product.image:
         return ""
     return (f'<img src="../{html_lib.escape(product.image.path)}" '
@@ -103,7 +102,7 @@ def _img(product) -> str:
 
 def _add_button(product) -> str:
     return (
-        f'<button type="button" onclick="devforgeAdd(this)" '
+        f'<button type="button" onclick="addToCart(this)" '
         f'data-id="{product.id}" data-name="{html_lib.escape(product.name)}" '
         f'data-price="{product.price_cents}">Add to cart</button>'
     )
@@ -182,10 +181,10 @@ def render_storefront(website) -> dict:
         )
     cart_main = (
         "<h1>Your cart</h1>"
-        '<ul id="devforge-cart-items"></ul>'
-        f'<p>Total: <span id="devforge-cart-total">0.00</span> {html_lib.escape(currency)}'
+        '<ul id="cart-items"></ul>'
+        f'<p>Total: <span id="cart-total">0.00</span> {html_lib.escape(currency)}'
         '<br><small>Discounts and shipping are calculated at checkout.</small></p>'
-        f'<form id="devforge-checkout" method="post" action="/sites/{website.subdomain}/checkout">'
+        f'<form id="checkout-form" method="post" action="/sites/{website.subdomain}/checkout">'
         '<label>Your name <input type="text" name="name"></label>'
         '<label>Email <input type="email" name="email" required></label>'
         '<label>Discount code <input type="text" name="code"></label>'

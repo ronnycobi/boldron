@@ -2,12 +2,13 @@
 
 Wraps a generated Go app (package `app`, app.go + *_test.go) with a go.mod, a
 the platform-owned server entrypoint (cmd/server) that serves the app's Handler() on
-$PORT for the preview runner, and a devforge.json manifest declaring both the
+$PORT for the preview runner, and a app.manifest.json manifest declaring both the
 test command (root package only, so the entrypoint never affects tests) and a
 `run` block. Standard-library-only, module downloads disabled (GOPROXY=off), so it
 builds/tests/runs offline wherever the `go` toolchain is installed.
 """
 from __future__ import annotations
+from apps.codegen.manifest import MANIFEST_FILENAME
 
 import json
 
@@ -49,5 +50,5 @@ def scaffold_go_project(app_label: str, app_files: dict[str, str]) -> dict[str, 
     files = dict(app_files)
     files.setdefault("go.mod", _GO_MOD)
     files.setdefault("cmd/server/main.go", _MAIN_GO)
-    files["devforge.json"] = _MANIFEST
+    files[MANIFEST_FILENAME] = _MANIFEST
     return files

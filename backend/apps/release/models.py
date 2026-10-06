@@ -375,7 +375,7 @@ class ReleaseRejection(models.Model):
     recommendation = models.CharField(max_length=1000, blank=True)
     compliance_sensitive = models.BooleanField(default=False)
     affected_capabilities = models.JSONField(default=list, blank=True)
-    # The the platform change created to fix it (its normal approval-gated modify loop).
+    # The platform change created to fix it (its normal approval-gated modify loop).
     change = models.ForeignKey(
         "changes.ChangeRequest", on_delete=models.SET_NULL, null=True, blank=True,
         related_name="rejections",

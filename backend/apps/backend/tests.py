@@ -136,7 +136,7 @@ class BackendCodegenFlowTests(TestCase):
         # the platform supplied the scaffold; the model supplied the app.
         self.assertIn("manage.py", files)
         self.assertIn("settings.py", files)
-        self.assertIn("devforge.json", files)
+        self.assertIn("app.manifest.json", files)
         self.assertIn("shop/models.py", files)
 
     def test_fastapi_mode_generates_flat_project(self):
@@ -180,7 +180,7 @@ class BackendCodegenFlowTests(TestCase):
         self.assertEqual(task.output["stack"], "node")
         self.assertIn("app.js", files)
         self.assertIn("package.json", files)  # the platform scaffolded
-        self.assertIn("devforge.json", files)
+        self.assertIn("app.manifest.json", files)
 
     def test_go_mode_scaffolds_module(self):
         go_json = json.dumps(
@@ -200,7 +200,7 @@ class BackendCodegenFlowTests(TestCase):
         self.assertEqual(task.output["stack"], "go")
         self.assertIn("app.go", files)
         self.assertIn("go.mod", files)  # the platform scaffolded
-        self.assertIn("devforge.json", files)
+        self.assertIn("app.manifest.json", files)
 
     def test_stack_comes_from_project_technology_profile(self):
         # No input stack; the project's chosen backend stack drives generation.

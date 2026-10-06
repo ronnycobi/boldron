@@ -1,4 +1,6 @@
 import django
+from django.conf import settings
+from django.utils.text import slugify
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -16,7 +18,8 @@ class HealthView(APIView):
     def get(self, request):
         return Response(
             {
-                "service": "devforge",
+                # Brand-neutral service id, derived from configuration.
+                "service": slugify(settings.APP_NAME) or "app",
                 "status": "ok",
                 "django": django.get_version(),
             }

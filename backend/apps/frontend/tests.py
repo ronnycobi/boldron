@@ -152,7 +152,7 @@ class FrontendFlowTests(TestCase):
         self.assertIn("src/App.jsx", files)
         self.assertIn("src/logic/cart.js", files)
         self.assertIn("package.json", files)                  # the platform scaffolded
-        self.assertIn("devforge.json", files)
+        self.assertIn("app.manifest.json", files)
 
     def test_repairs_failing_logic_tests(self):
         # First implementation's logic is buggy (its own node:test fails); the

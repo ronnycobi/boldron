@@ -62,10 +62,10 @@ class DjangoScaffoldTests(SimpleTestCase):
         files = scaffold_django_project("shop", {"models.py": "x = 1\n"})
         self.assertIn("manage.py", files)
         self.assertIn("settings.py", files)
-        self.assertIn("devforge.json", files)
+        self.assertIn("app.manifest.json", files)
         self.assertIn("shop/models.py", files)
         self.assertIn('"shop"', files["settings.py"])  # app in INSTALLED_APPS
-        self.assertIn("manage.py", files["devforge.json"])  # test command
+        self.assertIn("manage.py", files["app.manifest.json"])  # test command
 
 
 class MaterializeTests(TestCase):
