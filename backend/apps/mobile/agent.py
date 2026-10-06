@@ -7,6 +7,8 @@ sandbox, so it does not claim to compile or run anything.
 """
 from __future__ import annotations
 
+from django.conf import settings
+
 from django.utils.text import slugify
 
 from apps.agents.base import AgentContext, AgentResult, BaseAgent
@@ -22,7 +24,7 @@ from apps.projects.models import Project
 from apps.technology.registry import technology_for_role
 
 SYSTEM_PROMPT = (
-    "You are the Mobile Agent for DevForge. Given a project's requirements and "
+    f"You are the Mobile Agent for {settings.BRAND_NAME}. Given a project's requirements and "
     "API, design the screens of the mobile app for the chosen mobile framework.\n\n"
     "Respond with ONLY a JSON object with one key:\n"
     '  "screens": array of objects with "name", "purpose", "route", '

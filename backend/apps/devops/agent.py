@@ -8,6 +8,8 @@ in the deployments module.
 """
 from __future__ import annotations
 
+from django.conf import settings
+
 from apps.agents.base import AgentContext, AgentResult, BaseAgent
 from apps.agents.capabilities import Capability
 from apps.agents.definitions import DEVOPS
@@ -22,7 +24,7 @@ from apps.projects.models import Project
 from apps.technology.registry import ROLES, technology_for_role
 
 SYSTEM_PROMPT = (
-    "You are the DevOps Agent for DevForge. Given a project's technology stack and "
+    f"You are the DevOps Agent for {settings.BRAND_NAME}. Given a project's technology stack and "
     "architecture, generate the deployment infrastructure as files.\n\n"
     "Respond with ONLY a JSON object with one key:\n"
     '  "files": array of {"path","content"} — real config files such as a '

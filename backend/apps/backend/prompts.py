@@ -4,11 +4,12 @@ The system prompt is assembled from a stack-agnostic base plus the chosen stack'
 own guidance (Stack.prompt_hint), so the same agent generates Django, a stdlib
 project, or any future stack without special-casing.
 """
+from django.conf import settings
 
 
 def system_prompt(stack) -> str:
     base = [
-        "You are the Backend Agent for DevForge. Implement the backend for this "
+        f"You are the Backend Agent for {settings.BRAND_NAME}. Implement the backend for this "
         f"project in the chosen stack: {stack.framework or stack.language}.",
         "",
         "Respond with ONLY a JSON object. It MUST include:",

@@ -8,6 +8,8 @@ nothing — no fabricated SQL. Engines without migrations return nothing too.
 """
 from __future__ import annotations
 
+from django.conf import settings
+
 from apps.ai_providers.base import Message
 from apps.core.jsonx import extract_json
 from apps.database.capabilities import get_database
@@ -17,7 +19,7 @@ from apps.model_router.router import ModelRouter, RoutingRequest, TaskComplexity
 
 def _system_prompt(dialect: str) -> str:
     return (
-        "You are DevForge's database migration planner. Given an existing schema "
+        f"You are {settings.BRAND_NAME}'s database migration planner. Given an existing schema "
         "and a requested change, produce exactly ONE migration for the change — "
         "not a rewrite of the schema.\n\n"
         f"Target SQL dialect: {dialect}.\n"

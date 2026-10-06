@@ -1,4 +1,5 @@
 """Prompt construction for the Frontend Agent."""
+from django.conf import settings
 
 
 def system_prompt(stack=None) -> str:
@@ -8,7 +9,7 @@ def system_prompt(stack=None) -> str:
     also emits real source and a framework-free, node-testable logic layer.
     """
     base = [
-        "You are the Frontend Agent for DevForge. Given a project's requirements, "
+        f"You are the Frontend Agent for {settings.BRAND_NAME}. Given a project's requirements, "
         "architecture, and API, design the application's screens for the chosen "
         "frontend framework.",
         "",

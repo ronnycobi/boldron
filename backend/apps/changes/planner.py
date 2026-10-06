@@ -6,6 +6,8 @@ change touches — WITHOUT rewriting the whole app. Defensive parsing; offline
 """
 from __future__ import annotations
 
+from django.conf import settings
+
 from apps.ai_providers.base import Message
 from apps.core.jsonx import extract_json
 from apps.model_router.router import ModelRouter, RoutingRequest, TaskComplexity
@@ -13,7 +15,7 @@ from apps.model_router.router import ModelRouter, RoutingRequest, TaskComplexity
 _AREAS = ["database", "backend", "api", "frontend", "testing", "infrastructure"]
 
 SYSTEM_PROMPT = (
-    "You are DevForge's change planner. Given an existing application's design and "
+    f"You are {settings.BRAND_NAME}'s change planner. Given an existing application's design and "
     "a requested change, produce a focused impact plan — do NOT propose rewriting "
     "the whole app.\n\n"
     "Respond with ONLY a JSON object:\n"

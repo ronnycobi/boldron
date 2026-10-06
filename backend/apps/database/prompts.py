@@ -1,7 +1,8 @@
 """Prompt construction for the Database Agent."""
+from django.conf import settings
 
 SYSTEM_PROMPT = (
-    "You are the Database Agent for DevForge. Given a project's architecture, "
+    f"You are the Database Agent for {settings.BRAND_NAME}. Given a project's architecture, "
     "requirements, and API, design the relational data model AND implement it as "
     "Django models.\n\n"
     "Respond with ONLY a JSON object with two keys:\n"
