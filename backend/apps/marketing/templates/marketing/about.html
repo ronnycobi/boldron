@@ -1,11 +1,11 @@
 {% extends "marketing/base.html" %}
-{% block title %}About · DevForge{% endblock %}
+{% block title %}About · {{ brand_name }}{% endblock %}
 {% block body %}
 <section class="hero-glow"><div class="wrap" style="max-width:760px">
   <div class="eyebrow">About</div>
   <h1>Software engineering,<br><span class="grad">reimagined with agents</span></h1>
   <p class="lead" style="margin-top:16px">
-    DevForge is an AI software-engineering platform. Instead of generating snippets,
+    {{ brand_name }} is an AI software-engineering platform. Instead of generating snippets,
     it plans, builds, tests, reviews, deploys and improves software across the whole
     lifecycle — in whatever technology stack you choose.
   </p>
@@ -16,7 +16,7 @@
     deploy to your own infrastructure at any time.
   </p>
   <p class="muted" style="margin-top:16px">
-    We believe in honest engineering: DevForge only claims a capability when it can
+    We believe in honest engineering: {{ brand_name }} only claims a capability when it can
     actually generate <em>and run</em> it. Everything else is clearly marked as on
     the roadmap.
   </p>

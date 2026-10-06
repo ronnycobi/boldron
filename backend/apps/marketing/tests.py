@@ -1,11 +1,28 @@
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from apps.marketing.models import ContactMessage
 from apps.organizations.models import Membership, Organization
 
 User = get_user_model()
+
+
+class BrandNameTests(TestCase):
+    """The product name is a single configurable value (settings.BRAND_NAME), so a
+    future rebrand is one change. Pages must render the configured name and never
+    leak the old hard-coded one."""
+
+    @override_settings(BRAND_NAME="Forgewright")
+    def test_rebrand_flows_through_templates_and_copy(self):
+        for name in ["home", "how_it_works", "pricing"]:
+            html = self.client.get(reverse("marketing:" + name)).content.decode()
+            self.assertIn("Forgewright", html, name)
+            self.assertNotIn("DevForge", html, name)
+
+    def test_default_brand_is_devforge(self):
+        html = self.client.get(reverse("marketing:home")).content.decode()
+        self.assertIn("DevForge", html)
 
 
 class PublicPagesTests(TestCase):

@@ -1,9 +1,9 @@
 {% extends "dashboard/base_dash.html" %}
-{% block title %}Projects · DevForge{% endblock %}
+{% block title %}Projects · {{ brand_name }}{% endblock %}
 {% block crumb %}Build / Projects{% endblock %}
 {% block content %}
   <h1>Projects</h1>
-  <p class="sub">Software DevForge is building for you, across your organizations.</p>
+  <p class="sub">Software {{ brand_name }} is building for you, across your organizations.</p>
 
   <div class="card">
     {% if rows %}

@@ -1,5 +1,5 @@
 {% extends "dashboard/base_dash.html" %}
-{% block title %}{{ title }} · DevForge{% endblock %}
+{% block title %}{{ title }} · {{ brand_name }}{% endblock %}
 {% block crumb %}Operations / {{ title }}{% endblock %}
 {% block content %}
   <h1>{{ title }}</h1>
@@ -29,7 +29,7 @@
   </div>
 
   {% elif area == 'cloud' %}
-  <p class="sub">Cloud providers DevForge can deploy to. Providers are separate from the
+  <p class="sub">Cloud providers {{ brand_name }} can deploy to. Providers are separate from the
     database/stack; a provider is usable once its credentials are configured.</p>
   <div class="card">
     <table>
@@ -56,7 +56,7 @@
   </div>
 
   {% elif area == 'modernization' %}
-  <p class="sub">Imported (existing) applications DevForge can modernize.</p>
+  <p class="sub">Imported (existing) applications {{ brand_name }} can modernize.</p>
   <div class="card">
     <table>
       <tr><th>Project</th><th>Organization</th><th>Stack</th></tr>
@@ -71,7 +71,7 @@
   <p class="sub">This is a live-operations view.</p>
   <div class="card">
     <p style="margin-top:0">{{ title }} shows real data once {{ needs|default:"a live deployment" }} is connected.
-      DevForge doesn't invent metrics — until then there's nothing real to show here.</p>
+      {{ brand_name }} doesn't invent metrics — until then there's nothing real to show here.</p>
     <p class="muted" style="font-size:12.5px;margin-bottom:0">
       Deploy a project (<a href="{% url 'dashboard:deployments' %}">Deployments</a>) and connect a
       provider (<a href="{% url 'dashboard:ops' 'cloud' %}">Cloud</a>) to light this up.</p>

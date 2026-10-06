@@ -1,5 +1,5 @@
 {% extends "dashboard/base_dash.html" %}
-{% block title %}Repository · DevForge{% endblock %}
+{% block title %}Repository · {{ brand_name }}{% endblock %}
 {% block crumb %}Engineering / Repository{% endblock %}
 {% block content %}
   <h1>Repository</h1>
@@ -24,7 +24,7 @@
         {% for c in r.log %}<div style="font-size:12.5px;margin-bottom:3px"><code>{{ c.sha }}</code> <span class="muted">{{ c.subject|truncatechars:48 }}</span></div>{% empty %}<p class="empty" style="margin:0">No commits.</p>{% endfor %}
       </div>
     </div>
-    {% else %}<p class="empty" style="margin:8px 0 0">No repository yet — it's created when DevForge first generates code.</p>{% endif %}
+    {% else %}<p class="empty" style="margin:8px 0 0">No repository yet — it's created when {{ brand_name }} first generates code.</p>{% endif %}
   </div>
   {% empty %}
   <div class="card"><p class="empty">No projects yet.</p></div>

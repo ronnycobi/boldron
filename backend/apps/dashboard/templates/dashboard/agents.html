@@ -1,10 +1,10 @@
 {% extends "dashboard/base_dash.html" %}
-{% block title %}AI Engineering · DevForge{% endblock %}
+{% block title %}AI Engineering · {{ brand_name }}{% endblock %}
 {% block crumb %}Engineering / AI{% endblock %}
 {% block content %}
   <h1>AI engineering</h1>
-  <p class="sub">What DevForge does for your software — describe the outcome you want;
-    DevForge plans it, implements it, tests it, and shows you the result.</p>
+  <p class="sub">What {{ brand_name }} does for your software — describe the outcome you want;
+    {{ brand_name }} plans it, implements it, tests it, and shows you the result.</p>
   <div class="cards">
     {% for c in capabilities %}
       <div class="card">

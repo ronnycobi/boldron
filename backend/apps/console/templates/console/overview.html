@@ -1,9 +1,9 @@
 {% extends "console/base_console.html" %}
-{% block title %}Control Center · DevForge{% endblock %}
+{% block title %}Control Center · {{ brand_name }}{% endblock %}
 {% block crumb %}Overview{% endblock %}
 {% block content %}
   <h1>Control Center</h1>
-  <p class="sub">Is DevForge healthy? The whole platform, across every tenant, at a glance.</p>
+  <p class="sub">Is {{ brand_name }} healthy? The whole platform, across every tenant, at a glance.</p>
 
   {% if ai_status and not ai_status.live %}
   <div class="card" style="border:1px solid var(--wait,#f59e0b);background:rgba(245,158,11,.10);margin-bottom:16px">

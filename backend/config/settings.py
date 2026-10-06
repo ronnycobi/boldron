@@ -173,6 +173,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "apps.core.context_processors.brand",
             ],
         },
     },
@@ -252,6 +253,16 @@ if RUNNING_TESTS:
 # export ANTHROPIC_API_KEY) for real completions. Provider API keys are read
 # from the environment by each provider — never stored here.
 AI_DEFAULT_PROVIDER = env("AI_DEFAULT_PROVIDER", "stub")
+
+# --- Brand ------------------------------------------------------------------
+# The product's user-facing display name. Single source of truth so a future
+# rebrand is one change (or one env var) instead of a codebase-wide find/replace.
+# Templates read it via the apps.core.context_processors.brand context processor
+# as {{ brand_name }}; Python code reads settings.BRAND_NAME. Internal identifiers
+# (the "devforge" app label, the DEVFORGE_ env prefix, package/repo/DB names) are
+# deliberately NOT driven by this — those are code, not branding.
+BRAND_NAME = env("DEVFORGE_BRAND_NAME", "DevForge")
+BRAND_TAGLINE = env("DEVFORGE_BRAND_TAGLINE", "AI software engineering")
 
 # --- Generated-project storage ----------------------------------------------
 # Where per-project git working trees live (apps.repositories). Defaults to a

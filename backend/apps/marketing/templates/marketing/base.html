@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}DevForge — AI software engineering{% endblock %}</title>
+  <title>{% block title %}{{ brand_name }} — AI software engineering{% endblock %}</title>
   <meta name="description" content="Plan, build, test, deploy and improve software across the lifecycle — in the technology stack you choose.">
   <link rel="icon" type="image/svg+xml" href="{% static 'img/devforge-mark.svg' %}">
   <style>
@@ -76,7 +76,7 @@
 </head>
 <body>
   <nav><div class="wrap in">
-    <a class="logo" href="{% url 'marketing:home' %}"><span class="mark"><img src="{% static 'img/devforge-mark.svg' %}" alt="" onerror="this.remove()"></span>Dev<b>Forge</b></a>
+    <a class="logo" href="{% url 'marketing:home' %}"><span class="mark"><img src="{% static 'img/devforge-mark.svg' %}" alt="" onerror="this.remove()"></span><b>{{ brand_name }}</b></a>
     <div class="links">
       <a href="{% url 'marketing:platform' %}">Product</a>
       <a href="{% url 'marketing:capabilities' %}">Solutions</a>
@@ -98,7 +98,7 @@
 
   <footer><div class="wrap cols">
     <div style="max-width:280px">
-      <div class="logo" style="font-size:17px"><span class="mark"><img src="{% static 'img/devforge-mark.svg' %}" alt="" onerror="this.remove()"></span>Dev<b>Forge</b></div>
+      <div class="logo" style="font-size:17px"><span class="mark"><img src="{% static 'img/devforge-mark.svg' %}" alt="" onerror="this.remove()"></span><b>{{ brand_name }}</b></div>
       <p class="muted" style="margin-top:10px">AI software engineering for the technology stack you choose.</p>
     </div>
     <div>
@@ -116,7 +116,7 @@
       <a href="{% url 'marketing:signup' %}">Sign up</a>
     </div>
   </div>
-  <div class="wrap" style="margin-top:24px">© DevForge. Built on Django · DRF · PostgreSQL.</div>
+  <div class="wrap" style="margin-top:24px">© {{ brand_name }}. Built on Django · DRF · PostgreSQL.</div>
   </footer>
 </body>
 </html>

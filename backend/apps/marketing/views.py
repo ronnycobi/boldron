@@ -6,9 +6,17 @@ nothing here is fabricated — no fake customers, logos, or metrics.
 """
 from __future__ import annotations
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
 from django.shortcuts import redirect, render
+
+
+def _brand(text: str) -> str:
+    """Fill the {brand} placeholder in marketing copy with the configured brand
+    name, so a rebrand (settings.BRAND_NAME) flows through the Python-side copy
+    just like it does through {{ brand_name }} in templates."""
+    return text.replace("{brand}", settings.BRAND_NAME)
 
 from apps.credits.services import ensure_account, plans
 from apps.marketing.models import ContactMessage
@@ -81,30 +89,30 @@ _USECASES = [
 # including the honest limits (approval-gated production, AI key for real
 # generation). No fabricated customers, metrics, or capabilities.
 _FAQS = [
-    ("What is DevForge?",
-     "DevForge is an AI software-engineering platform. You describe the software you need in "
-     "plain language and DevForge designs it, generates it and tests it in a real technology "
+    ("What is {brand}?",
+     "{brand} is an AI software-engineering platform. You describe the software you need in "
+     "plain language and {brand} designs it, generates it and tests it in a real technology "
      "stack — then helps you deploy and operate it. You get real source code you can export "
      "and keep, not a closed black box."),
     ("Do I need to know how to code?",
      "No. You describe what you want in plain language to get a working first version. Because "
-     "DevForge produces real, exportable source code, developers can also take it further — so "
+     "{brand} produces real, exportable source code, developers can also take it further — so "
      "it works for non-technical founders and engineering teams alike."),
     ("What can I build?",
      "Websites and online stores, web apps and business software (CRM, ERP, e-commerce, customer "
      "portals), internal tools, dashboards and APIs — plus designing mobile apps and preparing "
      "their Android and iOS releases for the app stores."),
     ("Which technology stack does it use?",
-     "You choose. DevForge builds in real, production frameworks rather than a proprietary runtime, "
+     "You choose. {brand} builds in real, production frameworks rather than a proprietary runtime, "
      "so your project is standard software you can host and maintain anywhere."),
     ("Can I deploy to production?",
-     "DevForge ships to development and staging automatically. Production changes stay behind an "
+     "{brand} ships to development and staging automatically. Production changes stay behind an "
      "explicit approval gate, with a full audit trail of who changed what — safe by default."),
     ("Is my code locked in?",
      "No. You can export your full source code at any time and run it yourself. No lock-in is a "
      "core principle of the platform."),
     ("Does it need an AI API key?",
-     "DevForge runs in an offline demo mode with no key. Connect an API key (Anthropic, OpenAI or "
+     "{brand} runs in an offline demo mode with no key. Connect an API key (Anthropic, OpenAI or "
      "Gemini) to enable real code generation — the platform routes each task to a suitable model."),
     ("How much does it cost?",
      "There's a free tier to start, with paid plans that scale your AI credits, projects and "
@@ -129,7 +137,7 @@ def home(request):
         "build_categories": _BUILD_CATEGORIES,
         "examples": _EXAMPLES,
         "usecases": _USECASES,
-        "faqs": _FAQS,
+        "faqs": [(_brand(q), _brand(a)) for q, a in _FAQS],
         "capability_groups": by_group(),
         # Live, honest counts for the trust strip — sourced from the registries,
         # never hard-coded marketing numbers.
@@ -147,7 +155,7 @@ def platform(request):
 def how_it_works(request):
     # Outcome steps only — no agent names or internal routing.
     steps = [
-        ("Describe", "Tell DevForge what you want to build, in plain language."),
+        ("Describe", _brand("Tell {brand} what you want to build, in plain language.")),
         ("Plan", "Your intent becomes clear requirements and a technical plan — and you choose the technology stack."),
         ("Build", "Your application is generated in the chosen stack."),
         ("Validate", "Tests run automatically to check it works."),
@@ -164,7 +172,7 @@ def capabilities(request):
 def pricing(request):
     tiers = [
         {"name": "Free", "price": "$0", "credits": plans().get("free", 0),
-         "blurb": "Explore DevForge.",
+         "blurb": _brand("Explore {brand}."),
          "features": ["Build projects", "Limited AI usage", "Preview", "Export your code anytime"]},
         {"name": "Builder", "price": "$29", "credits": plans().get("pro", 0),
          "blurb": "For serious builders.",
