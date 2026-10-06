@@ -67,7 +67,15 @@ class AnthropicProvider(AIProvider):
         if request.temperature is not None:
             kwargs["temperature"] = request.temperature
 
-        response = client.messages.create(**kwargs)
+        # Any API-level failure (overloaded 529, rate-limit 429, auth, or a
+        # low-credit-balance 400) becomes ProviderUnavailable so the router
+        # fails over to another provider rather than crashing the call.
+        try:
+            response = client.messages.create(**kwargs)
+        except anthropic.APIError as exc:
+            raise ProviderUnavailable(
+                f"Anthropic request to {model} failed: {exc}"
+            ) from exc
 
         text = "".join(
             block.text

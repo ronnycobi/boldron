@@ -192,7 +192,7 @@ class GeminiProviderTests(SimpleTestCase):
     def test_registered_and_in_catalog(self):
         self.assertIn("gemini", registry)
         from apps.model_router.catalog import profile_for
-        self.assertIsNotNone(profile_for("gemini", "gemini-2.5-flash"))
+        self.assertIsNotNone(profile_for("gemini", "gemini-flash-latest"))
 
     def test_complete_maps_request_to_sdk(self):
         import sys, types as pytypes
@@ -221,15 +221,18 @@ class GeminiProviderTests(SimpleTestCase):
         google_mod = pytypes.ModuleType("google")
         genai_mod = pytypes.ModuleType("google.genai")
         types_mod = pytypes.ModuleType("google.genai.types")
+        errors_mod = pytypes.ModuleType("google.genai.errors")
+        errors_mod.APIError = type("APIError", (Exception,), {})
         types_mod.Part = _Part
         types_mod.Content = _Content
         types_mod.GenerateContentConfig = _Config
         genai_mod.Client = _Client
         genai_mod.types = types_mod
+        genai_mod.errors = errors_mod
         google_mod.genai = genai_mod
 
         fakes = {"google": google_mod, "google.genai": genai_mod,
-                 "google.genai.types": types_mod}
+                 "google.genai.types": types_mod, "google.genai.errors": errors_mod}
         with mock.patch.dict(sys.modules, fakes), \
              mock.patch.dict("os.environ", {"GEMINI_API_KEY": "key-test"}, clear=False):
             p = GeminiProvider()
@@ -243,6 +246,42 @@ class GeminiProviderTests(SimpleTestCase):
         self.assertEqual(r.usage.input_tokens, 9)
         self.assertEqual(captured["config"].kw["system_instruction"], "Be helpful.")
         self.assertEqual(captured["contents"][0].role, "user")
+
+    def test_api_error_becomes_provider_unavailable(self):
+        # A transient Gemini 503 (or 429/auth) must degrade to ProviderUnavailable
+        # so the router can fail over, not crash the call.
+        import sys, types as pytypes
+        from apps.ai_providers.gemini_provider import GeminiProvider
+
+        class _APIError(Exception):
+            code = 503
+
+        class _Models:
+            def generate_content(self, **kw):
+                raise _APIError("high demand")
+        class _Client:
+            def __init__(self, api_key=None): self.models = _Models()
+
+        google_mod = pytypes.ModuleType("google")
+        genai_mod = pytypes.ModuleType("google.genai")
+        types_mod = pytypes.ModuleType("google.genai.types")
+        errors_mod = pytypes.ModuleType("google.genai.errors")
+        types_mod.Part = type("P", (), {"from_text": staticmethod(lambda text: {"text": text})})
+        types_mod.Content = lambda role, parts: {"role": role, "parts": parts}
+        types_mod.GenerateContentConfig = lambda **kw: kw
+        errors_mod.APIError = _APIError
+        genai_mod.Client = _Client
+        genai_mod.types = types_mod
+        genai_mod.errors = errors_mod
+        google_mod.genai = genai_mod
+
+        fakes = {"google": google_mod, "google.genai": genai_mod,
+                 "google.genai.types": types_mod, "google.genai.errors": errors_mod}
+        with mock.patch.dict(sys.modules, fakes), \
+             mock.patch.dict("os.environ", {"GEMINI_API_KEY": "key-test"}, clear=False):
+            p = GeminiProvider()
+            with self.assertRaises(ProviderUnavailable):
+                p.complete(CompletionRequest(messages=[Message("user", "hi")]))
 
 
 class GenerationStatusTests(SimpleTestCase):

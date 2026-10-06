@@ -36,9 +36,10 @@ MODEL_CATALOG: list[ModelProfile] = [
     # OpenAI (list prices USD / 1M tokens; keep in sync with the provider).
     ModelProfile("openai", "gpt-4o", 3, 128_000, 2.5, 10.0, speed=2),
     ModelProfile("openai", "gpt-4o-mini", 1, 128_000, 0.15, 0.6, speed=3),
-    # Google Gemini.
-    ModelProfile("gemini", "gemini-2.5-pro", 3, 1_000_000, 1.25, 10.0, speed=2),
-    ModelProfile("gemini", "gemini-2.5-flash", 1, 1_000_000, 0.30, 2.5, speed=3),
+    # Google Gemini. "-latest" aliases track the current generation so a retired
+    # point version can't 404 the platform (see GeminiProvider).
+    ModelProfile("gemini", "gemini-pro-latest", 3, 1_000_000, 1.25, 10.0, speed=2),
+    ModelProfile("gemini", "gemini-flash-latest", 1, 1_000_000, 0.30, 2.5, speed=3),
     ModelProfile(
         "stub", "stub-1", 1, 1_000_000, 0.0, 0.0, speed=3, is_fallback_only=True
     ),

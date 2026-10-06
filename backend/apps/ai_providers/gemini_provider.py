@@ -23,8 +23,12 @@ from apps.ai_providers.base import (
 class GeminiProvider(AIProvider):
     name = "gemini"
 
-    DEFAULT_MODEL = "gemini-2.5-flash"
-    MODELS = ["gemini-2.5-pro", "gemini-2.5-flash"]
+    # Use Google's stable "-latest" aliases rather than pinned version numbers:
+    # Gemini's point versions churn fast and old ones get retired for new keys
+    # (e.g. gemini-2.5-flash → 404 for new projects), so an alias keeps the
+    # platform pointed at a current, generally-available model without edits.
+    DEFAULT_MODEL = "gemini-flash-latest"
+    MODELS = ["gemini-pro-latest", "gemini-flash-latest"]
 
     def default_model(self) -> str:
         return self.DEFAULT_MODEL
@@ -52,6 +56,7 @@ class GeminiProvider(AIProvider):
                 "and install the 'google-genai' package."
             )
         from google import genai
+        from google.genai import errors as genai_errors
         from google.genai import types
 
         client = genai.Client(api_key=self._api_key())
@@ -70,9 +75,20 @@ class GeminiProvider(AIProvider):
             temperature=request.temperature,
         )
 
-        response = client.models.generate_content(
-            model=model_name, contents=contents, config=config
-        )
+        # Translate any API-level failure (capacity 503, rate-limit 429, auth,
+        # bad request) into ProviderUnavailable so the router can fail over to
+        # another provider instead of crashing the call. Transient Gemini 503s
+        # are common, so this is the difference between a blip and an outage.
+        try:
+            response = client.models.generate_content(
+                model=model_name, contents=contents, config=config
+            )
+        except genai_errors.APIError as exc:
+            code = getattr(exc, "code", None)
+            raise ProviderUnavailable(
+                f"Gemini request to {model_name} failed"
+                f"{f' ({code})' if code else ''}: {exc}"
+            ) from exc
 
         text = getattr(response, "text", "") or ""
         meta = getattr(response, "usage_metadata", None)

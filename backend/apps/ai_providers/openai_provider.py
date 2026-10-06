@@ -50,6 +50,7 @@ class OpenAIProvider(AIProvider):
                 "OpenAI provider unavailable: set OPENAI_API_KEY and install the "
                 "'openai' package."
             )
+        import openai
         from openai import OpenAI
 
         client = OpenAI(api_key=self._api_key())
@@ -64,7 +65,14 @@ class OpenAIProvider(AIProvider):
         if request.temperature is not None:
             kwargs["temperature"] = request.temperature
 
-        response = client.chat.completions.create(**kwargs)
+        # Any API-level failure (rate-limit 429, server 5xx, auth, quota) becomes
+        # ProviderUnavailable so the router fails over instead of crashing.
+        try:
+            response = client.chat.completions.create(**kwargs)
+        except openai.OpenAIError as exc:
+            raise ProviderUnavailable(
+                f"OpenAI request to {model} failed: {exc}"
+            ) from exc
 
         choice = response.choices[0]
         text = getattr(choice.message, "content", "") or ""
