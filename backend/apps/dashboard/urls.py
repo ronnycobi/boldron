@@ -37,6 +37,7 @@ urlpatterns = [
     path("repository/", views.repository, name="repository"),
     path("templates/", views.templates_page, name="templates"),
     path("settings/", views.settings_page, name="settings"),
+    path("account/", views.account, name="account"),
     path("ops/<slug:area>/", views.operations, name="ops"),
     path("soon/<slug:slug>/", views.soon, name="soon"),
     path("login/", views.BoldronLoginView.as_view(), name="login"),

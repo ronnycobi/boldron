@@ -435,3 +435,53 @@ class PeopleManagementViewTests(TestCase):
         # But they can leave.
         self.client.post(reverse("dashboard:people"), {"action": "leave", "organization": self.org.id})
         self.assertFalse(Membership.objects.filter(organization=self.org, user=self.member).exists())
+
+
+class AccountSettingsTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(email="me@x.com", password="oldpass12345", full_name="Me")
+
+    def _login(self):
+        self.assertTrue(self.client.login(username="me@x.com", password="oldpass12345"))
+
+    def test_update_profile_name_and_email(self):
+        self._login()
+        self.client.post(reverse("dashboard:account"),
+                         {"action": "profile", "full_name": "New Name", "email": "new@x.com"})
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.full_name, "New Name")
+        self.assertEqual(self.user.email, "new@x.com")
+
+    def test_email_change_rejects_duplicate(self):
+        User.objects.create_user(email="taken@x.com", password="x")
+        self._login()
+        self.client.post(reverse("dashboard:account"),
+                         {"action": "profile", "full_name": "Me", "email": "taken@x.com"})
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.email, "me@x.com")  # unchanged
+
+    def test_change_password_success_keeps_this_session(self):
+        self._login()
+        self.client.post(reverse("dashboard:account"),
+                         {"action": "password", "old_password": "oldpass12345",
+                          "new_password1": "brandnewpw99", "new_password2": "brandnewpw99"})
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("brandnewpw99"))
+        self.assertEqual(self.client.get(reverse("dashboard:account")).status_code, 200)  # still in
+
+    def test_change_password_wrong_current_is_rejected(self):
+        self._login()
+        self.client.post(reverse("dashboard:account"),
+                         {"action": "password", "old_password": "WRONG",
+                          "new_password1": "brandnewpw99", "new_password2": "brandnewpw99"})
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("oldpass12345"))  # unchanged
+
+    def test_sign_out_other_sessions(self):
+        from django.test import Client
+        other = Client(); other.login(username="me@x.com", password="oldpass12345")
+        me = Client(); me.login(username="me@x.com", password="oldpass12345")
+        self.assertEqual(other.get(reverse("dashboard:account")).status_code, 200)
+        me.post(reverse("dashboard:account"), {"action": "sessions"})
+        self.assertEqual(other.get(reverse("dashboard:account")).status_code, 302)  # signed out
+        self.assertEqual(me.get(reverse("dashboard:account")).status_code, 200)     # kept

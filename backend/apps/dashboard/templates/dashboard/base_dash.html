@@ -124,7 +124,7 @@
     <div class="topbar">
       <div class="crumb">{% block crumb %}{% endblock %}</div>
       <div class="who">
-        <span>{{ request.user.email }}</span>
+        <a href="{% url 'dashboard:account' %}" title="Account &amp; security">{{ request.user.email }}</a>
         {% if request.user.is_staff %}<a href="/staff/" class="muted">Control Center</a>
         <a href="/admin/" class="muted">Admin</a>{% endif %}
         <form action="{% url 'dashboard:logout' %}" method="post" style="display:inline">

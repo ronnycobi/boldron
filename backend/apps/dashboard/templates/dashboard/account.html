@@ -1,0 +1,59 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}Account · {{ app_name }}{% endblock %}
+{% block crumb %}Account{% endblock %}
+{% block content %}
+<style>
+  .acct{max-width:560px}
+  .acct .card{margin-bottom:16px}
+  .acct label{display:block;font-size:11.5px;color:var(--muted);margin:12px 0 4px;text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+  .acct input{width:100%;padding:10px 12px;border:1px solid var(--line2);border-radius:9px;background:var(--panel2);color:var(--ink)}
+  .acct .ferr{color:#f87171;font-size:12px;margin:5px 0 0}
+  .acct .meta{color:var(--muted);font-size:12.5px}
+  .acct .btn{margin-top:14px}
+</style>
+<div class="acct">
+  <h1>Account &amp; security</h1>
+  <p class="sub">Manage your profile, password, and active sessions.</p>
+
+  <div class="card">
+    <h2 style="margin-top:0">Profile</h2>
+    <form method="post">{% csrf_token %}
+      <input type="hidden" name="action" value="profile">
+      <label>Full name</label>
+      <input name="full_name" value="{{ request.user.full_name }}" placeholder="Ada Lovelace">
+      <label>Email (your sign-in)</label>
+      <input type="email" name="email" value="{{ request.user.email }}" required>
+      <button class="btn" type="submit">Save profile</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">Change password</h2>
+    <form method="post">{% csrf_token %}
+      <input type="hidden" name="action" value="password">
+      <label>Current password</label>
+      <input type="password" name="old_password" required>
+      {% for e in pwd_form.old_password.errors %}<p class="ferr">{{ e }}</p>{% endfor %}
+      <label>New password</label>
+      <input type="password" name="new_password1" required>
+      {% for e in pwd_form.new_password1.errors %}<p class="ferr">{{ e }}</p>{% endfor %}
+      <label>Confirm new password</label>
+      <input type="password" name="new_password2" required>
+      {% for e in pwd_form.new_password2.errors %}<p class="ferr">{{ e }}</p>{% endfor %}
+      <p class="meta" style="margin-top:8px">Changing your password signs you out of every other device.</p>
+      <button class="btn" type="submit">Update password</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">Active sessions</h2>
+    <p class="meta">Signed in since {{ request.user.last_login|date:"M j, Y, H:i"|default:"—" }} ·
+      member since {{ request.user.date_joined|date:"M j, Y" }}.</p>
+    <p class="meta" style="margin-top:6px">If you signed in on a shared or lost device, sign out everywhere else — this device stays signed in.</p>
+    <form method="post" onsubmit="return confirm('Sign out of all other sessions?')">{% csrf_token %}
+      <input type="hidden" name="action" value="sessions">
+      <button class="btn ghost" type="submit">Sign out of all other sessions</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1569,6 +1569,65 @@ def templates_page(request):
     return render(request, "dashboard/templates.html", {"active": "templates", "stacks": stacks})
 
 
+def _logout_other_sessions(request) -> int:
+    """Delete every OTHER active session belonging to this user (keeps the current
+    one). Works with the database session backend. Returns how many were removed."""
+    from django.contrib.sessions.models import Session
+    from django.utils import timezone as tz
+
+    current = request.session.session_key
+    removed = 0
+    uid = str(request.user.pk)
+    for s in Session.objects.filter(expire_date__gte=tz.now()).iterator():
+        if s.session_key == current:
+            continue
+        if str(s.get_decoded().get("_auth_user_id")) == uid:
+            s.delete()
+            removed += 1
+    return removed
+
+
+@login_required
+def account(request):
+    """Account & security: update profile, change password, sign out other sessions."""
+    from django.contrib.auth import update_session_auth_hash
+    from django.contrib.auth.forms import PasswordChangeForm
+    from apps.accounts.models import User
+
+    user = request.user
+    pwd_form = PasswordChangeForm(user)
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "profile":
+            full_name = (request.POST.get("full_name") or "").strip()[:255]
+            email = User.objects.normalize_email(request.POST.get("email") or "")
+            if not email:
+                messages.error(request, "Email can't be blank.")
+            elif User.objects.filter(email__iexact=email).exclude(pk=user.pk).exists():
+                messages.error(request, "That email is already in use by another account.")
+            else:
+                user.full_name, user.email = full_name, email
+                user.save(update_fields=["full_name", "email"])
+                messages.success(request, "Profile updated.")
+                return redirect("dashboard:account")
+        elif action == "password":
+            pwd_form = PasswordChangeForm(user, request.POST)
+            if pwd_form.is_valid():
+                pwd_form.save()
+                # Keep THIS session; the password change invalidates the others.
+                update_session_auth_hash(request, user)
+                messages.success(request, "Password changed — other sessions were signed out.")
+                return redirect("dashboard:account")
+            messages.error(request, "Please fix the errors below.")
+        elif action == "sessions":
+            n = _logout_other_sessions(request)
+            messages.success(request, f"Signed out of {n} other session(s).")
+            return redirect("dashboard:account")
+
+    return render(request, "dashboard/account.html", {"active": "account", "pwd_form": pwd_form})
+
+
 @login_required
 def settings_page(request):
     """Project settings: rename / describe / delete (owner/admin)."""
