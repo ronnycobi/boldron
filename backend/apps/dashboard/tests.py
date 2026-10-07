@@ -485,3 +485,51 @@ class AccountSettingsTests(TestCase):
         me.post(reverse("dashboard:account"), {"action": "sessions"})
         self.assertEqual(other.get(reverse("dashboard:account")).status_code, 302)  # signed out
         self.assertEqual(me.get(reverse("dashboard:account")).status_code, 200)     # kept
+
+
+class LoginLockoutTests(TestCase):
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.addCleanup(cache.clear)
+        User.objects.create_user(email="lock@x.com", password="rightpass123")
+
+    def _fail(self):
+        return self.client.post(reverse("dashboard:login"),
+                                {"username": "lock@x.com", "password": "wrong"})
+
+    def test_locks_after_five_failures(self):
+        for _ in range(5):
+            self._fail()
+        # 6th attempt is blocked even with the CORRECT password.
+        r = self.client.post(reverse("dashboard:login"),
+                             {"username": "lock@x.com", "password": "rightpass123"})
+        self.assertEqual(r.status_code, 200)             # re-rendered, not redirected
+        self.assertContains(r, "Too many attempts")
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_success_before_lock_clears_the_counter(self):
+        for _ in range(3):
+            self._fail()
+        r = self.client.post(reverse("dashboard:login"),
+                             {"username": "lock@x.com", "password": "rightpass123"})
+        self.assertEqual(r.status_code, 302)             # logged in, counter reset
+        self.client.logout()
+        for _ in range(3):
+            self._fail()                                  # only 3 again -> still allowed
+        r = self.client.post(reverse("dashboard:login"),
+                             {"username": "lock@x.com", "password": "rightpass123"})
+        self.assertEqual(r.status_code, 302)             # not locked
+
+
+class PasswordResetThrottleTests(TestCase):
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.addCleanup(cache.clear)
+
+    def test_reset_requests_are_rate_limited(self):
+        for _ in range(8):
+            self.client.post(reverse("dashboard:password_reset"), {"email": "spam@x.com"})
+        r = self.client.post(reverse("dashboard:password_reset"), {"email": "spam@x.com"})
+        self.assertContains(r, "Too many attempts")

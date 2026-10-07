@@ -148,3 +148,18 @@ class SignupTests(TestCase):
         self.assertEqual(User.objects.filter(email="dup@x.com").count(), 1)
         self.assertContains(r, "already exists")
         self.assertEqual(User.objects.filter(email="dup@x.com").count(), 1)
+
+
+class SignupThrottleTests(TestCase):
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.addCleanup(cache.clear)
+
+    def test_signup_is_rate_limited_per_ip(self):
+        for _ in range(10):
+            self.client.post(reverse("marketing:signup"),
+                             {"email": "a@x.com", "password1": "x", "password2": "y"})
+        r = self.client.post(reverse("marketing:signup"),
+                             {"email": "a@x.com", "password1": "x", "password2": "y"})
+        self.assertContains(r, "Too many attempts")

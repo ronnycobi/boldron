@@ -57,3 +57,29 @@ class HealthEndpointTests(TestCase):
         # No authentication set up; the probe must still be reachable.
         resp = self.client.get("/api/v1/health/")
         self.assertEqual(resp.status_code, 200)
+
+
+class RateLimiterTests(TestCase):
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.addCleanup(cache.clear)
+
+    def test_locks_after_limit_and_resets(self):
+        from apps.core.throttle import RateLimiter
+        rl = RateLimiter("t_unit", limit=3, window=60, lock=60)
+        self.assertEqual(rl.retry_after("a"), 0)
+        self.assertEqual(rl.hit("a"), 0)       # 1
+        self.assertEqual(rl.hit("a"), 0)       # 2
+        self.assertGreater(rl.hit("a"), 0)     # 3 -> locked, returns cooldown
+        self.assertGreater(rl.retry_after("a"), 0)
+        self.assertEqual(rl.retry_after("b"), 0)   # other identifier unaffected
+        rl.reset("a")
+        self.assertEqual(rl.retry_after("a"), 0)
+
+    def test_lock_writes_an_audit_record(self):
+        from apps.audit.models import AuditEvent
+        from apps.core.throttle import RateLimiter
+        rl = RateLimiter("t_audit", limit=1, window=60, lock=60)
+        rl.hit("x")  # trips immediately
+        self.assertTrue(AuditEvent.objects.filter(action="security.lockout").exists())

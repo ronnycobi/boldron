@@ -212,6 +212,7 @@ def contact(request):
 
 def signup(request):
     from apps.accounts.forms import RegistrationForm
+    from apps.core import throttle
 
     idea = (request.GET.get("idea") or request.POST.get("idea") or "").strip()
     if request.user.is_authenticated:
@@ -220,6 +221,15 @@ def signup(request):
         return redirect("dashboard:home")
 
     form = RegistrationForm(request.POST or None)
+    if request.method == "POST":
+        ip = throttle.client_ip(request)
+        retry = throttle.SIGNUP_IP.retry_after(ip)
+        if retry:
+            messages.error(request, throttle.too_many_message(retry))
+            ctx = _base_context()
+            ctx.update({"idea": idea, "form": form})
+            return render(request, "marketing/signup.html", ctx)
+        throttle.SIGNUP_IP.hit(ip)  # count this attempt toward the hourly cap
     if request.method == "POST" and form.is_valid():
         user = form.save()
         default_name = f"{user.full_name or user.email.split('@')[0]}'s workspace"

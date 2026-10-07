@@ -169,11 +169,29 @@ class BoldronLoginView(auth_views.LoginView):
             return reverse("console:overview")
         return reverse("dashboard:home")
 
+    def post(self, request, *args, **kwargs):
+        from apps.core import throttle
+        self._email = (request.POST.get("username") or "").strip().lower()
+        self._ip = throttle.client_ip(request)
+        retry = throttle.login_retry_after(self._email, self._ip)
+        if retry:
+            # Locked out — don't even attempt authentication.
+            return self.render_to_response(self.get_context_data(
+                form=self.get_form(), lockout=throttle.too_many_message(retry)))
+        return super().post(request, *args, **kwargs)
+
     def form_valid(self, form):
+        from apps.core import throttle
+        throttle.login_reset(getattr(self, "_email", ""), getattr(self, "_ip", ""))
         # "Keep me signed in": otherwise the session ends when the browser closes.
         if not self.request.POST.get("remember"):
             self.request.session.set_expiry(0)
         return super().form_valid(form)
+
+    def form_invalid(self, form):
+        from apps.core import throttle
+        throttle.login_record_failure(getattr(self, "_email", ""), getattr(self, "_ip", ""))
+        return super().form_invalid(form)
 
 
 class BoldronPasswordResetView(auth_views.PasswordResetView):
@@ -190,6 +208,17 @@ class BoldronPasswordResetView(auth_views.PasswordResetView):
     def extra_email_context(self):
         # The email templates render outside a request context, so pass the brand.
         return {"app_name": settings.APP_NAME}
+
+    def post(self, request, *args, **kwargs):
+        from apps.core import throttle
+        ip = throttle.client_ip(request)
+        email = (request.POST.get("email") or "").strip().lower()
+        retry = throttle.reset_retry_after(email, ip)
+        if retry:
+            return self.render_to_response(self.get_context_data(
+                form=self.get_form(), lockout=throttle.too_many_message(retry)))
+        throttle.reset_record(email, ip)
+        return super().post(request, *args, **kwargs)
 
 
 class BoldronPasswordResetConfirmView(auth_views.PasswordResetConfirmView):
