@@ -211,35 +211,29 @@ def contact(request):
 
 
 def signup(request):
+    from apps.accounts.forms import RegistrationForm
+
     idea = (request.GET.get("idea") or request.POST.get("idea") or "").strip()
     if request.user.is_authenticated:
         if idea:
             request.session["build_idea"] = idea[:2000]
         return redirect("dashboard:home")
-    if request.method == "POST":
-        email = (request.POST.get("email") or "").strip().lower()
-        password = request.POST.get("password") or ""
-        full_name = (request.POST.get("full_name") or "").strip()
-        org_name = (request.POST.get("org_name") or "").strip()
-        from apps.accounts.models import User
 
-        if not email or len(password) < 8:
-            messages.error(request, "Enter an email and a password of at least 8 characters.")
-        elif User.objects.filter(email__iexact=email).exists():
-            messages.error(request, "An account with that email already exists. Try logging in.")
-        else:
-            user = User.objects.create_user(email=email, password=password, full_name=full_name)
-            org = Organization.objects.create(
-                name=org_name or f"{full_name or email.split('@')[0]}'s workspace",
-                created_by=user,
-            )
-            org.add_member(user, role=Role.OWNER)
-            ensure_account(org, plan="free")  # start with free-tier credits
-            login(request, user, backend="django.contrib.auth.backends.ModelBackend")
-            idea = (request.POST.get("idea") or "").strip()
-            if idea:
-                request.session["build_idea"] = idea[:2000]  # carried into the builder
-            return redirect("dashboard:home")
+    form = RegistrationForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        user = form.save()
+        default_name = f"{user.full_name or user.email.split('@')[0]}'s workspace"
+        org = Organization.objects.create(
+            name=form.cleaned_data.get("org_name") or default_name, created_by=user,
+        )
+        org.add_member(user, role=Role.OWNER)
+        ensure_account(org, plan="free")  # start with free-tier credits
+        login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+        if idea:
+            request.session["build_idea"] = idea[:2000]  # carried into the builder
+        return redirect("dashboard:home")
+
     ctx = _base_context()
-    ctx["idea"] = (request.GET.get("idea") or request.POST.get("idea") or "").strip()
+    ctx["idea"] = idea
+    ctx["form"] = form
     return render(request, "marketing/signup.html", ctx)

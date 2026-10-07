@@ -1,0 +1,50 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <link rel="icon" href="{% if app_favicon_url %}{{ app_favicon_url }}{% else %}{% static 'img/boldron-mark.svg' %}{% endif %}">
+  <style>
+    :root{--grad:linear-gradient(135deg,#4f7cff,#9b6bff);--brand:#4f7cff}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
+      background:radial-gradient(900px 500px at 70% -10%,rgba(155,107,255,.16),transparent 60%),
+        radial-gradient(800px 500px at -10% 10%,rgba(79,124,255,.16),transparent 55%),#080c18;
+      color:#e8edfb;font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Arial,sans-serif}
+    .box{width:380px;max-width:92vw;background:linear-gradient(180deg,#111a30,#0e1526);
+      border:1px solid #1d2743;border-radius:18px;padding:30px 28px;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+    .brand{text-align:center;margin-bottom:6px}
+    .brand img{height:56px;filter:drop-shadow(0 0 16px rgba(79,124,255,.4))}
+    .brand .name{font-weight:800;font-size:23px;margin-top:10px;
+      background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+    h1.title{font-size:19px;text-align:center;margin:14px 0 2px;color:#fff;font-weight:800}
+    .tag{color:#7f8aa8;margin:0 0 18px;font-size:13px;text-align:center}
+    label{display:block;font-size:11.5px;color:#7f8aa8;margin:12px 0 4px;text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+    input{width:100%;padding:11px 12px;border:1px solid #26324f;border-radius:10px;background:#0e1526;color:#e8edfb;font-size:14px}
+    input::placeholder{color:#5c678a}
+    input:focus{outline:none;border-color:var(--brand)}
+    button{width:100%;margin-top:20px;padding:12px;border:0;border-radius:10px;background:var(--grad);
+      color:#fff;font-weight:700;font-size:14px;cursor:pointer}
+    a{color:var(--brand);text-decoration:none}
+    a:hover{text-decoration:underline}
+    .row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:6px;font-size:12.5px}
+    .foot{color:#7f8aa8;font-size:12.5px;margin:16px 0 0;text-align:center}
+    .err{background:rgba(248,113,113,.14);color:#f87171;border:1px solid rgba(248,113,113,.3);
+      padding:9px 12px;border-radius:9px;font-size:12.5px;margin:4px 0 2px}
+    .err ul{margin:4px 0 0;padding-left:18px}
+    .ok{background:rgba(52,211,153,.13);color:#34d399;border:1px solid rgba(52,211,153,.3);
+      padding:11px 13px;border-radius:10px;font-size:13px}
+    .hint{color:#6b7698;font-size:12px;margin-top:6px}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div class="brand">
+      <img src="{% if app_logo_url %}{{ app_logo_url }}{% else %}{% static 'img/boldron-mark.svg' %}{% endif %}" alt="{{ app_name }}">
+      <div class="name">{{ app_name }}</div>
+    </div>
+    {% block auth %}{% endblock %}
+  </div>
+</body>
+</html>

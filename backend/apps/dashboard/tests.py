@@ -1,12 +1,84 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
+from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
 
 from apps.organizations.models import Organization, Role
 from apps.orchestrator.models import AgentTask
 from apps.projects.models import Project
 
 User = get_user_model()
+
+
+class LoginPageTests(TestCase):
+    def test_login_page_offers_reset_and_signup(self):
+        html = self.client.get(reverse("dashboard:login")).content.decode()
+        self.assertIn(reverse("dashboard:password_reset"), html)
+        self.assertIn(reverse("marketing:signup"), html)
+
+    def test_staff_and_customers_land_in_the_right_place(self):
+        User.objects.create_user(email="cust@x.com", password="pw12345678")
+        r = self.client.post(reverse("dashboard:login"),
+                             {"username": "cust@x.com", "password": "pw12345678"})
+        self.assertRedirects(r, reverse("dashboard:home"), fetch_redirect_response=False)
+        self.client.logout()
+        User.objects.create_user(email="staff@x.com", password="pw12345678", is_staff=True)
+        r = self.client.post(reverse("dashboard:login"),
+                             {"username": "staff@x.com", "password": "pw12345678"})
+        self.assertRedirects(r, reverse("console:overview"), fetch_redirect_response=False)
+
+    def test_remember_me_controls_session_lifetime(self):
+        User.objects.create_user(email="rm@x.com", password="pw12345678")
+        self.client.post(reverse("dashboard:login"),
+                         {"username": "rm@x.com", "password": "pw12345678"})
+        self.assertTrue(self.client.session.get_expire_at_browser_close())  # not remembered
+        self.client.logout()
+        self.client.post(reverse("dashboard:login"),
+                         {"username": "rm@x.com", "password": "pw12345678", "remember": "on"})
+        self.assertFalse(self.client.session.get_expire_at_browser_close())  # remembered
+
+
+class PasswordResetFlowTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(email="reset@x.com", password="oldpass12345")
+
+    def test_request_sends_one_branded_email_with_a_link(self):
+        r = self.client.post(reverse("dashboard:password_reset"), {"email": "reset@x.com"})
+        self.assertRedirects(r, reverse("dashboard:password_reset_done"))
+        self.assertEqual(len(mail.outbox), 1)
+        msg = mail.outbox[0]
+        self.assertIn("reset@x.com", msg.to)
+        self.assertIn("/reset/", msg.body)                 # the confirm link
+        self.assertIn("Application", msg.subject)          # branded (default APP_NAME)
+
+    def test_unknown_email_is_not_revealed_and_sends_nothing(self):
+        r = self.client.post(reverse("dashboard:password_reset"), {"email": "nobody@x.com"})
+        self.assertRedirects(r, reverse("dashboard:password_reset_done"))  # same page
+        self.assertEqual(len(mail.outbox), 0)              # no account -> no email
+
+    def test_full_flow_sets_a_new_password_and_signs_in(self):
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        token = default_token_generator.make_token(self.user)
+        url = reverse("dashboard:password_reset_confirm", kwargs={"uidb64": uid, "token": token})
+        # GET moves the token into the session and redirects to the set-password form.
+        r = self.client.get(url, follow=True)
+        self.assertContains(r, "Set a new password")
+        set_url = r.redirect_chain[-1][0]
+        r2 = self.client.post(set_url, {"new_password1": "brandnewpw42", "new_password2": "brandnewpw42"})
+        self.assertRedirects(r2, reverse("dashboard:password_reset_complete"))
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("brandnewpw42"))
+        self.assertTrue(self.client.login(username="reset@x.com", password="brandnewpw42"))
+
+    def test_used_or_bad_token_shows_expired(self):
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        url = reverse("dashboard:password_reset_confirm",
+                      kwargs={"uidb64": uid, "token": "bad-token"})
+        r = self.client.get(url, follow=True)
+        self.assertContains(r, "Link expired")
 
 
 class DashboardUITests(TestCase):

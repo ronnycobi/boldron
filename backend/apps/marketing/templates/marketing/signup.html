@@ -1,19 +1,38 @@
 {% extends "marketing/base.html" %}
 {% block title %}Start building · {{ app_name }}{% endblock %}
 {% block body %}
+<style>
+  .fielderr{color:#f87171;font-size:12px;margin:5px 0 0}
+  .signup label{margin-top:14px}
+</style>
 <section class="hero-glow"><div class="wrap" style="max-width:460px">
   <div class="eyebrow">Get started</div>
   <h1 style="font-size:38px">Create your <span class="grad">workspace</span></h1>
   <p class="lead" style="margin-top:12px;font-size:16px">Free to start, with credits included. Export your code anytime.</p>
-  <div class="card" style="margin-top:20px">
-    <form method="post">
+  <div class="card signup" style="margin-top:20px">
+    <form method="post" novalidate>
       {% csrf_token %}
       {% if idea %}<input type="hidden" name="idea" value="{{ idea }}">
       <p class="muted" style="font-size:13px;margin:0 0 12px">{{ app_name }} will start building: <em>“{{ idea|truncatechars:80 }}”</em></p>{% endif %}
-      <label>Full name (optional)</label><input name="full_name" placeholder="Ada Lovelace">
-      <label>Work email</label><input type="email" name="email" placeholder="you@company.com" required>
-      <label>Password</label><input type="password" name="password" placeholder="At least 8 characters" required minlength="8">
-      <label>Organization name (optional)</label><input name="org_name" placeholder="Acme Corp">
+
+      <label>Full name <span class="muted" style="text-transform:none;letter-spacing:0">(optional)</span></label>
+      <input name="full_name" placeholder="Ada Lovelace" value="{{ form.full_name.value|default:'' }}">
+
+      <label>Work email</label>
+      <input type="email" name="email" placeholder="you@company.com" required value="{{ form.email.value|default:'' }}">
+      {% for e in form.email.errors %}<p class="fielderr">{{ e }}</p>{% endfor %}
+
+      <label>Password</label>
+      <input type="password" name="password1" placeholder="At least 8 characters" required>
+      {% for e in form.password1.errors %}<p class="fielderr">{{ e }}</p>{% endfor %}
+
+      <label>Confirm password</label>
+      <input type="password" name="password2" placeholder="Re-enter your password" required>
+      {% for e in form.password2.errors %}<p class="fielderr">{{ e }}</p>{% endfor %}
+
+      <label>Organization name <span class="muted" style="text-transform:none;letter-spacing:0">(optional)</span></label>
+      <input name="org_name" placeholder="Acme Corp" value="{{ form.org_name.value|default:'' }}">
+
       <div style="margin-top:18px"><button class="btn grad lg" style="width:100%" type="submit">Create account &amp; start →</button></div>
       <p class="muted" style="font-size:12.5px;margin:12px 0 0;text-align:center">
         Already have an account? <a href="{% url 'dashboard:login' %}" style="color:var(--brand)">Log in</a>

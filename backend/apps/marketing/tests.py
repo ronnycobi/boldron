@@ -74,7 +74,7 @@ class PublicPagesTests(TestCase):
         r = self.client.get(reverse("marketing:signup"), {"idea": idea})
         self.assertContains(r, idea)
         self.client.post(reverse("marketing:signup"),
-                         {"email": "new@x.com", "password": "pw12345!", "idea": idea})
+                         {"email": "new@x.com", "password1": "pw12345!", "password2": "pw12345!", "idea": idea})
         # New account is logged in; the builder prefills from the carried idea.
         home = self.client.get(reverse("dashboard:home"))
         self.assertContains(home, idea)
@@ -110,12 +110,14 @@ class ContactTests(TestCase):
 
 
 class SignupTests(TestCase):
+    def _post(self, **over):
+        data = {"email": "new@x.com", "password1": "supersecret1",
+                "password2": "supersecret1", "org_name": "Acme"}
+        data.update(over)
+        return self.client.post(reverse("marketing:signup"), data, follow=True)
+
     def test_signup_creates_user_org_and_logs_in(self):
-        resp = self.client.post(
-            reverse("marketing:signup"),
-            {"email": "new@x.com", "password": "supersecret1", "org_name": "Acme"},
-            follow=True,
-        )
+        resp = self._post()
         self.assertEqual(resp.status_code, 200)
         user = User.objects.get(email="new@x.com")
         org = Organization.objects.get(name="Acme")
@@ -124,10 +126,25 @@ class SignupTests(TestCase):
         self.assertEqual(resp.request["PATH_INFO"], reverse("dashboard:home"))
 
     def test_signup_rejects_short_password(self):
-        self.client.post(reverse("marketing:signup"), {"email": "x@x.com", "password": "short"})
+        self.client.post(reverse("marketing:signup"),
+                         {"email": "x@x.com", "password1": "short", "password2": "short"})
         self.assertFalse(User.objects.filter(email="x@x.com").exists())
+
+    def test_signup_rejects_mismatched_passwords(self):
+        r = self._post(password1="supersecret1", password2="different9")
+        self.assertFalse(User.objects.filter(email="new@x.com").exists())
+        self.assertContains(r, "two passwords")  # field error shown
+
+    def test_signup_rejects_common_password(self):
+        # "password" trips the CommonPasswordValidator even though it's 8 chars.
+        self.client.post(reverse("marketing:signup"),
+                         {"email": "c@x.com", "password1": "password", "password2": "password"})
+        self.assertFalse(User.objects.filter(email="c@x.com").exists())
 
     def test_signup_rejects_duplicate_email(self):
         User.objects.create_user(email="dup@x.com", password="pw12345678")
-        self.client.post(reverse("marketing:signup"), {"email": "dup@x.com", "password": "anotherpw1"})
+        r = self.client.post(reverse("marketing:signup"),
+                             {"email": "dup@x.com", "password1": "anotherpw1", "password2": "anotherpw1"})
+        self.assertEqual(User.objects.filter(email="dup@x.com").count(), 1)
+        self.assertContains(r, "already exists")
         self.assertEqual(User.objects.filter(email="dup@x.com").count(), 1)

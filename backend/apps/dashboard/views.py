@@ -19,7 +19,7 @@ from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 
 from apps.agents.definitions import registry as agent_registry
 from apps.changes import service as changes_service
@@ -167,6 +167,34 @@ class BoldronLoginView(auth_views.LoginView):
         if self.request.user.is_staff:
             return reverse("console:overview")
         return reverse("dashboard:home")
+
+    def form_valid(self, form):
+        # "Keep me signed in": otherwise the session ends when the browser closes.
+        if not self.request.POST.get("remember"):
+            self.request.session.set_expiry(0)
+        return super().form_valid(form)
+
+
+class BoldronPasswordResetView(auth_views.PasswordResetView):
+    """Forgot-password: emails a signed, single-use reset link (branded, via the
+    configured EMAIL_BACKEND). Always redirects to the same 'done' page whether or
+    not the address has an account, so it never reveals which emails are registered."""
+    template_name = "dashboard/password_reset_form.html"
+    email_template_name = "dashboard/password_reset_email.txt"
+    html_email_template_name = "dashboard/password_reset_email.html"
+    subject_template_name = "dashboard/password_reset_subject.txt"
+    success_url = reverse_lazy("dashboard:password_reset_done")
+
+    @property
+    def extra_email_context(self):
+        # The email templates render outside a request context, so pass the brand.
+        return {"app_name": settings.APP_NAME}
+
+
+class BoldronPasswordResetConfirmView(auth_views.PasswordResetConfirmView):
+    """Validates the link token and lets the user set a new password."""
+    template_name = "dashboard/password_reset_confirm.html"
+    success_url = reverse_lazy("dashboard:password_reset_complete")
 
 
 @login_required
