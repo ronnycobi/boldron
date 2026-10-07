@@ -12,7 +12,6 @@ from __future__ import annotations
 import secrets
 
 from django.conf import settings
-
 from django.utils import timezone
 
 from apps.audit.service import record as audit

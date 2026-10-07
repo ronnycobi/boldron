@@ -12,10 +12,10 @@ publish flow doesn't change.
 """
 from __future__ import annotations
 
-from django.conf import settings
-
 import shutil
 from pathlib import Path
+
+from django.conf import settings
 
 from apps.repositories.service import repo_for_project, workspaces_root
 

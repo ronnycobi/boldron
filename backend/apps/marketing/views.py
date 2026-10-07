@@ -11,18 +11,18 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.shortcuts import redirect, render
 
-
-def _brand(text: str) -> str:
-    """Fill the {brand} placeholder in marketing copy with the configured brand
-    name, so a rebrand (settings.APP_NAME) flows through the Python-side copy
-    just like it does through {{ brand_name }} in templates."""
-    return text.replace("{brand}", settings.APP_NAME)
-
 from apps.credits.services import ensure_account, plans
 from apps.marketing.models import ContactMessage
 from apps.organizations.models import Organization, Role
 from apps.technology.registry import Category
 from apps.technology.registry import registry as tech_registry
+
+
+def _brand(text: str) -> str:
+    """Fill the {brand} placeholder in marketing copy with the configured brand
+    name, so a rebrand (settings.APP_NAME) flows through the Python-side copy
+    just like it does through {{ app_name }} in templates."""
+    return text.replace("{brand}", settings.APP_NAME)
 
 # Public messaging shows OUTCOMES across the software lifecycle — never the
 # internal machinery (no agent names, orchestration, routing, permissions, or

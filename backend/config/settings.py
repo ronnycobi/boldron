@@ -90,8 +90,9 @@ ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
 # any brand by changing env vars only. This is the single source of truth —
 # templates read it via apps.core.context_processors.branding ({{ app_name }}…),
 # Python reads settings.APP_*. Internal platform concepts (agents, projects,
-# builds, deployments, capabilities, providers, commerce, the "boldron" app
-# label and BOLDRON_ operational vars) are implementation identifiers and stay.
+# builds, deployments, capabilities, providers, commerce) plus the BOLDRON_
+# operational env vars and Boldron* class names are implementation identifiers
+# and stay — they are never customer-facing.
 APP_NAME = env("APP_NAME", "Application")
 APP_COMPANY_NAME = env("APP_COMPANY_NAME", "")  # falls back to APP_NAME in the branding layer
 APP_TAGLINE = env("APP_TAGLINE", "")

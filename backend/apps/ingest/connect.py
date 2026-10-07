@@ -14,9 +14,9 @@ from __future__ import annotations
 
 import io
 import re
+from urllib.parse import quote
 
 from django.conf import settings
-from urllib.parse import quote
 
 import requests
 

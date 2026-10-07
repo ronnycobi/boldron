@@ -21,10 +21,10 @@ captures come from LiveCaptureSource once the app is running.
 """
 from __future__ import annotations
 
-from django.conf import settings
-
 import html
 from dataclasses import dataclass
+
+from django.conf import settings
 
 from apps.project_context.models import ContextKind
 from apps.project_context.services import ProjectContext
