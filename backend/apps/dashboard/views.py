@@ -32,6 +32,7 @@ from apps.organizations.access import (
     organizations_for,
 )
 from apps.organizations import invitations as invites
+from apps.organizations import members as members_svc
 from apps.organizations.models import (
     Invitation,
     InvitationStatus,
@@ -1207,10 +1208,15 @@ def people(request):
             return redirect("dashboard:people")
         can_manage = org.id in manageable
         action = request.POST.get("action")
-        if not can_manage:
-            messages.error(request, "Owner or admin rights required.")
-            return redirect("dashboard:people")
         try:
+            # Leaving is allowed for any member (guarded against the last owner).
+            if action == "leave":
+                members_svc.leave_organization(org, request.user)
+                messages.success(request, f"You left {org.name}.")
+                return redirect("dashboard:people")
+            if not can_manage:
+                messages.error(request, "Owner or admin rights required.")
+                return redirect("dashboard:people")
             if action == "invite":
                 team = None
                 if request.POST.get("team"):
@@ -1234,6 +1240,28 @@ def people(request):
                 inv = get_object_or_404(Invitation, pk=request.POST.get("invitation", 0), organization=org)
                 invites.revoke_invitation(inv)
                 messages.success(request, f"Revoked the invite for {inv.email}.")
+            elif action == "resend":
+                inv = get_object_or_404(Invitation, pk=request.POST.get("invitation", 0), organization=org)
+                invites.resend_invitation(inv)
+                link = request.build_absolute_uri(
+                    reverse("dashboard:accept_invite", args=[inv.token]))
+                from apps.notifications.email import send_invitation_email
+                try:
+                    send_invitation_email(inv, link)
+                except Exception:
+                    pass
+                messages.success(request, f"Resent the invite to {inv.email}.")
+            elif action == "set_role":
+                from apps.accounts.models import User
+                target = get_object_or_404(User, pk=request.POST.get("user", 0))
+                members_svc.change_member_role(
+                    org, target, request.POST.get("role") or Role.MEMBER, actor=request.user)
+                messages.success(request, f"Updated {target.email}'s role.")
+            elif action == "remove_member":
+                from apps.accounts.models import User
+                target = get_object_or_404(User, pk=request.POST.get("user", 0))
+                members_svc.remove_member(org, target, actor=request.user)
+                messages.success(request, f"Removed {target.email} from {org.name}.")
             elif action == "create_team":
                 name = (request.POST.get("name") or "").strip()
                 if name:
@@ -1241,7 +1269,7 @@ def people(request):
                     messages.success(request, f"Team “{name}” created.")
                 else:
                     messages.error(request, "Team name required.")
-        except invites.InvitationError as exc:
+        except (invites.InvitationError, members_svc.MemberError) as exc:
             messages.error(request, str(exc))
         except ValueError as exc:
             messages.error(request, str(exc))

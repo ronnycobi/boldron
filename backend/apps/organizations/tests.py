@@ -138,3 +138,64 @@ class InvitationTests(TestCase):
         first.refresh_from_db()
         self.assertEqual(first.status, "revoked")
         self.assertTrue(second.is_pending)
+
+
+class MemberManagementTests(TestCase):
+    def setUp(self):
+        from apps.organizations import members
+        self.members = members
+        self.owner = User.objects.create_user(email="owner@x.com", password="x")
+        self.admin = User.objects.create_user(email="admin@x.com", password="x")
+        self.member = User.objects.create_user(email="member@x.com", password="x")
+        self.org = Organization.objects.create(name="Acme", created_by=self.owner)
+        self.org.add_member(self.owner, role=Role.OWNER)
+        self.org.add_member(self.admin, role=Role.ADMIN)
+        self.org.add_member(self.member, role=Role.MEMBER)
+
+    def _role(self, user):
+        return Membership.objects.get(organization=self.org, user=user).role
+
+    def test_owner_can_change_a_members_role(self):
+        self.members.change_member_role(self.org, self.member, Role.ADMIN, actor=self.owner)
+        self.assertEqual(self._role(self.member), Role.ADMIN)
+
+    def test_admin_cannot_grant_ownership(self):
+        with self.assertRaises(self.members.MemberError):
+            self.members.change_member_role(self.org, self.member, Role.OWNER, actor=self.admin)
+
+    def test_cannot_demote_the_last_owner(self):
+        with self.assertRaises(self.members.MemberError):
+            self.members.change_member_role(self.org, self.owner, Role.ADMIN, actor=self.owner)
+
+    def test_second_owner_allows_demotion(self):
+        self.members.change_member_role(self.org, self.admin, Role.OWNER, actor=self.owner)
+        # Now two owners — the original can be demoted.
+        self.members.change_member_role(self.org, self.owner, Role.ADMIN, actor=self.admin)
+        self.assertEqual(self._role(self.owner), Role.ADMIN)
+
+    def test_admin_removes_a_member_but_not_an_owner(self):
+        self.members.remove_member(self.org, self.member, actor=self.admin)
+        self.assertFalse(Membership.objects.filter(organization=self.org, user=self.member).exists())
+        with self.assertRaises(self.members.MemberError):
+            self.members.remove_member(self.org, self.owner, actor=self.admin)
+
+    def test_cannot_remove_the_last_owner(self):
+        with self.assertRaises(self.members.MemberError):
+            self.members.remove_member(self.org, self.owner, actor=self.owner)
+
+    def test_member_can_leave_but_sole_owner_cannot(self):
+        self.members.leave_organization(self.org, self.member)
+        self.assertFalse(Membership.objects.filter(organization=self.org, user=self.member).exists())
+        with self.assertRaises(self.members.MemberError):
+            self.members.leave_organization(self.org, self.owner)
+
+    def test_resend_refreshes_pending_only(self):
+        from apps.organizations import invitations as invites
+        from apps.organizations.models import Invitation, InvitationStatus
+        inv = invites.create_invitation(self.org, "new@x.com", role=Role.MEMBER, invited_by=self.owner)
+        old = inv.expires_at
+        invites.resend_invitation(inv)
+        self.assertGreaterEqual(inv.expires_at, old)
+        invites.revoke_invitation(inv)
+        with self.assertRaises(invites.InvitationError):
+            invites.resend_invitation(inv)

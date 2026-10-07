@@ -86,3 +86,15 @@ def revoke_invitation(inv: Invitation) -> Invitation:
         inv.status = InvitationStatus.REVOKED
         inv.save(update_fields=["status"])
     return inv
+
+
+def resend_invitation(inv: Invitation) -> Invitation:
+    """Refresh a pending invite's expiry so the link is valid again (the caller
+    re-sends the email). Only pending invites can be resent."""
+    if inv.status != InvitationStatus.PENDING:
+        raise InvitationError("Only a pending invitation can be resent.")
+    from apps.organizations.models import _default_expiry
+
+    inv.expires_at = _default_expiry()
+    inv.save(update_fields=["expires_at"])
+    return inv

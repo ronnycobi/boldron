@@ -403,3 +403,35 @@ class PreviewTests(TestCase):
                 self.client.post(reverse("dashboard:preview", args=[self.project.id]),
                                  {"message": "add customer search"}, follow=True)
         self.assertTrue(ChangeRequest.objects.filter(project=self.project).exists())
+
+
+class PeopleManagementViewTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(email="po@x.com", password="pw12345678")
+        self.member = User.objects.create_user(email="pm@x.com", password="pw12345678")
+        self.org = Organization.objects.create(name="Acme", created_by=self.owner)
+        self.org.add_member(self.owner, role=Role.OWNER)
+        self.org.add_member(self.member, role=Role.MEMBER)
+
+    def test_owner_can_promote_and_remove_via_people_page(self):
+        self.client.force_login(self.owner)
+        self.client.post(reverse("dashboard:people"), {
+            "action": "set_role", "organization": self.org.id,
+            "user": self.member.id, "role": Role.ADMIN})
+        from apps.organizations.models import Membership
+        self.assertEqual(Membership.objects.get(organization=self.org, user=self.member).role, Role.ADMIN)
+        self.client.post(reverse("dashboard:people"), {
+            "action": "remove_member", "organization": self.org.id, "user": self.member.id})
+        self.assertFalse(Membership.objects.filter(organization=self.org, user=self.member).exists())
+
+    def test_plain_member_cannot_manage_but_can_leave(self):
+        self.client.force_login(self.member)
+        # Not a manager → role change is refused.
+        self.client.post(reverse("dashboard:people"), {
+            "action": "set_role", "organization": self.org.id,
+            "user": self.owner.id, "role": Role.MEMBER})
+        from apps.organizations.models import Membership
+        self.assertEqual(Membership.objects.get(organization=self.org, user=self.owner).role, Role.OWNER)
+        # But they can leave.
+        self.client.post(reverse("dashboard:people"), {"action": "leave", "organization": self.org.id})
+        self.assertFalse(Membership.objects.filter(organization=self.org, user=self.member).exists())
