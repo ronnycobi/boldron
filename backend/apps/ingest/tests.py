@@ -96,7 +96,7 @@ class ImportCodebaseTests(TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
-        override = override_settings(DEVFORGE_WORKSPACES_ROOT=self._tmp.name)
+        override = override_settings(BOLDRON_WORKSPACES_ROOT=self._tmp.name)
         override.enable()
         self.addCleanup(override.disable)
         self.user = User.objects.create_user(email="o@e.com", password="x")
@@ -149,14 +149,14 @@ class ImportCodebaseTests(TestCase):
         self.assertFalse(decision.data["capabilities"]["redis"]["foreign_keys"])
 
 
-@override_settings(DEVFORGE_IMPORT_ENABLED=True)   # the import capability (paused in v1 UX) still works
+@override_settings(BOLDRON_IMPORT_ENABLED=True)   # the import capability (paused in v1 UX) still works
 class GitImportViewTests(TestCase):
     """The Analyze-Software page importing from a Git provider (fetch mocked)."""
 
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
-        override = override_settings(DEVFORGE_WORKSPACES_ROOT=self._tmp.name)
+        override = override_settings(BOLDRON_WORKSPACES_ROOT=self._tmp.name)
         override.enable()
         self.addCleanup(override.disable)
         self.user = User.objects.create_user(email="owner@acme.com", password="x")

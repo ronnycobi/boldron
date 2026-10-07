@@ -1,4 +1,4 @@
-# DevForge backend image.
+# Boldron backend image.
 FROM python:3.14-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \

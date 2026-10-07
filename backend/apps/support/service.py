@@ -30,7 +30,7 @@ def create_ticket(*, organization, user, subject, body, category="question",
            f"[{ticket.number}] We received your request",
            f"Thanks — your support request \"{ticket.subject}\" is logged as "
            f"{ticket.number}. We'll reply here and by email.")
-    inbox = getattr(settings, "DEVFORGE_SUPPORT_EMAIL", "")
+    inbox = getattr(settings, "BOLDRON_SUPPORT_EMAIL", "")
     if inbox:
         _email(inbox, f"[{ticket.number}] New {ticket.get_category_display()} — {organization.name}",
                f"{ticket.subject}\n\n{body}")

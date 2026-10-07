@@ -12,7 +12,7 @@ from apps.projects.models import Project
 class ProveBuildCommandTests(TestCase):
     def test_runs_full_pipeline_and_cleans_up(self):
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 out = StringIO()
                 call_command(
                     "prove_build", brief="A notes API", stack="python-stdlib",
@@ -28,7 +28,7 @@ class ProveBuildCommandTests(TestCase):
 
     def test_keep_retains_project(self):
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 call_command(
                     "prove_build", brief="A todo API", stack="python-stdlib",
                     keep=True, stdout=StringIO(), stderr=StringIO(),

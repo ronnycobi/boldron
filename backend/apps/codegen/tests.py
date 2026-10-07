@@ -75,7 +75,7 @@ class MaterializeTests(TestCase):
 
     def test_writes_and_commits_files(self):
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 repo, sha = materialize(
                     self.project,
                     [{"path": "src/app.py", "content": "print('hi')\n"}],

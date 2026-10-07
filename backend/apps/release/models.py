@@ -34,7 +34,7 @@ class MobilePlatform(models.TextChoices):
 
 
 class SigningMode(models.TextChoices):
-    DEVFORGE_MANAGED = "managed", "Platform-managed"
+    BOLDRON_MANAGED = "managed", "Platform-managed"
     CUSTOMER_MANAGED = "customer", "Customer-managed"
 
 
@@ -190,7 +190,7 @@ class SigningConfiguration(models.Model):
         MobileApplication, on_delete=models.CASCADE, related_name="signing_configs"
     )
     platform = models.CharField(max_length=16, choices=MobilePlatform.choices)
-    mode = models.CharField(max_length=16, choices=SigningMode.choices, default=SigningMode.DEVFORGE_MANAGED)
+    mode = models.CharField(max_length=16, choices=SigningMode.choices, default=SigningMode.BOLDRON_MANAGED)
     credential_reference = models.CharField(
         max_length=255, blank=True,
         help_text="Opaque vault handle for signing material — NEVER a key/password.",

@@ -1,11 +1,11 @@
-# DevForge
+# Boldron
 
 An AI software-engineering platform: describe software, and specialized AI
 agents build, test, review, and (later) deploy and operate it.
 
 This repository is the source of truth. **How the platform is built** — the
 engineering operating rules for anyone (human or AI) working in this repo — lives
-in [`CLAUDE.md`](CLAUDE.md). **What DevForge is and the phased roadmap** lives in
+in [`CLAUDE.md`](CLAUDE.md). **What Boldron is and the phased roadmap** lives in
 [`docs/PRODUCT.md`](docs/PRODUCT.md).
 
 ## Status
@@ -17,7 +17,7 @@ features are built phase by phase; see the roadmap in `docs/PRODUCT.md`.
 ## Layout
 
 ```
-devforge/
+boldron/
 ├── CLAUDE.md            # engineering operating rules (read first)
 ├── docs/PRODUCT.md      # product definition + phased roadmap
 ├── requirements.txt

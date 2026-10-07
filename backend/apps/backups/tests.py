@@ -21,13 +21,13 @@ class BackupServiceTests(TestCase):
 
     def test_backup_without_repo_errors(self):
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 with self.assertRaises(BackupError):
                     create_backup(self.project, label="x", created_by=self.user)
 
     def test_create_and_restore_rolls_the_repo_back(self):
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 repo = repo_for_project(self.project)
                 repo.init()
                 repo.write_files({"a.py": "x = 1\n"})
@@ -61,7 +61,7 @@ class BackupUITests(TestCase):
 
     def test_owner_creates_backup_via_ui(self):
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 self._seed()
                 self.client.force_login(self.owner)
                 self.client.post(reverse("dashboard:project", args=[self.project.id]),
@@ -70,7 +70,7 @@ class BackupUITests(TestCase):
 
     def test_member_cannot_create_backup(self):
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 self._seed()
                 self.client.force_login(self.member)
                 self.client.post(reverse("dashboard:project", args=[self.project.id]),

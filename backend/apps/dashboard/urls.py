@@ -39,6 +39,6 @@ urlpatterns = [
     path("settings/", views.settings_page, name="settings"),
     path("ops/<slug:area>/", views.operations, name="ops"),
     path("soon/<slug:slug>/", views.soon, name="soon"),
-    path("login/", views.DevForgeLoginView.as_view(), name="login"),
+    path("login/", views.BoldronLoginView.as_view(), name="login"),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
 ]

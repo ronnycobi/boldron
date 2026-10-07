@@ -18,7 +18,7 @@ submit forms, hit APIs), then say "change this" and see the change live.
 - `apps/build_sandbox`: `SubprocessSandbox` runs **short** commands under POSIX
   rlimits (CPU/mem/procs), `setsid`+`killpg` timeout, scrubbed env, network-free.
   Built for compile/test, not long-running servers.
-- `apps/technology/stacks.py`: each runnable stack emits a `devforge.json`
+- `apps/technology/stacks.py`: each runnable stack emits a `boldron.json`
   manifest with a `test_command`. There is **no run/serve entrypoint** yet.
 
 ## 3. Non-goals (explicitly out of scope for the runner itself)
@@ -60,7 +60,7 @@ the real infrastructure investment and the gate on multi-tenant preview.
 ## 6. Per-stack run entrypoint contract
 
 Generators must emit a runnable server and declare how to run it. Extend
-`devforge.json`:
+`boldron.json`:
 
 ```json
 {
@@ -130,7 +130,7 @@ place.
 
 - **P0 — Static preview.** ✅ Shipped (`preview_runner`).
 - **P1 — No-dependency server preview (offline-real).** ✅ Shipped for Node.
-  `devforge.json` gained a `run` block; the Node scaffold emits a DevForge-owned
+  `boldron.json` gained a `run` block; the Node scaffold emits a Boldron-owned
   `server.js` that boots the app on `$PORT`; `PreviewRunner.start()` dispatches to
   `start_server()` (declared run) or `start_static()` (files), health-checks,
   proxies, and reaps on TTL/stop. Proven offline: a real Node server runs and is

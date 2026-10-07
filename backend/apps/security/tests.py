@@ -80,7 +80,7 @@ class SecurityAgentTests(TestCase):
 
     def test_scans_repo_and_records_findings(self):
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 repo = repo_for_project(self.project)
                 repo.init()
                 repo.write_files({"app.py": "API_KEY = 'sk-live-abc123456'\nx = eval(v)\n"})

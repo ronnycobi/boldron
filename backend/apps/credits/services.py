@@ -2,7 +2,7 @@
 
 Credits are a platform abstraction over cost: cost_usd is derived from the model's
 list price, then converted to credits at CREDITS_PER_USD (config). Plans and their
-allowances are config too (settings.DEVFORGE_PLANS) — never hard-coded in logic.
+allowances are config too (settings.BOLDRON_PLANS) — never hard-coded in logic.
 
 Cost note: usage is charged with a blended (avg of input+output) per-token rate,
 because agents currently report total tokens only. Per-direction pricing is a
@@ -40,11 +40,11 @@ _DEFAULT_PLANS = {"free": 1000, "pro": 5000, "business": 25000}
 
 
 def credits_per_usd() -> Decimal:
-    return Decimal(str(getattr(settings, "DEVFORGE_CREDITS_PER_USD", 100)))
+    return Decimal(str(getattr(settings, "BOLDRON_CREDITS_PER_USD", 100)))
 
 
 def plans() -> dict:
-    return getattr(settings, "DEVFORGE_PLANS", _DEFAULT_PLANS)
+    return getattr(settings, "BOLDRON_PLANS", _DEFAULT_PLANS)
 
 
 def cost_usd_for(model: str, total_tokens: int) -> Decimal:
@@ -76,10 +76,10 @@ def ensure_account(organization, plan: str = "free", grant: bool = True) -> Cred
 
 def daily_usd_cap(account: CreditAccount) -> Decimal | None:
     """The effective per-day USD cap for an account: its own, else the platform
-    default (settings.DEVFORGE_ORG_DAILY_USD_CAP), else None = unlimited."""
+    default (settings.BOLDRON_ORG_DAILY_USD_CAP), else None = unlimited."""
     if account.daily_usd_cap is not None:
         return account.daily_usd_cap
-    default = getattr(settings, "DEVFORGE_ORG_DAILY_USD_CAP", None)
+    default = getattr(settings, "BOLDRON_ORG_DAILY_USD_CAP", None)
     return Decimal(str(default)) if default is not None else None
 
 

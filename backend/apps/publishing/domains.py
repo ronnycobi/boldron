@@ -34,7 +34,7 @@ def is_apex(hostname: str) -> bool:
 def required_records(hostname: str, token: str) -> list[dict]:
     """The DNS records the customer must create. Correct standard practice; routing
     completes once the platform hosting serves the domain."""
-    target = settings.DEVFORGE_DOMAIN_TARGET
+    target = settings.BOLDRON_DOMAIN_TARGET
     records = [
         {"type": "TXT", "name": f"{_VERIFY_PREFIX}.{hostname}", "value": token,
          "purpose": "Proves you own this domain."},

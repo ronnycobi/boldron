@@ -29,7 +29,7 @@ from apps.technology.registry import registry as tech_registry
 # model-selection logic). That topology is proprietary and stays behind auth.
 # v1 scope: the platform builds NEW software — websites, web apps and mobile apps.
 # (Bringing in and modernizing a customer's EXISTING software is paused for v1 —
-# gated behind DEVFORGE_IMPORT_ENABLED.)
+# gated behind BOLDRON_IMPORT_ENABLED.)
 _PILLARS = [
     ("Build", "Turn ideas into working websites and web apps in the technology stack you choose."),
     ("Ship", "Publish websites to a live URL, and design mobile apps and prepare their Android & iOS releases for the app stores."),

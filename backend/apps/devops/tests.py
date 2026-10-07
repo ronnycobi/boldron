@@ -60,7 +60,7 @@ class DevOpsFlowTests(TestCase):
 
     def test_generates_infra_files_for_stack(self):
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 with mock.patch(
                     "apps.model_router.router.gateway_complete", side_effect=_fake(INFRA_JSON)
                 ):

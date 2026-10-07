@@ -34,7 +34,7 @@ def _sandbox():
 
 
 def _storage():
-    root = settings.DEVFORGE_WORKSPACES_ROOT
+    root = settings.BOLDRON_WORKSPACES_ROOT
     os.makedirs(root, exist_ok=True)
     return os.access(root, os.W_OK), str(root)
 

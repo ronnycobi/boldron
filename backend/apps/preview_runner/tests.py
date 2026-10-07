@@ -27,7 +27,7 @@ class PreviewRunnerTests(TestCase):
     def test_start_serves_files_then_stop(self):
         import urllib.request
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 self._seed(tmp)
                 pv = runner.start_static(self.project)
                 try:
@@ -40,13 +40,13 @@ class PreviewRunnerTests(TestCase):
 
     def test_start_without_files_errors(self):
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 with self.assertRaises(PreviewError):
                     runner.start_static(self.project)  # no repo/files yet
 
     def test_proxy_serves_running_preview(self):
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 self._seed(tmp)
                 runner.start_static(self.project)
                 try:
@@ -96,7 +96,7 @@ class ServerPreviewTests(TestCase):
         if shutil.which("node") is None:
             self.skipTest("node not available")
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 self._seed_node()
                 pv = runner.start(self.project)   # declares run → runs the server
                 try:
@@ -149,7 +149,7 @@ class GoAndStdlibPreviewTests(TestCase):
             "    return [b'Hello from WSGI preview']\n"
         )
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 self._seed(scaffold_stdlib_project("app", {"app.py": app_py}))
                 pv = runner.start(self.project)
                 try:
@@ -172,7 +172,7 @@ class GoAndStdlibPreviewTests(TestCase):
             "\treturn mux\n}\n"
         )
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 self._seed(scaffold_go_project("app", {"app.go": app_go}))
                 pv = runner.start(self.project)
                 try:

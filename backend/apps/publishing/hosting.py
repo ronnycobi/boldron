@@ -1,6 +1,6 @@
 """Deployment/hosting abstraction for websites (spec §13, §14, §50).
 
-One interface, many hosts. The `devforge_local` host is REAL: it snapshots the
+One interface, many hosts. The `boldron_local` host is REAL: it snapshots the
 project's built site into an immutable per-version directory that the platform serves
 over HTTP at a working URL. It executes no customer code — it serves files — so it
 is safe for local/single-tenant hosting (same posture as the preview runner).
@@ -45,10 +45,10 @@ class HostTarget:
         raise NotImplementedError
 
 
-class DevForgeLocalHost(HostTarget):
+class BoldronLocalHost(HostTarget):
     """Snapshots the built site and serves it from the platform at a stable URL."""
 
-    key = "devforge_local"
+    key = "boldron_local"
     name = f"{settings.APP_NAME} hosting"
 
     def is_available(self) -> bool:
@@ -111,7 +111,7 @@ class _UnavailableHost(HostTarget):
 
 
 _HOSTS: dict[str, HostTarget] = {
-    "devforge_local": DevForgeLocalHost(),
+    "boldron_local": BoldronLocalHost(),
     "vercel": _UnavailableHost("vercel", "Vercel"),
     "cloudflare": _UnavailableHost("cloudflare", "Cloudflare"),
     "aws": _UnavailableHost("aws", "AWS"),

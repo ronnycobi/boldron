@@ -34,7 +34,7 @@ class RunHooksTests(TestCase):
         self.assertEqual(HookRun.objects.get().status, "skip")
 
     def test_security_scan_fails_on_a_secret(self):
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             repo = repo_for_project(self.project); repo.init()
             repo.write_files({"config.py": "AWS_SECRET_ACCESS_KEY = 'AKIAIOSFODNN7EXAMPLE'\n"})
             repo.commit("seed")
@@ -64,7 +64,7 @@ class DeployGuardrailTests(TestCase):
         self.project = Project.objects.create(organization=self.org, name="App", created_by=self.user)
 
     def test_blocking_hook_stops_a_deploy(self):
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             repo = repo_for_project(self.project); repo.init()
             repo.write_files({"index.html": "<h1>hi</h1>"}); repo.commit("seed")
             Hook.objects.create(name="sign-off", event="pre_deploy", action="manual_gate",
@@ -77,7 +77,7 @@ class DeployGuardrailTests(TestCase):
             self.assertIn("Blocked by guardrail", d.log)
 
     def test_deploy_proceeds_with_no_blocking_hook(self):
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             repo = repo_for_project(self.project); repo.init()
             repo.write_files({"index.html": "<h1>hi</h1>"}); repo.commit("seed")
             d = deploy.request_deploy(project=self.project, environment="development",

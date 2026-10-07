@@ -56,9 +56,9 @@ def load_env_file(path, environ=None) -> int:
 
 # Load .env from the repo root before any setting is read, so a local .env works
 # out of the box (the documented copy-.env.example-to-.env flow). A custom path
-# can be given via DEVFORGE_ENV_FILE. Skipped under tests to keep them hermetic.
+# can be given via BOLDRON_ENV_FILE. Skipped under tests to keep them hermetic.
 if not RUNNING_TESTS:
-    load_env_file(os.environ.get("DEVFORGE_ENV_FILE", REPO_ROOT / ".env"))
+    load_env_file(os.environ.get("BOLDRON_ENV_FILE", REPO_ROOT / ".env"))
 
 
 def env(key: str, default: str | None = None) -> str | None:
@@ -90,8 +90,8 @@ ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
 # any brand by changing env vars only. This is the single source of truth —
 # templates read it via apps.core.context_processors.branding ({{ app_name }}…),
 # Python reads settings.APP_*. Internal platform concepts (agents, projects,
-# builds, deployments, capabilities, providers, commerce, the "devforge" app
-# label and DEVFORGE_ operational vars) are implementation identifiers and stay.
+# builds, deployments, capabilities, providers, commerce, the "boldron" app
+# label and BOLDRON_ operational vars) are implementation identifiers and stay.
 APP_NAME = env("APP_NAME", "Application")
 APP_COMPANY_NAME = env("APP_COMPANY_NAME", "")  # falls back to APP_NAME in the branding layer
 APP_TAGLINE = env("APP_TAGLINE", "")
@@ -280,33 +280,33 @@ AI_DEFAULT_PROVIDER = env("AI_DEFAULT_PROVIDER", "stub")
 
 # --- Generated-project storage ----------------------------------------------
 # Where per-project git working trees live (apps.repositories). Defaults to a
-# gitignored dir beside the backend; set DEVFORGE_WORKSPACES_ROOT in production.
-DEVFORGE_WORKSPACES_ROOT = env(
-    "DEVFORGE_WORKSPACES_ROOT", str(BASE_DIR / "workspaces")
+# gitignored dir beside the backend; set BOLDRON_WORKSPACES_ROOT in production.
+BOLDRON_WORKSPACES_ROOT = env(
+    "BOLDRON_WORKSPACES_ROOT", str(BASE_DIR / "workspaces")
 )
 
 # --- Credits & plans (Phase 19) ---------------------------------------------
 # Credits are a platform abstraction over cost. These are config, never
 # hard-coded into billing logic — tune freely.
-DEVFORGE_CREDITS_PER_USD = env("DEVFORGE_CREDITS_PER_USD", "100")
-DEVFORGE_PLANS = {"free": 1000, "pro": 5000, "business": 25000}
+BOLDRON_CREDITS_PER_USD = env("BOLDRON_CREDITS_PER_USD", "100")
+BOLDRON_PLANS = {"free": 1000, "pro": 5000, "business": 25000}
 # Platform-wide hard cap on AI spend per org per day (USD). Blank/unset = no
 # global cap (each org may still set its own on its CreditAccount). This is the
 # safety rail that lets you hand out access without risking a runaway bill.
-DEVFORGE_ORG_DAILY_USD_CAP = env("DEVFORGE_ORG_DAILY_USD_CAP", "") or None
+BOLDRON_ORG_DAILY_USD_CAP = env("BOLDRON_ORG_DAILY_USD_CAP", "") or None
 
 # Model-selection posture. True (default) = pick the most capable model that fits
 # each task (best product); False = cheapest-sufficient. A task can still opt the
 # other way per request, or set a hard max_cost_per_mtok ceiling.
-DEVFORGE_PREFER_QUALITY = env("DEVFORGE_PREFER_QUALITY", "true").lower() in ("1", "true", "yes", "on")
+BOLDRON_PREFER_QUALITY = env("BOLDRON_PREFER_QUALITY", "true").lower() in ("1", "true", "yes", "on")
 
 # Website publishing domains. BASE_DOMAIN is the platform's subdomain zone; TARGET is
 # the hostname a customer points their custom domain at (CNAME target). These are
 # customer-facing (shown in DNS instructions, used in published URLs), so they are
 # brand-neutral by default and set per deployment via the environment. Prefer the
-# APP_* names; the DEVFORGE_* names remain as back-compat aliases.
-DEVFORGE_BASE_DOMAIN = env("APP_BASE_DOMAIN", env("DEVFORGE_BASE_DOMAIN", "example.com"))
-DEVFORGE_DOMAIN_TARGET = env("APP_DOMAIN_TARGET", env("DEVFORGE_DOMAIN_TARGET", "hosting.example.com"))
+# APP_* names; the BOLDRON_* names remain as back-compat aliases.
+BOLDRON_BASE_DOMAIN = env("APP_BASE_DOMAIN", env("BOLDRON_BASE_DOMAIN", "example.com"))
+BOLDRON_DOMAIN_TARGET = env("APP_DOMAIN_TARGET", env("BOLDRON_DOMAIN_TARGET", "hosting.example.com"))
 
 # Reverse-DNS prefix for generated mobile app IDs (Android applicationId / iOS
 # bundle id). Brand-neutral default; set per deployment.
@@ -317,12 +317,12 @@ APP_DNS_VERIFY_LABEL = env("APP_DNS_VERIFY_LABEL", "site-verify")
 
 # How long an unpaid order may hold its stock/discount reservations before the
 # expire_orders job auto-cancels it (minutes). Default 24h.
-DEVFORGE_ORDER_RESERVATION_TTL_MINUTES = int(env("DEVFORGE_ORDER_RESERVATION_TTL_MINUTES", "1440"))
+BOLDRON_ORDER_RESERVATION_TTL_MINUTES = int(env("BOLDRON_ORDER_RESERVATION_TTL_MINUTES", "1440"))
 
 # v1 ships "build new software" only. Bringing in and modernizing a customer's
 # EXISTING software (the import/analyze path) is paused until after v1; the code
 # stays, gated here. Set true to re-enable.
-DEVFORGE_IMPORT_ENABLED = env_bool("DEVFORGE_IMPORT_ENABLED", False)
+BOLDRON_IMPORT_ENABLED = env_bool("BOLDRON_IMPORT_ENABLED", False)
 
 # Email. Real delivery when EMAIL_BACKEND points at SMTP and the host is set;
 # dev defaults to the console backend (prints emails) so nothing is faked and no

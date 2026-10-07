@@ -30,7 +30,7 @@ class CustomDomainMiddleware:
         host = self._host(request)
         # Requests to the platform's own hosts use normal routing.
         platform_hosts = set(settings.ALLOWED_HOSTS) | {"localhost", "127.0.0.1", "testserver"}
-        base = getattr(settings, "DEVFORGE_BASE_DOMAIN", "")
+        base = getattr(settings, "BOLDRON_BASE_DOMAIN", "")
         if not host or host in platform_hosts or (base and host.endswith("." + base)) or host == base:
             return self.get_response(request)
 

@@ -154,7 +154,7 @@ def _start_build(project, brief, user):
             pass  # provisioning is best-effort; never break the build
 
 
-class DevForgeLoginView(auth_views.LoginView):
+class BoldronLoginView(auth_views.LoginView):
     """After login, platform staff land on the Control Center; customers land on the
     builder. An explicit ?next= is always honored (so deep links still work)."""
     template_name = "dashboard/login.html"
@@ -1102,10 +1102,10 @@ def preview_live(request, pk, path=""):
 def import_software(request):
     """Import an existing codebase (ZIP upload or Git connect) and analyze it.
 
-    Paused for v1 (DEVFORGE_IMPORT_ENABLED). the platform v1 ships "build new software";
+    Paused for v1 (BOLDRON_IMPORT_ENABLED). the platform v1 ships "build new software";
     bringing in a customer's existing software returns to the dashboard with a note."""
     from django.conf import settings
-    if not settings.DEVFORGE_IMPORT_ENABLED:
+    if not settings.BOLDRON_IMPORT_ENABLED:
         messages.info(request, f"Importing existing software isn't available yet — {settings.APP_NAME} "
                                "v1 focuses on building new software. It's coming soon.")
         return redirect("dashboard:home")

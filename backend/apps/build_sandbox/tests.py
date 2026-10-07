@@ -43,13 +43,13 @@ class SubprocessSandboxTests(SimpleTestCase):
             self.sbx.run([sys.executable, "-c", "pass"], files={"../escape.txt": "x"})
 
     def test_environment_is_scrubbed(self):
-        os.environ["DEVFORGE_SECRET_XYZ"] = "leaked"
+        os.environ["BOLDRON_SECRET_XYZ"] = "leaked"
         try:
             result = self.sbx.run_python(
-                "import os; print(os.environ.get('DEVFORGE_SECRET_XYZ'))"
+                "import os; print(os.environ.get('BOLDRON_SECRET_XYZ'))"
             )
         finally:
-            del os.environ["DEVFORGE_SECRET_XYZ"]
+            del os.environ["BOLDRON_SECRET_XYZ"]
         self.assertIn("None", result.stdout)  # secret not inherited
 
     def test_output_is_bounded(self):

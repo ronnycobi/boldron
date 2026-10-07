@@ -287,7 +287,7 @@ class DatabaseFlowTests(TestCase):
             }
         )
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 with mock.patch(
                     "apps.model_router.router.gateway_complete",
                     side_effect=_fake(payload),
@@ -315,7 +315,7 @@ class DatabaseFlowTests(TestCase):
             "files": [{"path": "backend/apps/core/models.py", "content": "class Task:\n    title = ''\n"}],
         })
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 with mock.patch(
                     "apps.model_router.router.gateway_complete",
                     side_effect=_sequence(broken, fixed),

@@ -111,7 +111,7 @@ class BackendCodegenFlowTests(TestCase):
         task_in = {"run_tests": False}
         task_in.update(task_input or {})
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 with mock.patch(
                     "apps.model_router.router.gateway_complete",
                     side_effect=effect,

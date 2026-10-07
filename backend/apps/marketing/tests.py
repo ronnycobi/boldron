@@ -19,7 +19,7 @@ class BrandingTests(TestCase):
         for name in ["home", "how_it_works", "pricing"]:
             html = self.client.get(reverse("marketing:" + name)).content.decode()
             self.assertIn("Forgewright", html, name)
-            self.assertNotIn("DevForge", html, name)
+            self.assertNotIn("Boldron", html, name)
         # The configured logo URL is used in the page chrome.
         home = self.client.get(reverse("marketing:home")).content.decode()
         self.assertIn("https://cdn.example.com/logo.svg", home)
@@ -27,7 +27,7 @@ class BrandingTests(TestCase):
     def test_no_hard_coded_brand_leaks_by_default(self):
         # With only the neutral default APP_NAME, the retired brand must be absent.
         html = self.client.get(reverse("marketing:home")).content.decode()
-        self.assertNotIn("DevForge", html)
+        self.assertNotIn("Boldron", html)
         self.assertIn("Application", html)  # the neutral default identity
 
 

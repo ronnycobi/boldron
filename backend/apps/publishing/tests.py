@@ -13,7 +13,7 @@ from apps.organizations.models import Membership, Organization, Role
 from apps.projects.models import Project
 from apps.publishing import readiness as rd
 from apps.publishing import service as pub
-from apps.publishing.hosting import DevForgeLocalHost, HostError, get_host
+from apps.publishing.hosting import BoldronLocalHost, HostError, get_host
 from apps.repositories.service import repo_for_project
 
 PAGE = "<html><head><title>Acme</title><meta name='description' content='Acme site'></head><body>Hi</body></html>"
@@ -21,7 +21,7 @@ PAGE = "<html><head><title>Acme</title><meta name='description' content='Acme si
 
 class HostTests(TestCase):
     def test_local_host_available_cloud_hosts_not(self):
-        self.assertTrue(DevForgeLocalHost().is_available())
+        self.assertTrue(BoldronLocalHost().is_available())
         for key in ("vercel", "cloudflare", "aws", "digitalocean"):
             self.assertFalse(get_host(key).is_available())
 
@@ -37,7 +37,7 @@ class ReadinessTests(TestCase):
         self.project = Project.objects.create(organization=self.org, name="Acme Site")
 
     def test_no_build_blocks_publish(self):
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = pub.get_or_create_website(self.project)
             checks = rd.evaluate(site)
             build = {c.key: c.status for c in checks}["build"]
@@ -45,7 +45,7 @@ class ReadinessTests(TestCase):
             self.assertFalse(rd.can_publish(checks))
 
     def test_built_site_with_seo_passes(self):
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             repo = repo_for_project(self.project); repo.init()
             repo.write_files({"index.html": PAGE}); repo.commit("seed")
             site = pub.get_or_create_website(self.project)
@@ -65,7 +65,7 @@ class PublishFlowTests(TestCase):
         repo.write_files({"index.html": PAGE}); repo.commit("seed")
 
     def test_publish_serves_a_real_url(self):
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             self._seed()
             site = pub.get_or_create_website(self.project)
             version = pub.publish(site, user=self.user)
@@ -79,7 +79,7 @@ class PublishFlowTests(TestCase):
             self.assertIn(b"Acme", b"".join(r.streaming_content))
 
     def test_no_build_fails_honestly_not_fake_live(self):
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = pub.get_or_create_website(self.project)
             version = pub.publish(site, user=self.user)
             self.assertEqual(version.state, "failed")
@@ -87,7 +87,7 @@ class PublishFlowTests(TestCase):
             self.assertFalse(version.is_current)
 
     def test_second_publish_bumps_version_and_rollback(self):
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             self._seed()
             site = pub.get_or_create_website(self.project)
             v1 = pub.publish(site, user=self.user)
@@ -99,7 +99,7 @@ class PublishFlowTests(TestCase):
             self.assertTrue(back.is_current)
 
     def test_serve_blocks_path_traversal(self):
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             self._seed()
             site = pub.get_or_create_website(self.project)
             pub.publish(site, user=self.user)
@@ -135,7 +135,7 @@ class CustomDomainTests(TestCase):
 
     def test_connect_generates_token_and_records(self):
         from apps.publishing import domain_service as dom
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._website(tmp)
             d = dom.connect_domain(site, hostname="www.acme.com", user=self.user)
             self.assertTrue(d.verification_token)
@@ -147,21 +147,21 @@ class CustomDomainTests(TestCase):
 
     def test_apex_uses_alias_record(self):
         from apps.publishing import domain_service as dom
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             d = dom.connect_domain(self._website(tmp), hostname="acme.com", user=self.user)
             types = {r["type"] for r in d.required_records}
             self.assertTrue(any("ALIAS" in t for t in types))
 
     def test_rejects_invalid_hostname(self):
         from apps.publishing import domain_service as dom
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             with self.assertRaises(dom.DomainServiceError):
                 dom.connect_domain(self._website(tmp), hostname="not a domain", user=self.user)
 
     def test_verify_only_when_token_present(self):
         from apps.publishing import domain_service as dom
         from apps.publishing.domains import verify_name
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             d = dom.connect_domain(self._website(tmp), hostname="www.acme.com", user=self.user)
             # Wrong/absent record → not verified.
             dom.verify_domain(d, resolver=_FakeResolver({verify_name("www.acme.com"): ["someone-else"]}))
@@ -175,7 +175,7 @@ class CustomDomainTests(TestCase):
 
     def test_verify_honest_when_resolver_unavailable(self):
         from apps.publishing import domain_service as dom
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             d = dom.connect_domain(self._website(tmp), hostname="www.acme.com", user=self.user)
             dom.verify_domain(d, resolver=_FakeResolver(available=False))
             self.assertEqual(d.verification_status, "pending")   # never faked
@@ -184,7 +184,7 @@ class CustomDomainTests(TestCase):
     def test_ssl_requires_verification_and_never_active_offline(self):
         from apps.publishing import domain_service as dom
         from apps.publishing.domains import verify_name
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             d = dom.connect_domain(self._website(tmp), hostname="www.acme.com", user=self.user)
             with self.assertRaises(dom.DomainServiceError):
                 dom.request_ssl(d)   # not verified yet
@@ -215,7 +215,7 @@ class SeoEngineTests(TestCase):
 
     def test_audit_flags_real_gaps(self):
         from apps.publishing import seo
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._seed({"index.html": POOR_PAGE})
             audit = seo.audit_pages(site)[0]
             status = {f["key"]: f["status"] for f in audit.findings}
@@ -226,7 +226,7 @@ class SeoEngineTests(TestCase):
 
     def test_generate_drafts_from_real_content(self):
         from apps.publishing import seo_service as seo_svc
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._seed({"index.html": POOR_PAGE})
             drafts = seo_svc.generate_drafts(site, user=self.user)
             self.assertEqual(len(drafts), 1)
@@ -240,7 +240,7 @@ class SeoEngineTests(TestCase):
 
     def test_sitemap_and_robots_are_real(self):
         from apps.publishing import seo
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._seed({"index.html": POOR_PAGE, "about.html": POOR_PAGE})
             sitemap = seo.build_sitemap(site)
             self.assertIn("<urlset", sitemap)
@@ -250,7 +250,7 @@ class SeoEngineTests(TestCase):
 
     def test_apply_writes_files_and_injects_meta(self):
         from apps.publishing import seo_service as seo_svc
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._seed({"index.html": POOR_PAGE})
             seo_svc.generate_drafts(site, user=self.user)
             config = seo_svc.ensure_config(site)
@@ -285,7 +285,7 @@ class FormsAndLeadsTests(TestCase):
 
     def test_create_form_has_default_fields(self):
         from apps.publishing import forms_service as forms
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             form = forms.create_form(self._site(tmp), kind="quote", user=self.user)
             names = {f["name"] for f in form.fields}
             self.assertEqual(names, {"name", "email", "phone", "message"})
@@ -295,7 +295,7 @@ class FormsAndLeadsTests(TestCase):
         from django.core import mail
         from apps.publishing import forms_service as forms
         from apps.publishing.models import Lead
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             form = forms.create_form(self._site(tmp), kind="contact", user=self.user)
             sub, lead = forms.submit(form, {"name": "Jo", "email": "jo@x.com", "message": "Hi there"})
             self.assertIsInstance(lead, Lead)
@@ -307,7 +307,7 @@ class FormsAndLeadsTests(TestCase):
 
     def test_validation_rejects_missing_required(self):
         from apps.publishing import forms_service as forms
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             form = forms.create_form(self._site(tmp), kind="contact", user=self.user)
             with self.assertRaises(forms.FormError):
                 forms.submit(form, {"name": "Jo"})            # no email/message
@@ -317,7 +317,7 @@ class FormsAndLeadsTests(TestCase):
     def test_honeypot_drops_spam_no_lead(self):
         from apps.publishing import forms_service as forms
         from apps.publishing.models import Lead
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             form = forms.create_form(self._site(tmp), kind="contact", user=self.user)
             sub, lead = forms.submit(form, {"name": "Bot", "email": "b@x.com",
                                             "message": "spam", "_gotcha": "iamabot"})
@@ -327,7 +327,7 @@ class FormsAndLeadsTests(TestCase):
 
     def test_no_email_configured_still_captures_lead(self):
         from apps.publishing import forms_service as forms
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             form = forms.create_form(self._site(tmp), kind="contact", user=self.user)
             form.notify_email = ""; form.save()
             sub, lead = forms.submit(form, {"name": "Jo", "email": "jo@x.com", "message": "Hi"})
@@ -337,7 +337,7 @@ class FormsAndLeadsTests(TestCase):
     def test_public_endpoint_creates_lead(self):
         from apps.publishing import forms_service as forms
         from apps.publishing.models import Lead
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site(tmp)
             form = forms.create_form(site, kind="contact", user=self.user)
             r = self.client.post(
@@ -349,7 +349,7 @@ class FormsAndLeadsTests(TestCase):
 
     def test_embed_snippet_points_at_endpoint(self):
         from apps.publishing import forms_service as forms
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site(tmp)
             form = forms.create_form(site, kind="contact", user=self.user)
             html = forms.embed_html(form, action_base="https://example.com")
@@ -359,7 +359,7 @@ class FormsAndLeadsTests(TestCase):
     def test_leads_inbox_page(self):
         from apps.publishing import forms_service as forms
         Membership.objects.create(organization=self.org, user=self.user, role=Role.OWNER)
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site(tmp)
             form = forms.create_form(site, kind="contact", user=self.user)
             forms.submit(form, {"name": "Jo", "email": "jo@x.com", "message": "Hi"})
@@ -388,7 +388,7 @@ class AssetManagementTests(TestCase):
 
     def test_upload_stores_real_image_with_dims(self):
         from apps.publishing import assets_service as a
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             asset = a.store_asset(self._site(), filename="Logo File.png", data=_png_bytes(120, 80),
                                   content_type="image/png", user=self.user)
             self.assertEqual(asset.kind, "image")
@@ -399,7 +399,7 @@ class AssetManagementTests(TestCase):
 
     def test_rejects_bad_extension_and_oversize(self):
         from apps.publishing import assets_service as a
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             with self.assertRaises(a.AssetError):
                 a.store_asset(site, filename="evil.php", data=b"<?php ?>", user=self.user)
@@ -408,14 +408,14 @@ class AssetManagementTests(TestCase):
 
     def test_rejects_fake_image(self):
         from apps.publishing import assets_service as a
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             with self.assertRaises(a.AssetError):   # .png that isn't an image
                 a.store_asset(self._site(), filename="notreally.png", data=b"not an image",
                               user=self.user)
 
     def test_resize_is_real(self):
         from apps.publishing import assets_service as a
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             asset = a.store_asset(self._site(), filename="pic.png", data=_png_bytes(200, 100),
                                   user=self.user)
             a.resize_image(asset, width=100, user=self.user)
@@ -427,7 +427,7 @@ class AssetManagementTests(TestCase):
 
     def test_compress_reduces_or_keeps_and_delete(self):
         from apps.publishing import assets_service as a
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             asset = a.store_asset(site, filename="pic.jpg", data=_jpeg_bytes(), user=self.user)
             before = asset.size
@@ -438,7 +438,7 @@ class AssetManagementTests(TestCase):
 
     def test_non_image_cannot_be_resized(self):
         from apps.publishing import assets_service as a
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             asset = a.store_asset(self._site(), filename="doc.pdf", data=b"%PDF-1.4 fake",
                                   kind="document", user=self.user)
             with self.assertRaises(a.AssetError):
@@ -447,7 +447,7 @@ class AssetManagementTests(TestCase):
     def test_asset_raw_view_scoped_and_serves(self):
         from apps.publishing import assets_service as a
         Membership.objects.create(organization=self.org, user=self.user, role=Role.OWNER)
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             asset = a.store_asset(self._site(), filename="pic.png", data=_png_bytes(), user=self.user)
             self.client.force_login(self.user)
             r = self.client.get(reverse("dashboard:asset_raw", args=[self.project.id, asset.id]))
@@ -484,7 +484,7 @@ class AnalyticsTests(TestCase):
     def test_record_stores_no_pii_and_hashes_session(self):
         from apps.publishing import analytics
         from django.test import RequestFactory
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = pub.get_or_create_website(self.project)
             req = RequestFactory().get("/sites/x/", HTTP_USER_AGENT="Mozilla/5.0 iPhone",
                                        REMOTE_ADDR="203.0.113.9")
@@ -499,14 +499,14 @@ class AnalyticsTests(TestCase):
     def test_do_not_track_records_nothing(self):
         from apps.publishing import analytics
         from django.test import RequestFactory
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = pub.get_or_create_website(self.project)
             req = RequestFactory().get("/", HTTP_DNT="1", REMOTE_ADDR="203.0.113.9")
             self.assertIsNone(analytics.record_view(site, req))
             self.assertEqual(site.page_views.count(), 0)
 
     def test_serving_a_page_records_a_view(self):
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._published()
             self.assertEqual(site.page_views.count(), 0)
             self.client.get(f"/sites/{site.subdomain}/", HTTP_USER_AGENT="Mozilla/5.0")
@@ -515,7 +515,7 @@ class AnalyticsTests(TestCase):
     def test_summary_aggregates_and_excludes_bots(self):
         from apps.publishing import analytics
         from django.test import RequestFactory
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = pub.get_or_create_website(self.project)
             rf = RequestFactory()
             analytics.record_view(site, rf.get("/a", HTTP_USER_AGENT="Mozilla/5.0", REMOTE_ADDR="1.1.1.1"))
@@ -530,7 +530,7 @@ class AnalyticsTests(TestCase):
     def test_conversion_from_leads(self):
         from apps.publishing import analytics, forms_service as forms
         from django.test import RequestFactory
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = pub.get_or_create_website(self.project)
             analytics.record_view(site, RequestFactory().get("/", HTTP_USER_AGENT="Mozilla/5.0", REMOTE_ADDR="1.1.1.1"))
             form = forms.create_form(site, kind="contact", user=self.user)
@@ -541,7 +541,7 @@ class AnalyticsTests(TestCase):
 
     def test_analytics_page_renders(self):
         Membership.objects.create(organization=self.org, user=self.user, role=Role.OWNER)
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             self._published()
             self.client.force_login(self.user)
             r = self.client.get(reverse("dashboard:analytics", args=[self.project.id]))
@@ -584,7 +584,7 @@ class AccessibilityTests(TestCase):
 
     def _status(self, html):
         from apps.publishing import accessibility as a11y
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site({"index.html": html})
             audit = a11y.audit_pages(site)[0]
             return {f["key"]: f["status"] for f in audit.findings}
@@ -615,7 +615,7 @@ class AccessibilityTests(TestCase):
 
     def test_page_renders_with_no_compliance_claim(self):
         Membership.objects.create(organization=self.org, user=self.user, role=Role.OWNER)
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             self._site({"index.html": GOOD_A11Y})
             self.client.force_login(self.user)
             r = self.client.get(reverse("dashboard:accessibility", args=[self.project.id]))
@@ -637,13 +637,13 @@ class MonitoringTests(TestCase):
         return site
 
     def test_publish_records_a_health_check(self):
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._published()
             self.assertEqual(site.health_checks.filter(status="up").count(), 1)
 
     def test_run_check_probes_real_serve_health(self):
         from apps.publishing import monitor
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._published()
             check = monitor.run_check(site)
             self.assertEqual(check.status, "up")            # snapshot present + readable
@@ -652,7 +652,7 @@ class MonitoringTests(TestCase):
     def test_down_when_artifact_missing(self):
         import shutil
         from apps.publishing import monitor
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._published()
             shutil.rmtree(site.current.artifact_dir)        # simulate the served files vanishing
             check = monitor.run_check(site)
@@ -661,7 +661,7 @@ class MonitoringTests(TestCase):
     def test_uptime_summary_and_incidents(self):
         from apps.publishing import monitor
         from apps.publishing.models import HealthCheck
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._published()             # 1 up check from publish
             HealthCheck.objects.create(website=site, status="down")
             HealthCheck.objects.create(website=site, status="up")
@@ -673,13 +673,13 @@ class MonitoringTests(TestCase):
 
     def test_run_check_none_without_publish(self):
         from apps.publishing import monitor
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = pub.get_or_create_website(self.project)
             self.assertIsNone(monitor.run_check(site))   # nothing published to probe
 
     def test_monitoring_page_renders_with_honest_scope(self):
         Membership.objects.create(organization=self.org, user=self.user, role=Role.OWNER)
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             self._published()
             self.client.force_login(self.user)
             r = self.client.get(reverse("dashboard:monitoring", args=[self.project.id]))
@@ -720,7 +720,7 @@ class OperationsAdvisorTests(TestCase):
 
     def test_clean_site_is_healthy(self):
         from apps.publishing import operations as ops
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._publish()
             findings = ops.analyze(site)
             self.assertEqual(findings, [])
@@ -728,7 +728,7 @@ class OperationsAdvisorTests(TestCase):
 
     def test_flags_large_image(self):
         from apps.publishing.models import Asset
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._publish()
             Asset.objects.create(website=site, path="assets/huge.png", original_name="huge.png",
                                  kind="image", size=3 * 1024 * 1024, width=4000, height=3000)
@@ -737,19 +737,19 @@ class OperationsAdvisorTests(TestCase):
 
     def test_flags_missing_seo(self):
         # A page with no title/description.
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._publish(page="<html lang='en'><body><main><nav>x</nav><h1>Hi</h1></main></body></html>")
             self.assertIn("seo_gaps", self._keys(site))
 
     def test_flags_accessibility(self):
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._publish(page="<html><head><title>x</title><meta name='description' content='y'></head><body><img src='a.png'></body></html>")
             self.assertIn("a11y", self._keys(site))   # missing lang + alt
 
     def test_conversion_finding_when_traffic_and_no_form(self):
         from apps.publishing.models import PageView
         from django.utils import timezone
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._publish()
             today = timezone.now().date()
             for i in range(25):
@@ -759,7 +759,7 @@ class OperationsAdvisorTests(TestCase):
 
     def test_page_weight_creates_change_request(self):
         Membership.objects.create(organization=self.org, user=self.user, role=Role.OWNER)
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._publish(extra={"heavy.html": "<html lang='en'><body>" + "x" * 300000 + "</body></html>"})
             self.assertIn("page_weight", self._keys(site))
             self.client.force_login(self.user)
@@ -771,7 +771,7 @@ class OperationsAdvisorTests(TestCase):
 
     def test_operations_page_renders(self):
         Membership.objects.create(organization=self.org, user=self.user, role=Role.OWNER)
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             self._publish()
             self.client.force_login(self.user)
             r = self.client.get(reverse("dashboard:operations", args=[self.project.id]))
@@ -790,7 +790,7 @@ class CmsTests(TestCase):
 
     def test_blog_generates_index_and_detail_pages(self):
         from apps.publishing import cms_service as cms
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             blog = cms.create_collection(site, kind="blog", name="Blog", user=self.user)
             cms.add_item(blog, title="First Post", subtitle="hello", body="Line one.\n\nLine two.")
@@ -806,7 +806,7 @@ class CmsTests(TestCase):
 
     def test_faq_generates_single_page(self):
         from apps.publishing import cms_service as cms
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             faq = cms.create_collection(site, kind="faq", name="FAQs", user=self.user)
             cms.add_item(faq, title="How much?", body="It depends.")
@@ -817,7 +817,7 @@ class CmsTests(TestCase):
 
     def test_unpublished_items_excluded(self):
         from apps.publishing import cms_service as cms
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             blog = cms.create_collection(site, kind="blog", user=self.user)
             cms.add_item(blog, title="Draft", body="x", published=False)
@@ -826,7 +826,7 @@ class CmsTests(TestCase):
 
     def test_generated_content_escapes_html(self):
         from apps.publishing import cms_service as cms
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             page = cms.create_collection(site, kind="page", name="Pages", user=self.user)
             cms.add_item(page, title="About", body="<script>alert(1)</script>")
@@ -837,7 +837,7 @@ class CmsTests(TestCase):
 
     def test_cms_ui_flow(self):
         Membership.objects.create(organization=self.org, user=self.user, role=Role.OWNER)
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             url = reverse("dashboard:content", args=[self.project.id])
             self.client.force_login(self.user)
             self.client.post(url, {"action": "add_collection", "kind": "service"})
@@ -860,7 +860,7 @@ class ScheduledProbingTests(TestCase):
     def test_monitor_sites_command_probes_live_sites(self):
         from django.core.management import call_command
         from io import StringIO
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             repo = repo_for_project(self.project); repo.init()
             repo.write_files({"index.html": PAGE}); repo.commit("seed")
             site = pub.get_or_create_website(self.project)
@@ -894,7 +894,7 @@ class CustomDomainRoutingTests(TestCase):
         return site, d
 
     def test_verified_domain_serves_the_site(self):
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             self._verified_domain("www.acme.test")
             r = self.client.get("/", HTTP_HOST="www.acme.test")
             self.assertEqual(r.status_code, 200)
@@ -902,7 +902,7 @@ class CustomDomainRoutingTests(TestCase):
 
     def test_unverified_domain_does_not_serve(self):
         from apps.publishing import domain_service as dom
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             repo = repo_for_project(self.project); repo.init()
             repo.write_files({"index.html": "<html><body>x</body></html>"}); repo.commit("seed")
             site = pub.get_or_create_website(self.project)
@@ -922,7 +922,7 @@ class AcmeChallengeTests(TestCase):
     def test_challenge_served_as_plain_text(self):
         from apps.publishing import domain_service as dom
         from apps.publishing.models import AcmeChallenge
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = pub.get_or_create_website(self.project)
             d = dom.connect_domain(site, hostname="www.acme.test", user=self.user)
             AcmeChallenge.objects.create(domain=d, token="tok123", key_authorization="tok123.keyauth")
@@ -959,7 +959,7 @@ class PaymentsTests(TestCase):
 
     def test_order_total_computed_server_side(self):
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Mug", price_cents=1500, user=self.user)
             order = shop.create_order(site, items=[{"product_id": p.id, "quantity": 3}],
@@ -969,7 +969,7 @@ class PaymentsTests(TestCase):
 
     def test_manual_checkout_then_merchant_confirms(self):
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Mug", price_cents=1500, user=self.user)
             order = shop.create_order(site, items=[{"product_id": p.id, "quantity": 1}])
@@ -986,7 +986,7 @@ class PaymentsTests(TestCase):
     def test_checkout_via_gateway_does_not_fake_payment(self):
         from apps.publishing import ecommerce_service as shop
         from apps.publishing.payments import PaymentError
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Mug", price_cents=1500, user=self.user)
             order = shop.create_order(site, items=[{"product_id": p.id, "quantity": 1}])
@@ -998,7 +998,7 @@ class PaymentsTests(TestCase):
     def test_public_checkout_endpoint_creates_order(self):
         from apps.publishing import ecommerce_service as shop
         from apps.publishing.models import Order
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Mug", price_cents=1500, user=self.user)
             r = self.client.post(reverse("publishing:checkout", args=[site.subdomain]),
@@ -1012,7 +1012,7 @@ class PaymentsTests(TestCase):
     def test_confirmation_and_receipt_emails(self):
         from django.core import mail
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Mug", price_cents=1500, user=self.user)
             order = shop.create_order(site, items=[{"product_id": p.id, "quantity": 2}],
@@ -1034,7 +1034,7 @@ class PaymentsTests(TestCase):
     def test_no_email_no_send_but_order_stands(self):
         from django.core import mail
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Mug", price_cents=1500, user=self.user)
             order = shop.create_order(site, items=[{"product_id": p.id, "quantity": 1}])  # no email
@@ -1046,7 +1046,7 @@ class PaymentsTests(TestCase):
 
     def test_inventory_reserved_on_order(self):
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Mug", price_cents=1500,
                                     track_inventory=True, stock=5, user=self.user)
@@ -1056,7 +1056,7 @@ class PaymentsTests(TestCase):
 
     def test_oversell_is_prevented(self):
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Mug", price_cents=1500,
                                     track_inventory=True, stock=1, user=self.user)
@@ -1068,7 +1068,7 @@ class PaymentsTests(TestCase):
 
     def test_cancel_restocks(self):
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Mug", price_cents=1500,
                                     track_inventory=True, stock=5, user=self.user)
@@ -1083,7 +1083,7 @@ class PaymentsTests(TestCase):
 
     def test_untracked_product_ignores_stock(self):
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Service", price_cents=9900, user=self.user)  # untracked
             shop.create_order(site, items=[{"product_id": p.id, "quantity": 99}])
@@ -1094,7 +1094,7 @@ class PaymentsTests(TestCase):
     def test_storefront_shows_out_of_stock(self):
         from apps.publishing import ecommerce_service as shop
         from apps.publishing import storefront
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             shop.create_product(site, name="Mug", price_cents=1500,
                                 track_inventory=True, stock=0, user=self.user)
@@ -1105,7 +1105,7 @@ class PaymentsTests(TestCase):
     def test_refund_paid_manual_order_restocks_and_emails(self):
         from django.core import mail
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Mug", price_cents=1500,
                                     track_inventory=True, stock=5, user=self.user)
@@ -1125,7 +1125,7 @@ class PaymentsTests(TestCase):
 
     def test_refund_requires_paid(self):
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Mug", price_cents=1500, user=self.user)
             order = shop.create_order(site, items=[{"product_id": p.id, "quantity": 1}])
@@ -1141,7 +1141,7 @@ class PaymentsTests(TestCase):
         import os
         from unittest import mock
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Mug", price_cents=1500, user=self.user)
             order = shop.create_order(site, items=[{"product_id": p.id, "quantity": 1}])
@@ -1155,7 +1155,7 @@ class PaymentsTests(TestCase):
 
     def test_sales_summary_counts_paid_only_and_by_currency(self):
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             mug = shop.create_product(site, name="Mug", price_cents=1500, currency="USD", user=self.user)
             cap = shop.create_product(site, name="Cap", price_cents=2000, currency="USD", user=self.user)
@@ -1177,7 +1177,7 @@ class PaymentsTests(TestCase):
 
     def test_sales_summary_nets_refunds(self):
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Mug", price_cents=1000, currency="USD", user=self.user)
             o1 = shop.create_order(site, items=[{"product_id": p.id, "quantity": 3}], customer_email="b@x.com")
@@ -1195,7 +1195,7 @@ class PaymentsTests(TestCase):
 
     def test_percent_discount_applied(self):
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             shop.create_discount(site, code="save10", kind="percent", percent_off=10, user=self.user)
             p = shop.create_product(site, name="Mug", price_cents=5000, user=self.user)
@@ -1207,7 +1207,7 @@ class PaymentsTests(TestCase):
 
     def test_fixed_discount_currency_must_match(self):
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             shop.create_discount(site, code="EUR5", kind="fixed", amount_off_cents=500,
                                  currency="EUR", user=self.user)
@@ -1217,7 +1217,7 @@ class PaymentsTests(TestCase):
 
     def test_min_order_and_unknown_and_maxuses(self):
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Mug", price_cents=1000, user=self.user)
             shop.create_discount(site, code="BIG", kind="percent", percent_off=10,
@@ -1235,7 +1235,7 @@ class PaymentsTests(TestCase):
     def test_checkout_shows_confirmation_with_reference(self):
         from apps.publishing import ecommerce_service as shop
         from apps.publishing.models import Order
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Mug", price_cents=1500, user=self.user)
             r = self.client.post(reverse("publishing:checkout", args=[site.subdomain]),
@@ -1247,7 +1247,7 @@ class PaymentsTests(TestCase):
 
     def test_order_status_page_persistent(self):
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Mug", price_cents=1500, user=self.user)
             order = shop.create_order(site, items=[{"product_id": p.id, "quantity": 2}])
@@ -1263,7 +1263,7 @@ class PaymentsTests(TestCase):
 
     def test_order_status_does_not_leak_email(self):
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Mug", price_cents=1500, user=self.user)
             order = shop.create_order(site, items=[{"product_id": p.id, "quantity": 1}],
@@ -1272,14 +1272,14 @@ class PaymentsTests(TestCase):
             self.assertNotIn(b"private@buyer.com", r.content)   # shareable URL → no PII
 
     def test_unknown_order_reference_404(self):
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             r = self.client.get(reverse("publishing:order_status", args=[site.subdomain, "ORD-NOPE"]))
             self.assertEqual(r.status_code, 404)
 
     def test_shipping_added_to_total(self):
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Mug", price_cents=2000, user=self.user)
             rate = shop.create_shipping_rate(site, name="Standard", price_cents=500, user=self.user)
@@ -1291,7 +1291,7 @@ class PaymentsTests(TestCase):
 
     def test_free_over_threshold(self):
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Mug", price_cents=6000, user=self.user)
             rate = shop.create_shipping_rate(site, name="Standard", price_cents=500,
@@ -1303,7 +1303,7 @@ class PaymentsTests(TestCase):
 
     def test_discount_then_shipping(self):
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Mug", price_cents=5000, user=self.user)
             shop.create_discount(site, code="TEN", kind="percent", percent_off=10, user=self.user)
@@ -1317,7 +1317,7 @@ class PaymentsTests(TestCase):
 
     def test_shipping_currency_must_match(self):
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Mug", price_cents=2000, currency="USD", user=self.user)
             rate = shop.create_shipping_rate(site, name="Std", price_cents=500, currency="EUR", user=self.user)
@@ -1327,7 +1327,7 @@ class PaymentsTests(TestCase):
 
     def test_tax_applied_exactly(self):
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             shop.set_tax_rate(site, name="VAT", percent="15", user=self.user)
             p = shop.create_product(site, name="Mug", price_cents=4500, user=self.user)
@@ -1337,7 +1337,7 @@ class PaymentsTests(TestCase):
 
     def test_tax_on_discounted_goods_plus_shipping(self):
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             shop.set_tax_rate(site, name="VAT", percent="10", user=self.user)
             shop.create_discount(site, code="TEN", kind="percent", percent_off=10, user=self.user)
@@ -1353,7 +1353,7 @@ class PaymentsTests(TestCase):
 
     def test_only_one_active_tax_rate(self):
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             shop.set_tax_rate(site, name="VAT", percent="15", user=self.user)
             shop.set_tax_rate(site, name="GST", percent="10", user=self.user)   # replaces
@@ -1362,7 +1362,7 @@ class PaymentsTests(TestCase):
 
     def test_no_tax_when_none_set(self):
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Mug", price_cents=1000, user=self.user)
             order = shop.create_order(site, items=[{"product_id": p.id, "quantity": 1}])
@@ -1372,7 +1372,7 @@ class PaymentsTests(TestCase):
     def test_merchant_notified_of_new_order(self):
         from django.core import mail
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()   # project owner is self.user (owner@acme.com)
             p = shop.create_product(site, name="Mug", price_cents=1500, user=self.user)
             order = shop.create_order(site, items=[{"product_id": p.id, "quantity": 1}],
@@ -1389,7 +1389,7 @@ class PaymentsTests(TestCase):
     def test_merchant_notified_even_without_buyer_email(self):
         from django.core import mail
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Mug", price_cents=1500, user=self.user)
             order = shop.create_order(site, items=[{"product_id": p.id, "quantity": 1}])  # no buyer email
@@ -1400,7 +1400,7 @@ class PaymentsTests(TestCase):
     def test_cancel_releases_limited_discount_use(self):
         # Audit finding B: a cancelled (never-completed) order must return the code's use.
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Mug", price_cents=1000, user=self.user)
             shop.create_discount(site, code="ONCE", kind="percent", percent_off=10,
@@ -1417,7 +1417,7 @@ class PaymentsTests(TestCase):
         from django.utils import timezone
         from apps.publishing import ecommerce_service as shop
         from apps.publishing.models import Order
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Mug", price_cents=1000,
                                     track_inventory=True, stock=5, user=self.user)
@@ -1440,7 +1440,7 @@ class PaymentsTests(TestCase):
         from django.utils import timezone
         from apps.publishing import ecommerce_service as shop
         from apps.publishing.models import Order
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Mug", price_cents=1000,
                                     track_inventory=True, stock=5, user=self.user)
@@ -1463,7 +1463,7 @@ class PaymentsTests(TestCase):
         from django.utils import timezone
         from apps.publishing import ecommerce_service as shop
         from apps.publishing.models import Order
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Mug", price_cents=1000, user=self.user)
             o = shop.create_order(site, items=[{"product_id": p.id, "quantity": 1}])
@@ -1477,7 +1477,7 @@ class PaymentsTests(TestCase):
 
     def test_variant_order_uses_variant_price_and_stock(self):
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Tee", price_cents=2000, user=self.user)  # base
             m = shop.create_variant(p, label="M", price_cents=1800, stock=5, user=self.user)
@@ -1489,7 +1489,7 @@ class PaymentsTests(TestCase):
 
     def test_variant_required_when_product_has_variants(self):
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Tee", price_cents=2000, user=self.user)
             shop.create_variant(p, label="M", price_cents=1800, stock=5, user=self.user)
@@ -1498,7 +1498,7 @@ class PaymentsTests(TestCase):
 
     def test_variant_oversell_prevented_and_restocked(self):
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Tee", price_cents=2000, user=self.user)
             m = shop.create_variant(p, label="M", price_cents=1800, stock=1, user=self.user)
@@ -1513,7 +1513,7 @@ class PaymentsTests(TestCase):
 
     def test_product_price_display_shows_from_when_variants(self):
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = self._site()
             p = shop.create_product(site, name="Tee", price_cents=2000, user=self.user)
             shop.create_variant(p, label="M", price_cents=1800, stock=5, user=self.user)
@@ -1523,7 +1523,7 @@ class PaymentsTests(TestCase):
 
     def test_store_page_renders(self):
         Membership.objects.create(organization=self.org, user=self.user, role=Role.OWNER)
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             self.client.force_login(self.user)
             r = self.client.get(reverse("dashboard:store", args=[self.project.id]))
             self.assertEqual(r.status_code, 200)
@@ -1540,7 +1540,7 @@ class StorefrontTests(TestCase):
     def test_generate_emits_shop_pages_with_buy_form(self):
         from apps.publishing import ecommerce_service as shop
         from apps.publishing import storefront
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = pub.get_or_create_website(self.project)
             p = shop.create_product(site, name="Blue Mug", price_cents=1500, user=self.user)
             result = storefront.generate_storefront(site, user=self.user)
@@ -1556,7 +1556,7 @@ class StorefrontTests(TestCase):
     def test_storefront_has_cart_page_and_add_buttons(self):
         from apps.publishing import ecommerce_service as shop
         from apps.publishing import storefront
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = pub.get_or_create_website(self.project)
             shop.create_product(site, name="Mug", price_cents=1500, user=self.user)
             files = storefront.render_storefront(site)
@@ -1569,7 +1569,7 @@ class StorefrontTests(TestCase):
     def test_checkout_endpoint_multi_item(self):
         from apps.publishing import ecommerce_service as shop
         from apps.publishing.models import Order
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = pub.get_or_create_website(self.project)
             a = shop.create_product(site, name="Mug", price_cents=1500, user=self.user)
             b = shop.create_product(site, name="Cap", price_cents=2000, user=self.user)
@@ -1584,7 +1584,7 @@ class StorefrontTests(TestCase):
         from apps.publishing import assets_service as assets
         from apps.publishing import ecommerce_service as shop
         from apps.publishing import storefront
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = pub.get_or_create_website(self.project)
             asset = assets.store_asset(site, filename="mug.png", data=_png_bytes(), user=self.user)
             p = shop.create_product(site, name="Mug", price_cents=1500,
@@ -1596,7 +1596,7 @@ class StorefrontTests(TestCase):
     def test_product_image_must_belong_to_site(self):
         from apps.publishing import assets_service as assets
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = pub.get_or_create_website(self.project)
             # An asset on a DIFFERENT project/site.
             other_proj = Project.objects.create(organization=self.org, name="Other")
@@ -1608,7 +1608,7 @@ class StorefrontTests(TestCase):
 
     def test_no_products_no_storefront(self):
         from apps.publishing import storefront
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = pub.get_or_create_website(self.project)
             with self.assertRaises(storefront.StorefrontError):
                 storefront.generate_storefront(site, user=self.user)
@@ -1617,7 +1617,7 @@ class StorefrontTests(TestCase):
         from apps.publishing import ecommerce_service as shop
         from apps.publishing import storefront
         from apps.publishing.models import Order
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = pub.get_or_create_website(self.project)
             # A home page so the site has something, plus a product + storefront.
             repo = repo_for_project(self.project); repo.init()
@@ -1648,7 +1648,7 @@ class StoreManagementTests(TestCase):
 
     def test_edit_and_deactivate_product(self):
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = pub.get_or_create_website(self.project)
             p = shop.create_product(site, name="Mug", price_cents=1000, user=self.user)
             url = reverse("dashboard:store", args=[self.project.id])
@@ -1662,7 +1662,7 @@ class StoreManagementTests(TestCase):
             self.assertFalse(p.active)                     # deactivated
 
     def test_add_and_toggle_discount_via_ui(self):
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             pub.get_or_create_website(self.project)
             url = reverse("dashboard:store", args=[self.project.id])
             self.client.post(url, {"action": "add_discount", "code": "welcome", "kind": "percent",
@@ -1677,7 +1677,7 @@ class StoreManagementTests(TestCase):
 
     def test_order_detail_view(self):
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site = pub.get_or_create_website(self.project)
             p = shop.create_product(site, name="Mug", price_cents=1500, user=self.user)
             order = shop.create_order(site, items=[{"product_id": p.id, "quantity": 2}],
@@ -1704,7 +1704,7 @@ class StoreProvisionTests(TestCase):
 
     def test_provision_sets_up_the_engine(self):
         from apps.publishing.store_provision import provision_store
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             result = provision_store(self.project, "online store selling candles", user=self.user)
             site = self.project.website
             self.assertGreaterEqual(site.products.count(), 1)      # starter catalogue
@@ -1714,7 +1714,7 @@ class StoreProvisionTests(TestCase):
 
     def test_provision_is_idempotent(self):
         from apps.publishing.store_provision import provision_store
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             provision_store(self.project, "store", user=self.user)
             n = self.project.website.products.count()
             self.assertIsNone(provision_store(self.project, "store", user=self.user))  # no-op
@@ -1746,14 +1746,14 @@ class CommerceApiTests(TestCase):
         return site, product
 
     def test_products_api_lists_active_products(self):
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site, p = self._store_with_product(tmp)
             r = self.client.get(reverse("commerce_api:products", args=[site.subdomain]))
             self.assertEqual(r.status_code, 200)
             self.assertEqual(r.json()["products"][0]["name"], "Mug")
 
     def test_checkout_api_records_channel_and_shares_inventory(self):
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site, p = self._store_with_product(tmp, track_inventory=True, stock=20)
             # A purchase on iOS via the API.
             r = self.client.post(
@@ -1771,7 +1771,7 @@ class CommerceApiTests(TestCase):
             self.assertEqual(web_view.json()["products"][0]["stock"], 19)
 
     def test_order_status_api(self):
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site, p = self._store_with_product(tmp)
             r = self.client.post(
                 reverse("commerce_api:checkout", args=[site.subdomain]),
@@ -1785,7 +1785,7 @@ class CommerceApiTests(TestCase):
 
     def test_web_and_api_orders_share_one_admin(self):
         from apps.publishing import ecommerce_service as shop
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             site, p = self._store_with_product(tmp)
             web = shop.create_order(site, items=[{"product_id": p.id, "quantity": 1}], channel="web")
             self.client.post(reverse("commerce_api:checkout", args=[site.subdomain]),
@@ -1804,7 +1804,7 @@ class PublishUITests(TestCase):
         self.client.force_login(self.user)
 
     def test_enable_then_publish_flow(self):
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             repo = repo_for_project(self.project); repo.init()
             repo.write_files({"index.html": PAGE}); repo.commit("seed")
             url = reverse("dashboard:publish_center", args=[self.project.id])
@@ -1816,7 +1816,7 @@ class PublishUITests(TestCase):
             self.assertContains(r, "/sites/")
 
     def test_connect_domain_shows_dns_records(self):
-        with tempfile.TemporaryDirectory() as tmp, override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
             url = reverse("dashboard:publish_center", args=[self.project.id])
             self.client.post(url, {"action": "enable_website"})
             self.client.post(url, {"action": "connect_domain", "hostname": "www.acme.com"})

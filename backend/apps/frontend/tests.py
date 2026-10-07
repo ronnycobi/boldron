@@ -128,7 +128,7 @@ class FrontendFlowTests(TestCase):
 
     def _run_src(self, side_effect, task_input=None):
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 with mock.patch(
                     "apps.model_router.router.gateway_complete", side_effect=side_effect
                 ):

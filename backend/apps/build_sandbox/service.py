@@ -14,6 +14,6 @@ _BACKENDS = {"subprocess": SubprocessSandbox}
 
 
 def get_sandbox() -> Sandbox:
-    backend = getattr(settings, "DEVFORGE_SANDBOX_BACKEND", "subprocess")
+    backend = getattr(settings, "BOLDRON_SANDBOX_BACKEND", "subprocess")
     cls = _BACKENDS.get(backend, SubprocessSandbox)
     return cls()

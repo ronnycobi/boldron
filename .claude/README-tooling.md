@@ -1,11 +1,11 @@
-# DevForge repo tooling (Claude Code / Cursor)
+# Boldron repo tooling (Claude Code / Cursor)
 
 These make working *on this repo* with an AI assistant reliable. They are features of
-the **AI tool**, not of the DevForge app. (For DevForge offering these to its own
+the **AI tool**, not of the Boldron app. (For Boldron offering these to its own
 customers, see `docs/TOOLING_CAPABILITIES.md`.)
 
 ## Skills — reusable playbooks
-`.claude/skills/devforge-feature/SKILL.md` captures this project's build loop
+`.claude/skills/boldron-feature/SKILL.md` captures this project's build loop
 (inspect → implement → migrate → test app then full suite → verify workspaces clean →
 commit/push with the right trailer). The assistant loads it when you work on a
 feature, so the conventions don't have to be re-explained.

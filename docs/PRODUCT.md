@@ -1,4 +1,4 @@
-# DevForge — Product Definition & Roadmap
+# Boldron — Product Definition & Roadmap
 
 This is the *what* and the *when*. The *how you work in this repo* is in
 [`../CLAUDE.md`](../CLAUDE.md). This document is a reference: read the parts a
@@ -7,36 +7,36 @@ whole thing at once.**
 
 ---
 
-## 1. What DevForge is
+## 1. What Boldron is
 
 An AI software-engineering platform. Users describe software; specialized AI
 agents build, test, review, deploy, and operate it. It is an **engineering
 platform**, not a chatbot that generates code.
 
-**Stack-agnostic.** DevForge builds software in the technology the customer
+**Stack-agnostic.** Boldron builds software in the technology the customer
 chooses — the user picks what they're building (website, SaaS, API, mobile, …)
 and the stack (Python/Django·FastAPI·Flask, TS/Next.js·NestJS, Go, Java/Spring,
 C#/.NET, Rust, PHP/Laravel, Ruby/Rails, Dart/Flutter, …). Agents reason about the
 project's chosen stack rather than assuming one. The authoritative catalog is the
 **Technology Registry** (`apps/technology`: languages, frameworks, databases,
-deployment, infrastructure); the executable subset — stacks DevForge can generate
+deployment, infrastructure); the executable subset — stacks Boldron can generate
 AND run today — is the **Stack Registry** (`apps/technology/stacks.py`), currently
 `python-stdlib`, `django` (ORM + real test DB), `fastapi` (in-process API tests
 via TestClient), `node` (Node built-in http + `node --test`, no npm),
 and `go` (stdlib net/http + `go test`, no modules), extensible by adding a Stack +
 scaffolder. Each stack runs only where its toolchain exists; where it doesn't
-(e.g. no `go` binary), DevForge still generates the project and the runner skips
+(e.g. no `go` binary), Boldron still generates the project and the runner skips
 with an honest note rather than a fake pass. (Express needs an npm install, so it
 stays generation-planned where npm/network is unavailable.) A project
 carries a `technology` profile (`{backend, frontend, database, mobile}`) that the
-agents read. **Django + Flutter are DevForge's reference stack** — the one it
+agents read. **Django + Flutter are Boldron's reference stack** — the one it
 bootstraps itself in — not a restriction imposed on customers; a requested stack
-DevForge can't yet generate fails honestly ("generation planned"), never faked.
+Boldron can't yet generate fails honestly ("generation planned"), never faked.
 
 Users can: build websites, web apps, SaaS, APIs, and mobile apps; import,
 analyze, improve, rebuild, and modernize existing/legacy software; deploy,
 monitor, and maintain applications; export full source; deploy to their own
-infrastructure or DevForge Cloud; and use multiple AI models and agents.
+infrastructure or Boldron Cloud; and use multiple AI models and agents.
 
 Product lifecycle: `BUILD → UNDERSTAND → IMPROVE → TEST → DEPLOY → OPERATE → MODERNIZE`.
 
@@ -102,19 +102,19 @@ WAITING_FOR_APPROVAL, COMPLETED, FAILED, CANCELLED, TIMEOUT, BLOCKED`.
   filesystem/process limits; destroyed after use.
 - **Cost & credit engine** — track AI/model/token/compute/storage/bandwidth/db/
   build/deploy/monitoring, attributable to org/project/agent/task/provider/model.
-  Customers get **DevForge credits** (an abstraction over tokens; plans and
+  Customers get **Boldron credits** (an abstraction over tokens; plans and
   values are config, never hard-coded). **Budget protection:** per-month/project/
   infra caps; on exhaustion, **stop** and offer wait / buy / upgrade / reduce
   scope — never silent charges. A project cost analyzer gives **ranges** and
   requests approval before expensive work.
 - **Cloud abstraction** — one `CloudProvider` interface over AWS/Azure/GCP/
-  DigitalOcean/Kubernetes/DevForge Cloud. **DevForge Cloud** is a simple managed
+  DigitalOcean/Kubernetes/Boldron Cloud. **Boldron Cloud** is a simple managed
   deployment experience (compute/db/storage/bandwidth/backups) — not an attempt
   to become AWS in v1.
 - **Export & portability** — every project exports full source + tests +
   migrations + Docker/infra config + env template + docs + API spec + deploy
   config, independently runnable. Customers may deploy to their own infra or
-  leave entirely. **No artificial lock-in** — customers stay because DevForge is
+  leave entirely. **No artificial lock-in** — customers stay because Boldron is
   useful.
 - **Operations & scaling** — post-deploy monitoring (CPU/mem/db/latency/errors/
   traffic/storage/availability/security); ops agents detect → analyze →
@@ -130,7 +130,7 @@ WAITING_FOR_APPROVAL, COMPLETED, FAILED, CANCELLED, TIMEOUT, BLOCKED`.
   IP restrictions, approval policies. Don't expose enterprise source to external
   AI providers unnecessarily.
 - **Audit & observability** — record important operations (user/agent/task/tool/
-  repo change/model/usage/cost/approval/deploy/infra/security). DevForge itself
+  repo change/model/usage/cost/approval/deploy/infra/security). Boldron itself
   must be observable (agent success/failure rates, task duration, model latency,
   AI cost, credit consumption, build/test/deploy/infra failures). Never build
   systems that can't explain what happened.
@@ -168,7 +168,7 @@ Frontend (Flutter Web + Flutter mobile, added later, top-level `frontend/`):
 Dashboard, Projects, Project Workspace, Agent Activity, Requirements,
 Architecture, Code, Builds, Tests, Deployments, Infrastructure, Monitoring,
 Costs, Billing, Settings. The **project workspace** is the central interface —
-it shows what DevForge understands, what agents are doing, what changed, what it
+it shows what Boldron understands, what agents are doing, what changed, what it
 costs, what needs approval, what failed, and what's ready.
 
 ## 6. V1 scope
@@ -196,7 +196,7 @@ reports real ran/failure/error counts. The Database Agent likewise generates Dja
 model source. Offline (stub) generates nothing; compile failures and test failures
 are reported, never hidden.
 
-Django mode (`stack: "django"`): DevForge deterministically scaffolds the project
+Django mode (`stack: "django"`): Boldron deterministically scaffolds the project
 (settings, manage.py, a migration-free in-memory test DB) around the model's app
 (models.py + ORM tests.py), so the Testing Agent runs `manage.py test <app>`
 against a REAL test database — the ORM actually persists and queries. Verified end
@@ -235,7 +235,7 @@ done when implemented + integrated + tested + verified** (see `../CLAUDE.md`).
 ## 8. Long-term destination
 
 ```
-                    DEVFORGE
+                    BOLDRON
         BUILD  ·  MODERNIZE  ·  OPERATE
                        |
               AGENT ORCHESTRATOR
@@ -247,7 +247,7 @@ done when implemented + integrated + tested + verified** (see `../CLAUDE.md`).
              COST / CREDIT ENGINE
                        |
               CLOUD ABSTRACTION
-        AWS · Azure · GCP · DevForge Cloud · Customer Infra
+        AWS · Azure · GCP · Boldron Cloud · Customer Infra
 ```
 
 This is the destination, not the v1 deliverable. Build the simplest architecture
@@ -261,9 +261,9 @@ ONE USER → ONE LEAD AGENT → MANY SPECIALIZED AGENTS → CONTROLLED TOOLS
 
 ## Client Transparency Boundary
 
-DevForge's customer experience is conversation-first: **"Tell DevForge what you
-want to build."** The customer describes an outcome; DevForge plans, builds, tests,
-secures and reports it. The customer sees **what DevForge accomplished — never how
+Boldron's customer experience is conversation-first: **"Tell Boldron what you
+want to build."** The customer describes an outcome; Boldron plans, builds, tests,
+secures and reports it. The customer sees **what Boldron accomplished — never how
 its proprietary engine accomplished it.**
 
 **Customer-facing UI MAY show:** project status, build progress (as plain-language
@@ -274,7 +274,7 @@ to their own project.
 **Customer-facing UI MUST NOT show:** internal agent topology or names, proprietary
 prompts or system instructions, model-routing algorithms, internal scoring,
 orchestration architecture, agent-to-agent communication, internal decision logic,
-internal infrastructure topology, secret provider configuration, or DevForge's own
+internal infrastructure topology, secret provider configuration, or Boldron's own
 source. Internal work is translated to outcomes via `apps/dashboard/labels.py`
 (e.g. the "code_review" step renders as "Quality review"). Leak-guard tests in
 `apps/dashboard/tests.py` and `apps/marketing/tests.py` enforce this.
@@ -284,7 +284,7 @@ APIs, tests, logs — but still never the proprietary engine internals above.
 
 ## Unified Commerce Principle (architectural rule)
 
-Every e-commerce project DevForge creates MUST use the shared commerce engine
+Every e-commerce project Boldron creates MUST use the shared commerce engine
 (`apps/publishing` — `ecommerce_service`, models, `payments`) as the single source of
 truth for products, variants, pricing, inventory, carts, discounts, coupons,
 shipping, checkout, payments, refunds, orders, customers, taxes, currency, order
@@ -295,7 +295,7 @@ services and the SAME API layer (`apps/publishing/api.py`, mounted at
 `/api/v1/stores/<subdomain>/…`: products, checkout, orders). Platform-specific
 frontends may differ in UI/UX but MUST NOT duplicate core commerce business logic or
 keep an independent commerce database. Every order records its `channel`
-(web/android/ios/api/pos/whatsapp/admin) so one DevForge admin shows all channels.
+(web/android/ios/api/pos/whatsapp/admin) so one Boldron admin shows all channels.
 
 A transaction on one channel is immediately reflected on the others because they all
 read/write the one order/inventory database (e.g. an inventory decrement from an iOS

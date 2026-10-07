@@ -56,7 +56,7 @@ class BuiltinToolTests(TestCase):
         writer = Toolbelt(self.project, {C.WRITE_REPOSITORY})
         reader = Toolbelt(self.project, {C.USE_REPOSITORY})
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 w = writer.invoke("repo.write", "write_files",
                                   files={"svc.py": "def add(a, b):\n    return a + b\n"})
                 self.assertTrue(w.ok)
@@ -80,7 +80,7 @@ class BuiltinToolTests(TestCase):
     def test_tests_run_on_empty_repo_is_honest(self):
         belt = Toolbelt(self.project, {C.RUN_TESTS})
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 res = belt.invoke("tests.run", "run")
         self.assertTrue(res.ok)
         self.assertIsNone(res.data["passed"])  # nothing to run

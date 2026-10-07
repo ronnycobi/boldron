@@ -67,7 +67,7 @@ def evaluate(website: Website) -> list:
     return rd.evaluate(website)
 
 
-def publish(website: Website, *, user=None, host="devforge_local", environment="production") -> PublishVersion:
+def publish(website: Website, *, user=None, host="boldron_local", environment="production") -> PublishVersion:
     target = get_host(host)
     if target is None:
         raise PublishError(f"Unknown host '{host}'.")

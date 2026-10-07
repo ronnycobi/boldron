@@ -100,7 +100,7 @@ class OutcomeTests(TestCase):
         change.requires_approval = False
         change.save()
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 svc.implement(change)  # offline: backend + code_review complete
         change.refresh_from_db()
         self.assertEqual(change.status, ChangeStatus.DONE)
@@ -207,7 +207,7 @@ class ChangeFlowTests(TestCase):
 
         svc.approve(change, self.user)
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 svc.implement(change)
         change.refresh_from_db()
         self.assertEqual(change.status, ChangeStatus.DONE)
@@ -258,7 +258,7 @@ class RollbackTests(TestCase):
         from django.test import override_settings
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
-        self._ov = override_settings(DEVFORGE_WORKSPACES_ROOT=self._tmp.name)
+        self._ov = override_settings(BOLDRON_WORKSPACES_ROOT=self._tmp.name)
         self._ov.enable()
         self.addCleanup(self._ov.disable)
         self.org = Organization.objects.create(name="Acme")

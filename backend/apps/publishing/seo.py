@@ -173,7 +173,7 @@ def _try_ai(site, heading, para, router) -> dict | None:
 
 # --- sitemap / robots ----------------------------------------------------------
 def _page_url(website, path: str) -> str:
-    base = f"https://{website.subdomain}.{settings.DEVFORGE_BASE_DOMAIN}"
+    base = f"https://{website.subdomain}.{settings.BOLDRON_BASE_DOMAIN}"
     rel = "" if path == "index.html" else path
     return f"{base}/{rel}"
 
@@ -190,7 +190,7 @@ def build_sitemap(website) -> str:
 
 
 def build_robots(website, *, allow=True) -> str:
-    base = f"https://{website.subdomain}.{settings.DEVFORGE_BASE_DOMAIN}"
+    base = f"https://{website.subdomain}.{settings.BOLDRON_BASE_DOMAIN}"
     if allow:
         return f"User-agent: *\nAllow: /\nSitemap: {base}/sitemap.xml\n"
     return "User-agent: *\nDisallow: /\n"

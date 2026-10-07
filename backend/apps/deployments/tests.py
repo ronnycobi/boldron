@@ -42,7 +42,7 @@ class RunTests(TestCase):
 
     def test_local_dev_deploy_succeeds(self):
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 d = request_deploy(
                     project=self.project, environment="development", provider="local"
                 )
@@ -60,7 +60,7 @@ class RunTests(TestCase):
     def test_production_after_approval_succeeds(self):
         approver = User.objects.create_user(email="boss@x.com", password="pw12345!")
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 d = request_deploy(
                     project=self.project, environment="production", provider="local"
                 )
@@ -123,7 +123,7 @@ class DeploymentAPITests(TestCase):
     def test_approve_and_run_production_via_api(self):
         self.client.force_login(self.alice)
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 created = self.client.post(
                     self._list_url(self.project),
                     {"environment": "production", "provider": "local"},

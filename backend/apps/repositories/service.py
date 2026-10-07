@@ -26,7 +26,7 @@ class GitError(Exception):
 
 
 def workspaces_root() -> Path:
-    root = getattr(settings, "DEVFORGE_WORKSPACES_ROOT", None)
+    root = getattr(settings, "BOLDRON_WORKSPACES_ROOT", None)
     if root:
         return Path(root)
     return Path(settings.BASE_DIR).parent / "workspaces"

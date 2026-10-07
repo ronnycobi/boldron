@@ -67,7 +67,7 @@ class TestingFlowTests(TestCase):
         # real on-disk workspaces dir used by the running app.
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
-        override = override_settings(DEVFORGE_WORKSPACES_ROOT=self._tmp.name)
+        override = override_settings(BOLDRON_WORKSPACES_ROOT=self._tmp.name)
         override.enable()
         self.addCleanup(override.disable)
         self.org = Organization.objects.create(name="Acme")
@@ -97,7 +97,7 @@ class TestingFlowTests(TestCase):
 
     def test_runs_passing_repo_tests_for_real(self):
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 materialize(
                     self.project,
                     [
@@ -140,7 +140,7 @@ class TestingFlowTests(TestCase):
             },
         )
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 materialize(
                     self.project,
                     [{"path": p, "content": c} for p, c in scaffold.items()],
@@ -178,7 +178,7 @@ class TestingFlowTests(TestCase):
             },
         ]
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 materialize(self.project, materialize_files, message="seed fastapi")
                 task = self._run()
         run = task.output["test_run"]
@@ -211,7 +211,7 @@ class TestingFlowTests(TestCase):
         }
         scaffold = scaffold_node_project("app", app_files)
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 materialize(
                     self.project,
                     [{"path": p, "content": c} for p, c in scaffold.items()],
@@ -238,7 +238,7 @@ class TestingFlowTests(TestCase):
             },
         )
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 materialize(
                     self.project,
                     [{"path": p, "content": c} for p, c in scaffold.items()],
@@ -255,7 +255,7 @@ class TestingFlowTests(TestCase):
 
     def test_reports_failing_repo_tests_for_real(self):
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 materialize(
                     self.project,
                     [

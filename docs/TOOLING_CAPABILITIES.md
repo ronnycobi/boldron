@@ -1,14 +1,14 @@
-# DevForge product capability: Connectors, Skills, Hooks (phased plan)
+# Boldron product capability: Connectors, Skills, Hooks (phased plan)
 
-Separate from the repo tooling in `.claude/` (which helps *build* DevForge), this is
-about DevForge the **product** offering the same three ideas to its customers — so a
-DevForge-generated app and its agents can connect to external systems, follow saved
+Separate from the repo tooling in `.claude/` (which helps *build* Boldron), this is
+about Boldron the **product** offering the same three ideas to its customers — so a
+Boldron-generated app and its agents can connect to external systems, follow saved
 playbooks, and run guardrails. Not built yet; this is the plan.
 
-The seed already exists: **`apps/tools`** (the Tool Registry + Toolbelt) is DevForge's
+The seed already exists: **`apps/tools`** (the Tool Registry + Toolbelt) is Boldron's
 capability-gated agent-tool system — the natural foundation for "connectors."
 
-## 1. Connectors (DevForge's MCP layer)
+## 1. Connectors (Boldron's MCP layer)
 Let product agents (and generated apps) use external systems through a permissioned,
 provider-agnostic layer — the same honesty rules as everything else: a connector is
 inert until real credentials exist, and never fakes a call.

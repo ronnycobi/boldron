@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Control Center · {{ app_name }}{% endblock %}</title>
-  <link rel="icon" href="{% if app_favicon_url %}{{ app_favicon_url }}{% else %}{% static 'img/devforge-mark.svg' %}{% endif %}">
+  <link rel="icon" href="{% if app_favicon_url %}{{ app_favicon_url }}{% else %}{% static 'img/boldron-mark.svg' %}{% endif %}">
   <style>
     :root{
       --bg:#0a0a0f; --bg2:#12100c; --sidebar:#0b0a08; --panel:#1a1710;
@@ -87,7 +87,7 @@
 <body>
 <div class="layout">
   <aside class="side">
-    <div class="logo"><span class="mark"><img src="{% if app_logo_url %}{{ app_logo_url }}{% else %}{% static 'img/devforge-mark.svg' %}{% endif %}" alt="{{ app_name }}" onerror="this.remove()"></span><b>{{ app_name }}</b></div>
+    <div class="logo"><span class="mark"><img src="{% if app_logo_url %}{{ app_logo_url }}{% else %}{% static 'img/boldron-mark.svg' %}{% endif %}" alt="{{ app_name }}" onerror="this.remove()"></span><b>{{ app_name }}</b></div>
     <div class="kicker">Control Center</div>
     {% include "console/_nav.html" %}
   </aside>

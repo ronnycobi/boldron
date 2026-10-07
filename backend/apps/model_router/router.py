@@ -8,7 +8,7 @@ Two standing policies:
 - **Quality-first by default.** the platform optimizes for the best output, so for a
   given complexity the router picks the *most capable* model whose tier meets it.
   A task may opt into economy (`prefer_quality=False`) or a hard `max_cost_per_mtok`
-  ceiling. The default is configurable via settings.DEVFORGE_PREFER_QUALITY.
+  ceiling. The default is configurable via settings.BOLDRON_PREFER_QUALITY.
 - **Real models beat the stub.** The offline stub is chosen only when no real
   model is usable (e.g. no API key), so the platform still runs offline.
 """
@@ -37,7 +37,7 @@ def _default_prefer_quality() -> bool:
     # so tests and deployments can override it.
     from django.conf import settings
 
-    return getattr(settings, "DEVFORGE_PREFER_QUALITY", True)
+    return getattr(settings, "BOLDRON_PREFER_QUALITY", True)
 
 
 @dataclass

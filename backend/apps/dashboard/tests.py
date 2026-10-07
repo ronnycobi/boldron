@@ -112,7 +112,7 @@ class SecurityPageTests(TestCase):
 
         self.client.force_login(self.owner)
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 repo = repo_for_project(self.project)
                 repo.init()
                 repo.write_files({"app.py": "API_KEY = 'sk-live-abc123456'\nx = eval(v)\n"})
@@ -276,7 +276,7 @@ class BuilderHomeTests(TestCase):
         import tempfile
         from django.test import override_settings
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 r = self.client.post(reverse("dashboard:home"),
                                      {"action": "build",
                                       "brief": "Build a CRM for my sales team with leads and deals."},
@@ -327,7 +327,7 @@ class PreviewTests(TestCase):
         from django.test import override_settings
         from apps.changes.models import ChangeRequest
         with tempfile.TemporaryDirectory() as tmp:
-            with override_settings(DEVFORGE_WORKSPACES_ROOT=tmp):
+            with override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
                 self.client.post(reverse("dashboard:preview", args=[self.project.id]),
                                  {"message": "add customer search"}, follow=True)
         self.assertTrue(ChangeRequest.objects.filter(project=self.project).exists())

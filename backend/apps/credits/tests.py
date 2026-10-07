@@ -163,13 +163,13 @@ class DailyCapTests(TestCase):
         self._spend("9.99", days_ago=1)  # yesterday
         self.assertEqual(spent_today(self.org), Decimal("0"))
 
-    @override_settings(DEVFORGE_ORG_DAILY_USD_CAP="1.00")
+    @override_settings(BOLDRON_ORG_DAILY_USD_CAP="1.00")
     def test_platform_default_cap_applies(self):
         self.assertEqual(daily_usd_cap(self.account), Decimal("1.00"))
         self._spend("1.50")
         self.assertFalse(guard_can_run(self.org))
 
-    @override_settings(DEVFORGE_ORG_DAILY_USD_CAP="1.00")
+    @override_settings(BOLDRON_ORG_DAILY_USD_CAP="1.00")
     def test_per_org_cap_overrides_platform_default(self):
         self.account.daily_usd_cap = Decimal("50.00")  # generous per-org override
         self.account.save()

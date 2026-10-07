@@ -23,7 +23,7 @@ class CreditAccount(models.Model):
     plan = models.CharField(max_length=32, default="free")
     balance = models.DecimalField(max_digits=14, decimal_places=4, default=0)
     # Hard velocity cap: max USD of model spend per calendar day for this org.
-    # Null falls back to the platform default (settings.DEVFORGE_ORG_DAILY_USD_CAP,
+    # Null falls back to the platform default (settings.BOLDRON_ORG_DAILY_USD_CAP,
     # itself null = unlimited). Protects against a runaway loop draining a balance.
     daily_usd_cap = models.DecimalField(
         max_digits=10, decimal_places=2, null=True, blank=True,

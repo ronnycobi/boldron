@@ -56,7 +56,7 @@ class PublishVersion(models.Model):
     website = models.ForeignKey(Website, on_delete=models.CASCADE, related_name="versions")
     version = models.CharField(max_length=32)                 # v1.0.0, v1.0.1, …
     environment = models.CharField(max_length=20, default="production")
-    host = models.CharField(max_length=32, default="devforge_local")
+    host = models.CharField(max_length=32, default="boldron_local")
     state = models.CharField(max_length=20, choices=PublishState.choices, default=PublishState.DRAFT)
     url = models.CharField(max_length=1024, blank=True)       # working the platform URL when live
     artifact_dir = models.CharField(max_length=1024, blank=True)  # snapshot served for this version

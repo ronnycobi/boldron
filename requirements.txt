@@ -1,4 +1,4 @@
-# DevForge backend dependencies.
+# Boldron backend dependencies.
 # Pinned to the versions in the shared interpreter (Python 3.14).
 # Postgres/redis/celery are added in their respective phases (see docs/PRODUCT.md).
 

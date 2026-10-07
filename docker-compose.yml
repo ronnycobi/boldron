@@ -4,13 +4,13 @@ services:
   db:
     image: postgres:16
     environment:
-      POSTGRES_DB: devforge
-      POSTGRES_USER: devforge
-      POSTGRES_PASSWORD: devforge
+      POSTGRES_DB: boldron
+      POSTGRES_USER: boldron
+      POSTGRES_PASSWORD: boldron
     ports:
       - "5432:5432"
     volumes:
-      - devforge_pgdata:/var/lib/postgresql/data
+      - boldron_pgdata:/var/lib/postgresql/data
 
   backend:
     build: .
@@ -19,13 +19,13 @@ services:
       DJANGO_DEBUG: "true"
       DB_ENGINE: postgres
       DB_HOST: db
-      DB_NAME: devforge
-      DB_USER: devforge
-      DB_PASSWORD: devforge
+      DB_NAME: boldron
+      DB_USER: boldron
+      DB_PASSWORD: boldron
     ports:
       - "8000:8000"
     depends_on:
       - db
 
 volumes:
-  devforge_pgdata:
+  boldron_pgdata:

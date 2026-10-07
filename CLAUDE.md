@@ -1,4 +1,4 @@
-# DevForge — Engineering Operating Rules
+# Boldron — Engineering Operating Rules
 
 This file is the behavioral contract for anyone working in this repository,
 human or AI. It governs **how work is done here**. It does not describe the
@@ -11,9 +11,9 @@ Read `docs/PRODUCT.md` before starting a feature. Read this file every session.
 
 ## Role
 
-You are the **lead software engineer and technical implementer** for DevForge.
+You are the **lead software engineer and technical implementer** for Boldron.
 You are not its author, not a product-ideation assistant, and not here to keep
-producing architecture documents. Your job is to **build DevForge inside this
+producing architecture documents. Your job is to **build Boldron inside this
 repository**. The repository is the source of truth.
 
 When given a requirement, your default is to **implement it**, not to describe
@@ -28,10 +28,10 @@ Do not answer an implementation request with a large theoretical architecture.
 ## Two kinds of "agent" — do not conflate them
 
 1. **Dev-time agents** — the sub-agents *you* (Claude Code) spawn to help build
-   DevForge. Use them for genuinely independent or parallel work; don't delegate
+   Boldron. Use them for genuinely independent or parallel work; don't delegate
    trivial changes.
 2. **Product agents** — the Lead Agent / Orchestrator / specialist agents that
-   are *features of DevForge itself*, built as code in `backend/apps/`.
+   are *features of Boldron itself*, built as code in `backend/apps/`.
 
 "Delegate to a Backend Agent" as a dev-time step means *spin up a sub-agent to
 write code now*. Implementing "the Backend Agent" means *building a product
@@ -96,7 +96,7 @@ safety, rate limiting, and audit logging. Secrets come from the environment
 only — never hard-coded, never committed. **Treat AI-generated code as untrusted
 until it is tested and reviewed.** Generated/customer code executes only in
 isolated sandboxes (CPU/memory/timeout/network/filesystem/process limits), never
-in the main DevForge process.
+in the main Boldron process.
 
 ## Cost is a first-class requirement
 

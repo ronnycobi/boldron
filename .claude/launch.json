@@ -2,7 +2,7 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "devforge",
+      "name": "boldron",
       "runtimeExecutable": "../env/bin/python",
       "runtimeArgs": ["manage.py", "runserver", "8000"],
       "cwd": "backend",
