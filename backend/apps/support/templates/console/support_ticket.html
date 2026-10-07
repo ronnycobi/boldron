@@ -9,6 +9,20 @@
   <p class="sub">{{ ticket.number }} · {{ ticket.organization.name }} · {{ ticket.get_category_display }} ·
     {{ ticket.get_priority_display }} priority · from {{ ticket.created_by.email|default:"—" }}</p>
 
+  <div class="card" style="padding:12px 16px;margin:10px 0">
+    <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:center;font-size:13px">
+      <span>SLA {% include "support/_sla_badge.html" with t=ticket %}</span>
+      <span class="muted">First response:
+        {% if ticket.first_responded_at %}<span style="color:var(--ok,#34d399)">answered {{ ticket.first_responded_at|date:"M j, H:i" }}</span>
+        {% else %}due {{ ticket.first_response_due|date:"M j, H:i"|default:"—" }}{% if ticket.response_overdue %} <span class="fail">(overdue)</span>{% endif %}{% endif %}
+      </span>
+      <span class="muted">Resolution:
+        {% if ticket.resolved_at %}<span style="color:var(--ok,#34d399)">resolved {{ ticket.resolved_at|date:"M j, H:i" }}</span>
+        {% else %}due {{ ticket.resolution_due|date:"M j, H:i"|default:"—" }}{% if ticket.resolution_overdue %} <span class="fail">(overdue)</span>{% endif %}{% endif %}
+      </span>
+    </div>
+  </div>
+
   <div class="row">
     <div class="card">
       <h2 style="margin-top:0">Conversation</h2>

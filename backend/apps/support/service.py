@@ -8,9 +8,10 @@ a ticket or a message.
 from __future__ import annotations
 
 from django.conf import settings
+from django.utils import timezone
 
 from apps.audit.service import record as audit
-from apps.support.models import SupportTicket, TicketMessage, TicketStatus
+from apps.support.models import OPEN_STATUSES, SupportTicket, TicketMessage, TicketStatus
 
 
 def create_ticket(*, organization, user, subject, body, category="question",
@@ -22,6 +23,8 @@ def create_ticket(*, organization, user, subject, body, category="question",
         priority=priority if priority in dict(SupportTicket.PRIORITIES) else "normal",
         status=TicketStatus.OPEN,
     )
+    ticket.apply_sla()  # stamp first-response + resolution targets from the priority
+    ticket.save(update_fields=["first_response_due", "resolution_due"])
     if (body or "").strip():
         TicketMessage.objects.create(ticket=ticket, author=user, body=body.strip())
     audit("support.ticket", actor=user, organization=organization,
@@ -30,7 +33,8 @@ def create_ticket(*, organization, user, subject, body, category="question",
            f"[{ticket.number}] We received your request",
            f"Thanks — your support request \"{ticket.subject}\" is logged as "
            f"{ticket.number}. We'll reply here and by email.")
-    inbox = getattr(settings, "BOLDRON_SUPPORT_EMAIL", "")
+    # Notify the support inbox (the configured support address; legacy override kept).
+    inbox = getattr(settings, "APP_SUPPORT_EMAIL", "") or getattr(settings, "BOLDRON_SUPPORT_EMAIL", "")
     if inbox:
         _email(inbox, f"[{ticket.number}] New {ticket.get_category_display()} — {organization.name}",
                f"{ticket.subject}\n\n{body}")
@@ -40,13 +44,18 @@ def create_ticket(*, organization, user, subject, body, category="question",
 def add_message(ticket: SupportTicket, *, author, body, internal=False, from_staff=False) -> TicketMessage:
     msg = TicketMessage.objects.create(
         ticket=ticket, author=author, body=(body or "").strip(), internal=internal)
+    fields = ["status", "updated_at"]
+    # The first public staff reply stops the first-response SLA clock.
+    if from_staff and not internal and ticket.first_responded_at is None:
+        ticket.first_responded_at = timezone.now()
+        fields.append("first_responded_at")
     # Status moves: a staff reply waits on the customer; a customer reply reopens.
     if not internal:
         if from_staff and ticket.status in ("open", "in_progress"):
             ticket.status = TicketStatus.WAITING
         elif not from_staff and ticket.status in ("waiting", "resolved"):
             ticket.status = TicketStatus.OPEN
-    ticket.save(update_fields=["status", "updated_at"])
+    ticket.save(update_fields=fields)
     audit("support.reply", actor=author, organization=ticket.organization,
           target=f"ticket:{ticket.id}", summary="internal" if internal else "reply")
     # A public staff reply emails the customer; internal notes never leave the desk.
@@ -59,7 +68,14 @@ def add_message(ticket: SupportTicket, *, author, body, internal=False, from_sta
 def set_status(ticket: SupportTicket, *, status, user) -> SupportTicket:
     if status in TicketStatus.values:
         ticket.status = status
-        ticket.save(update_fields=["status", "updated_at"])
+        fields = ["status", "updated_at"]
+        # Stamp the resolution time when it first reaches a done state (stops the
+        # resolution SLA clock); clear it if the ticket is reopened.
+        if status in ("resolved", "closed") and ticket.resolved_at is None:
+            ticket.resolved_at = timezone.now(); fields.append("resolved_at")
+        elif status in OPEN_STATUSES and ticket.resolved_at is not None:
+            ticket.resolved_at = None; fields.append("resolved_at")
+        ticket.save(update_fields=fields)
         audit("support.status", actor=user, organization=ticket.organization,
               target=f"ticket:{ticket.id}", summary=status)
     return ticket

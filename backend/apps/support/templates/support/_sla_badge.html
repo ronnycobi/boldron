@@ -1,0 +1,5 @@
+{% with s=t.sla_state %}<span style="display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;
+{% if s == 'breached' %}background:rgba(248,113,113,.16);color:#f87171;border:1px solid rgba(248,113,113,.35)">⚠ Overdue
+{% elif s == 'at_risk' %}background:rgba(245,196,84,.16);color:#f5c454;border:1px solid rgba(245,196,84,.35)">Due soon
+{% elif s == 'met' %}background:rgba(52,211,153,.14);color:#34d399;border:1px solid rgba(52,211,153,.3)">✓ Met
+{% else %}background:rgba(255,255,255,.05);color:#8a93ad;border:1px solid rgba(255,255,255,.12)">On track{% endif %}</span>{% endwith %}

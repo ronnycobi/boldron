@@ -315,6 +315,9 @@ APP_BUNDLE_ID_PREFIX = env("APP_BUNDLE_ID_PREFIX", "com.example")
 # Label used in the DNS TXT record that proves custom-domain ownership — it is
 # shown to the customer and lives on their domain, so it is brand-neutral.
 APP_DNS_VERIFY_LABEL = env("APP_DNS_VERIFY_LABEL", "site-verify")
+# Prefix for human-facing support-ticket numbers (e.g. TKT-00042). Customer-
+# facing, so brand-neutral by default and configurable per deployment.
+APP_TICKET_PREFIX = env("APP_TICKET_PREFIX", "TKT")
 
 # How long an unpaid order may hold its stock/discount reservations before the
 # expire_orders job auto-cancels it (minutes). Default 24h.

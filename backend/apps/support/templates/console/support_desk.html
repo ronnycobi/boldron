@@ -3,7 +3,7 @@
 {% block crumb %}Support / Desk{% endblock %}
 {% block content %}
   <h1>Support desk</h1>
-  <p class="sub">{{ open_count }} open ticket(s) across all tenants.</p>
+  <p class="sub">{{ open_count }} open ticket(s) across all tenants{% if breached_count %} · <span class="fail" style="font-weight:700">{{ breached_count }} breaching SLA</span>{% endif %}.</p>
 
   <div class="filters">
     <a href="{% url 'support:desk' %}" class="{% if not current %}on{% endif %}">All</a>
@@ -15,7 +15,7 @@
   <div class="card">
     {% if tickets %}
     <table>
-      <tr><th>Ref</th><th>Subject</th><th>Tenant</th><th>Category</th><th>Priority</th><th>Status</th><th>Assignee</th><th>Updated</th></tr>
+      <tr><th>Ref</th><th>Subject</th><th>Tenant</th><th>Category</th><th>Priority</th><th>Status</th><th>SLA</th><th>Assignee</th><th>Updated</th></tr>
       {% for t in tickets %}
       <tr>
         <td class="strong"><a href="{% url 'support:desk_ticket' t.id %}">{{ t.number }}</a></td>
@@ -24,6 +24,7 @@
         <td class="muted">{{ t.get_category_display }}</td>
         <td>{% if t.priority == 'urgent' or t.priority == 'high' %}<span class="fail">{{ t.get_priority_display }}</span>{% else %}<span class="muted">{{ t.get_priority_display }}</span>{% endif %}</td>
         <td><span class="badge b-{{ t.status }}">{{ t.get_status_display }}</span></td>
+        <td>{% include "support/_sla_badge.html" with t=t %}</td>
         <td class="muted">{{ t.assigned_to.email|default:"—" }}</td>
         <td class="muted">{{ t.updated_at|date:"M j, H:i" }}</td>
       </tr>

@@ -3,7 +3,9 @@ from __future__ import annotations
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 
 from apps.console.access import staff_required
 from apps.organizations.access import organizations_for
@@ -61,10 +63,20 @@ def desk(request):
     qs = SupportTicket.objects.select_related("organization", "created_by", "assigned_to")
     if status:
         qs = qs.filter(status=status)
+    now = timezone.now()
+    breached = (
+        SupportTicket.objects.exclude(status__in=["resolved", "closed"])
+        .filter(
+            Q(first_responded_at__isnull=True, first_response_due__lt=now)
+            | Q(resolution_due__lt=now)
+        )
+        .count()
+    )
     return render(request, "console/support_desk.html", {
         "active": "support", "tickets": qs[:300], "current": status,
         "statuses": TicketStatus.choices,
         "open_count": SupportTicket.objects.filter(status__in=["open", "in_progress", "waiting"]).count(),
+        "breached_count": breached,
     })
 
 
