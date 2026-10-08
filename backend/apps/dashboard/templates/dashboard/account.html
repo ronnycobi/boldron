@@ -16,6 +16,27 @@
   <p class="sub">Manage your profile, password, and active sessions.</p>
 
   <div class="card">
+    <h2 style="margin-top:0">Profile photo</h2>
+    <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
+      {% include "dashboard/_avatar.html" with u=request.user size=80 font=30 %}
+      <div>
+        <form method="post" enctype="multipart/form-data" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">{% csrf_token %}
+          <input type="hidden" name="action" value="avatar">
+          <input type="file" name="avatar" accept="image/*" required
+                 style="font-size:13px;max-width:230px">
+          <button class="btn" type="submit">Upload</button>
+        </form>
+        {% if request.user.avatar_url %}
+        <form method="post" style="margin-top:8px">{% csrf_token %}
+          <input type="hidden" name="action" value="remove_avatar">
+          <button class="btn" type="submit" style="background:none;border:1px solid var(--line2);color:var(--ink2);padding:6px 12px;font-size:12px">Remove photo</button>
+        </form>{% endif %}
+        <p class="meta" style="margin-top:8px">Square images work best. JPG or PNG, up to 3&nbsp;MB.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
     <h2 style="margin-top:0">Profile</h2>
     <form method="post">{% csrf_token %}
       <input type="hidden" name="action" value="profile">

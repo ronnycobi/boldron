@@ -22,3 +22,6 @@ google-genai==2.12.1
 # redis                  # Phase 4+: cache / queue
 # celery                 # Phase 4+: background jobs
 # gunicorn               # Deployment: WSGI server
+
+# Image processing for user avatars (accounts.User.avatar ImageField).
+Pillow==12.2.0

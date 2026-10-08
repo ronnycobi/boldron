@@ -258,6 +258,11 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # gathers them for production.
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
+# User-uploaded media (avatars, etc.). Served by runserver in DEBUG; in
+# production a web server / object store serves MEDIA_ROOT at MEDIA_URL.
+MEDIA_URL = "/media/"
+MEDIA_ROOT = env("DJANGO_MEDIA_ROOT", str(BASE_DIR / "media"))
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Speed up the test suite: real password hashing dominates test setup time and

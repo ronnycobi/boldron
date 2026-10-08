@@ -149,7 +149,7 @@
         <div class="profile" id="profile">
           <button class="profile-btn" type="button" aria-haspopup="true" aria-expanded="false"
                   onclick="var m=document.getElementById('pmenu');var o=m.hidden;m.hidden=!o;this.setAttribute('aria-expanded',o)">
-            <span class="avatar">{{ request.user.initials }}</span>
+            {% include "dashboard/_avatar.html" with u=request.user size=30 font=12 %}
             <span class="pname">{{ request.user.display_name }}</span>
             <span class="caret">▾</span>
           </button>

@@ -33,3 +33,8 @@ urlpatterns = [
     path("", include("apps.publishing.urls")),
     path("", include("apps.marketing.urls")),
 ]
+
+if settings.DEBUG:
+    # Serve user-uploaded media with runserver in development.
+    from django.conf.urls.static import static
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

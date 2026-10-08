@@ -1657,6 +1657,35 @@ def account(request):
             n = _logout_other_sessions(request)
             messages.success(request, f"Signed out of {n} other session(s).")
             return redirect("dashboard:account")
+        elif action == "avatar":
+            f = request.FILES.get("avatar")
+            if not f:
+                messages.error(request, "Choose an image to upload.")
+            elif f.size > 3 * 1024 * 1024:
+                messages.error(request, "That image is too large (max 3 MB).")
+            else:
+                try:
+                    import io
+                    from django.core.files.base import ContentFile
+                    from PIL import Image, ImageOps
+                    # Re-encode to a small square JPEG — normalizes size and strips
+                    # any metadata/embedded payload from the uploaded file.
+                    img = ImageOps.exif_transpose(Image.open(f)).convert("RGB")
+                    img = ImageOps.fit(img, (256, 256))
+                    buf = io.BytesIO()
+                    img.save(buf, format="JPEG", quality=85)
+                    if user.avatar:
+                        user.avatar.delete(save=False)
+                    user.avatar.save(f"user_{user.pk}.jpg", ContentFile(buf.getvalue()), save=True)
+                    messages.success(request, "Profile photo updated.")
+                except Exception:
+                    messages.error(request, "That file doesn't look like a valid image.")
+            return redirect("dashboard:account")
+        elif action == "remove_avatar":
+            if user.avatar:
+                user.avatar.delete(save=True)
+                messages.success(request, "Profile photo removed.")
+            return redirect("dashboard:account")
 
     return render(request, "dashboard/account.html", {"active": "account", "pwd_form": pwd_form})
 

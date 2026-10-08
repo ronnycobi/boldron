@@ -631,3 +631,48 @@ class SettingsHubTests(TestCase):
         self.client.post(reverse("dashboard:settings"),
                          {"action": "request_upgrade", "organization": self.org.id, "plan": "pro"})
         self.assertEqual(SupportTicket.objects.filter(category="billing").count(), 0)
+
+
+class ProfileAvatarTests(TestCase):
+    def setUp(self):
+        import shutil, tempfile
+        from django.test import override_settings
+        self.tmp = tempfile.mkdtemp()
+        ov = override_settings(MEDIA_ROOT=self.tmp)
+        ov.enable(); self.addCleanup(ov.disable)
+        self.addCleanup(lambda: shutil.rmtree(self.tmp, ignore_errors=True))
+        self.user = User.objects.create_user(email="av@x.com", password="pw12345678", email_verified=True)
+        self.client.force_login(self.user)
+
+    def _png(self):
+        import io
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        buf = io.BytesIO(); Image.new("RGB", (12, 12), "blue").save(buf, "PNG")
+        return SimpleUploadedFile("a.png", buf.getvalue(), content_type="image/png")
+
+    def test_upload_sets_avatar(self):
+        self.client.post(reverse("dashboard:account"), {"action": "avatar", "avatar": self._png()})
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.avatar)
+        self.assertTrue(self.user.avatar_url)
+
+    def test_non_image_is_rejected(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        bad = SimpleUploadedFile("x.txt", b"not an image", content_type="text/plain")
+        self.client.post(reverse("dashboard:account"), {"action": "avatar", "avatar": bad})
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.avatar)
+
+    def test_oversize_is_rejected(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        big = SimpleUploadedFile("big.png", b"x" * (3 * 1024 * 1024 + 1), content_type="image/png")
+        self.client.post(reverse("dashboard:account"), {"action": "avatar", "avatar": big})
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.avatar)
+
+    def test_remove_avatar(self):
+        self.client.post(reverse("dashboard:account"), {"action": "avatar", "avatar": self._png()})
+        self.client.post(reverse("dashboard:account"), {"action": "remove_avatar"})
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.avatar)

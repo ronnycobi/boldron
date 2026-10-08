@@ -76,6 +76,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     language = models.CharField(max_length=16, blank=True)
     timezone = models.CharField(max_length=64, blank=True)
 
+    avatar = models.ImageField(upload_to="avatars/", null=True, blank=True)
+
     objects = UserManager()
 
     USERNAME_FIELD = "email"
@@ -95,6 +97,14 @@ class User(AbstractBaseUser, PermissionsMixin):
     def display_name(self):
         """A friendly name for the UI — the full name if set, else the email."""
         return self.full_name.strip() or self.email
+
+    @property
+    def avatar_url(self):
+        """URL of the uploaded avatar, or '' if none is set."""
+        try:
+            return self.avatar.url if self.avatar else ""
+        except ValueError:
+            return ""
 
     @property
     def initials(self):
