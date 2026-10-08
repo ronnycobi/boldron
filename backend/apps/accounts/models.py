@@ -70,6 +70,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
     date_joined = models.DateTimeField(default=timezone.now)
 
+    # Per-user preferences (declared after date_joined so the field named
+    # `timezone` doesn't shadow the imported module above). Blank falls back to
+    # the platform default; applied by apps.core.middleware.UserLocaleMiddleware.
+    language = models.CharField(max_length=16, blank=True)
+    timezone = models.CharField(max_length=64, blank=True)
+
     objects = UserManager()
 
     USERNAME_FIELD = "email"

@@ -1,34 +1,142 @@
 {% extends "dashboard/base_dash.html" %}
 {% block title %}Settings · {{ app_name }}{% endblock %}
-{% block crumb %}Project / Settings{% endblock %}
+{% block crumb %}Settings{% endblock %}
 {% block content %}
-  <h1>Project settings</h1>
-  <p class="sub">Rename, describe, or delete your projects. Owner/admin only.</p>
+<style>
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:0 0 20px}
+  .tabs a{padding:9px 14px;font-size:13.5px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+  .tabs a.on{color:var(--ink);border-bottom-color:var(--brand,#4f7cff)}
+  .tabs a:hover{color:var(--ink)}
+  .planhead{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px}
+  .plan-chip{font-size:12px;font-weight:800;color:#fff;background:linear-gradient(135deg,#4f7cff,#9b6bff);padding:4px 12px;border-radius:999px}
+  .meter{height:12px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin:8px 0 6px}
+  .meter>i{display:block;height:100%;background:linear-gradient(90deg,#4f7cff,#9b6bff)}
+  .meter.low>i{background:linear-gradient(90deg,#f5c454,#f87171)}
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:14px 0}
+  .kpi{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px}
+  .kpi .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .kpi .v{font-size:20px;font-weight:800;margin-top:2px}
+  .feat{list-style:none;padding:0;margin:8px 0 0;columns:2;font-size:13px;color:var(--ink2)}
+  .feat li{padding:3px 0}.feat li:before{content:"✓ ";color:#34d399;font-weight:800}
+  .upgrade{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:12px}
+  .up{border:1px solid var(--line2);border-radius:14px;padding:16px;background:var(--panel2)}
+  .up h4{margin:0 0 2px;font-size:15px}
+  .settings-form label{display:block;font-size:11.5px;color:var(--muted);margin:12px 0 4px;text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+  .settings-form select,.settings-form input{width:100%;max-width:360px;padding:10px 12px;border:1px solid var(--line2);border-radius:9px;background:var(--panel2);color:var(--ink)}
+</style>
 
-  {% for r in rows %}
-  <div class="card" style="margin-bottom:14px">
-    {% if r.can_manage %}
-    <form method="post" class="inline" style="align-items:flex-end">
-      {% csrf_token %}
-      <input type="hidden" name="action" value="rename">
-      <input type="hidden" name="project" value="{{ r.project.id }}">
-      <div style="flex:2"><label>Name</label><input name="name" value="{{ r.project.name }}" required></div>
-      <div style="flex:3"><label>Description</label><input name="description" value="{{ r.project.description }}" placeholder="optional"></div>
-      <div><button type="submit">Save</button></div>
+<h1>Settings</h1>
+<p class="sub">Plan, usage, preferences, and projects for your workspace.</p>
+
+<div class="tabs">
+  <a href="?tab=plan" class="{% if tab == 'plan' %}on{% endif %}">Plan &amp; billing</a>
+  <a href="?tab=preferences" class="{% if tab == 'preferences' %}on{% endif %}">Preferences</a>
+  <a href="?tab=projects" class="{% if tab == 'projects' %}on{% endif %}">Projects</a>
+</div>
+
+{% if tab == 'preferences' %}
+  <div class="card settings-form" style="max-width:520px">
+    <h2 style="margin-top:0">Preferences</h2>
+    <form method="post">{% csrf_token %}
+      <input type="hidden" name="action" value="save_preferences">
+      <label>Language &amp; regional formatting</label>
+      <select name="language">
+        {% for v, l in languages %}<option value="{{ v }}"{% if v == pref_language %} selected{% endif %}>{{ l }}</option>{% endfor %}
+      </select>
+      <p class="muted" style="font-size:12px;margin:6px 0 0">Sets date, time and number formatting. Interface text is currently English.</p>
+      <label>Time zone</label>
+      <select name="timezone">
+        {% for tz in timezones %}<option value="{{ tz }}"{% if tz == pref_timezone %} selected{% endif %}>{{ tz|default:"Platform default" }}</option>{% endfor %}
+      </select>
+      <p class="muted" style="font-size:12px;margin:6px 0 0">Dates and times across the dashboard show in this zone.</p>
+      <label>Billing currency</label>
+      <input value="{{ currency }}" disabled>
+      <p class="muted" style="font-size:12px;margin:6px 0 0">Set per deployment by your workspace admin.</p>
+      <div style="margin-top:16px"><button class="btn" type="submit">Save preferences</button></div>
     </form>
-    <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center">
-      <span class="muted" style="font-size:12px">{{ r.project.organization.name }} · created {{ r.project.created_at|date:"M j, Y" }}</span>
-      <form method="post" onsubmit="return confirm('Delete “{{ r.project.name }}” and its workspace? This cannot be undone.')">
-        {% csrf_token %}<input type="hidden" name="action" value="delete"><input type="hidden" name="project" value="{{ r.project.id }}">
-        <button class="ghost" type="submit" style="color:var(--fail);border-color:rgba(248,113,113,.4)">Delete project</button>
-      </form>
+  </div>
+
+{% elif tab == 'projects' %}
+  <div class="card">
+    <h2 style="margin-top:0">Projects</h2>
+    {% for r in rows %}
+    <div style="padding:12px 0;border-bottom:1px solid var(--line)">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <div><strong>{{ r.project.name }}</strong> <span class="muted" style="font-size:12px">· {{ r.project.organization.name }}</span></div>
+        {% if r.can_manage %}
+        <form method="post" onsubmit="return confirm('Delete {{ r.project.name|escapejs }}? This cannot be undone.')" style="margin:0">{% csrf_token %}
+          <input type="hidden" name="action" value="delete"><input type="hidden" name="project" value="{{ r.project.id }}">
+          <button class="ghost" style="padding:4px 10px;font-size:12px;color:#f87171">Delete</button>
+        </form>{% endif %}
+      </div>
+      {% if r.can_manage %}
+      <form method="post" class="inline" style="margin-top:8px;gap:8px">{% csrf_token %}
+        <input type="hidden" name="action" value="rename"><input type="hidden" name="project" value="{{ r.project.id }}">
+        <div style="flex:1"><input name="name" value="{{ r.project.name }}"></div>
+        <div style="flex:2"><input name="description" value="{{ r.project.description }}" placeholder="Short description"></div>
+        <div><button class="ghost" type="submit">Save</button></div>
+      </form>{% endif %}
     </div>
-    {% else %}
-    <span style="font-weight:700">{{ r.project.name }}</span>
-    <span class="muted" style="font-size:12px"> · {{ r.project.organization.name }} · view only</span>
+    {% empty %}<p class="empty">No projects yet.</p>{% endfor %}
+  </div>
+
+{% else %}
+  {% for c in plan_cards %}
+  <div class="card" style="margin-bottom:16px">
+    <div class="planhead">
+      <div><h2 style="margin:0">{{ c.org.name }}</h2>
+        <span class="muted" style="font-size:12.5px">AI credits &amp; billing</span></div>
+      <span class="plan-chip">{{ c.plan_label }} · {{ c.price }}</span>
+    </div>
+
+    <div style="margin-top:14px">
+      <div style="display:flex;justify-content:space-between;font-size:13px">
+        <span class="muted">AI credit balance</span>
+        <span><strong>{{ c.balance|floatformat:0 }}</strong> / {{ c.allowance|floatformat:0 }} credits · {{ c.remaining_pct }}% left</span>
+      </div>
+      <div class="meter {% if c.low %}low{% endif %}"><i style="width:{{ c.remaining_pct }}%"></i></div>
+      {% if c.low %}<p class="muted" style="color:#f5c454;font-size:12.5px;margin:2px 0 0">Running low — upgrade for more monthly credits.</p>{% endif %}
+    </div>
+
+    <div class="kpis">
+      <div class="kpi"><div class="k">Spend this month</div><div class="v">{{ currency }} {{ c.month_spend|floatformat:2 }}</div></div>
+      <div class="kpi"><div class="k">Credits used</div><div class="v">{{ c.month_credits|floatformat:0 }}</div></div>
+      <div class="kpi"><div class="k">Tokens</div><div class="v">{{ c.month_tokens }}</div></div>
+    </div>
+    <p class="muted" style="font-size:12.5px;margin:0">
+      {% if c.daily_cap %}Daily budget cap: {{ currency }} {{ c.daily_cap }} · {% endif %}
+      <a href="{% url 'dashboard:usage' %}">View full usage &amp; statements →</a>
+    </p>
+
+    <div style="margin-top:16px">
+      <div style="font-weight:700;font-size:13px;margin-bottom:4px">What's included</div>
+      <ul class="feat">{% for f in c.features %}<li>{{ f }}</li>{% endfor %}</ul>
+    </div>
+
+    {% if c.upgrades and c.can_manage %}
+    <div style="margin-top:18px">
+      <div style="font-weight:700;font-size:13px">Upgrade</div>
+      <p class="muted" style="font-size:12.5px;margin:2px 0 0">Need more? Request an upgrade and our team sets it up. <a href="/pricing/" target="_blank">Compare plans →</a></p>
+      <div class="upgrade">
+        {% for u in c.upgrades %}
+        <div class="up">
+          <h4>{{ u.label }}</h4>
+          <div class="muted" style="font-size:13px">{{ u.price }}</div>
+          <ul class="feat" style="columns:1;margin-top:8px">{% for f in u.features %}<li>{{ f }}</li>{% endfor %}</ul>
+          <form method="post" style="margin-top:10px">{% csrf_token %}
+            <input type="hidden" name="action" value="request_upgrade">
+            <input type="hidden" name="organization" value="{{ c.org.id }}">
+            <input type="hidden" name="plan" value="{{ u.plan }}">
+            <button class="btn" style="width:100%" type="submit">
+              {% if u.plan == 'enterprise' %}Contact sales{% else %}Request {{ u.label }}{% endif %}
+            </button>
+          </form>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
     {% endif %}
   </div>
-  {% empty %}
-  <div class="card"><p class="empty">No projects yet.</p></div>
-  {% endfor %}
+  {% empty %}<p class="empty">No workspace yet.</p>{% endfor %}
+{% endif %}
 {% endblock %}

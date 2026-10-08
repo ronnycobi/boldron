@@ -583,3 +583,51 @@ class EmailVerificationTests(TestCase):
         self.client.post(reverse("dashboard:resend_verification"))
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn("unv@x.com", mail.outbox[0].to)
+
+
+class SettingsHubTests(TestCase):
+    def setUp(self):
+        from apps.credits.services import ensure_account
+        self.owner = User.objects.create_user(email="so@x.com", password="pw12345678", email_verified=True)
+        self.org = Organization.objects.create(name="Acme")
+        self.org.add_member(self.owner, role=Role.OWNER)
+        ensure_account(self.org, plan="free")  # grants the free allowance (1000)
+        self.client.force_login(self.owner)
+
+    def test_plan_tab_shows_plan_credits_and_features(self):
+        r = self.client.get(reverse("dashboard:settings"))
+        self.assertContains(r, "AI credit balance")
+        self.assertContains(r, "What's included")
+        self.assertContains(r, "1000")                 # free allowance
+        self.assertContains(r, "Request")              # an upgrade CTA
+
+    def test_save_preferences_persists(self):
+        self.client.post(reverse("dashboard:settings"),
+                         {"action": "save_preferences", "language": "fr", "timezone": "Europe/London"})
+        self.owner.refresh_from_db()
+        self.assertEqual(self.owner.language, "fr")
+        self.assertEqual(self.owner.timezone, "Europe/London")
+
+    def test_invalid_preferences_are_ignored(self):
+        self.client.post(reverse("dashboard:settings"),
+                         {"action": "save_preferences", "language": "zz-hack", "timezone": "Mars/Base"})
+        self.owner.refresh_from_db()
+        self.assertEqual(self.owner.language, "")
+        self.assertEqual(self.owner.timezone, "")
+
+    def test_request_upgrade_creates_a_billing_ticket(self):
+        from apps.support.models import SupportTicket
+        self.client.post(reverse("dashboard:settings"),
+                         {"action": "request_upgrade", "organization": self.org.id, "plan": "pro"})
+        t = SupportTicket.objects.filter(organization=self.org, category="billing").first()
+        self.assertIsNotNone(t)
+        self.assertIn("Builder", t.subject)
+
+    def test_member_cannot_request_upgrade(self):
+        from apps.support.models import SupportTicket
+        member = User.objects.create_user(email="sm@x.com", password="pw12345678", email_verified=True)
+        self.org.add_member(member, role=Role.MEMBER)
+        self.client.force_login(member)
+        self.client.post(reverse("dashboard:settings"),
+                         {"action": "request_upgrade", "organization": self.org.id, "plan": "pro"})
+        self.assertEqual(SupportTicket.objects.filter(category="billing").count(), 0)

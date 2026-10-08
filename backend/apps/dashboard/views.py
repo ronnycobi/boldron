@@ -1682,17 +1682,79 @@ def resend_verification(request):
     return redirect("dashboard:home")
 
 
+# Plan presentation (the credit plans are free/pro/business; "enterprise" is
+# contact-sales). Prices/features mirror the public pricing — honest, no fakery.
+_PLAN_ORDER = ["free", "pro", "business", "enterprise"]
+_PLAN_LABEL = {"free": "Free", "pro": "Builder", "business": "Business", "enterprise": "Enterprise"}
+_PLAN_PRICE = {"free": "$0", "pro": "$29/mo", "business": "$99/mo", "enterprise": "Custom"}
+_PLAN_FEATURES = {
+    "free": ["Build websites & web apps", "Live preview", "Export your code anytime",
+             "1 published project", "Community support"],
+    "pro": ["Everything in Free", "5× the monthly AI credits", "Deploy to dev & staging",
+            "Git integration", "Custom domains", "Email support"],
+    "business": ["Everything in Builder", "Team collaboration & roles",
+                 "Mobile app-store releases", "Monitoring & audit logs", "Priority support"],
+    "enterprise": ["Everything in Business", "SSO & advanced controls",
+                   "Private deployments", "Dedicated support & SLA"],
+}
+_LANGUAGES = [("", "English (default)"), ("en-us", "English (US)"), ("en-gb", "English (UK)"),
+              ("es", "Español"), ("fr", "Français"), ("de", "Deutsch"), ("pt", "Português"),
+              ("af", "Afrikaans"), ("ar", "العربية")]
+_TIMEZONES = ["", "UTC", "Africa/Johannesburg", "Europe/London", "Europe/Berlin",
+              "America/New_York", "America/Chicago", "America/Los_Angeles",
+              "Asia/Dubai", "Asia/Kolkata", "Asia/Singapore", "Australia/Sydney"]
+
+
 @login_required
 def settings_page(request):
-    """Project settings: rename / describe / delete (owner/admin)."""
+    """Settings hub: plan & billing, usage summary, preferences, and projects."""
+    from decimal import Decimal
+
+    from django.db.models import Sum
+    from django.utils import timezone as tz
+
+    from apps.credits.models import CreditAccount, UsageRecord
+    from apps.credits.services import daily_usd_cap, plans
+
     orgs = list(organizations_for(request.user))
     manageable = _manageable_ids(request.user)
+    tab = request.GET.get("tab", "plan")
+
     if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "save_preferences":
+            u = request.user
+            lang = (request.POST.get("language") or "").strip()[:16]
+            u.language = lang if lang in dict(_LANGUAGES) else ""
+            tzname = (request.POST.get("timezone") or "").strip()[:64]
+            u.timezone = tzname if tzname in _TIMEZONES else ""
+            u.save(update_fields=["language", "timezone"])
+            messages.success(request, "Preferences saved.")
+            return redirect(f"{reverse('dashboard:settings')}?tab=preferences")
+
+        if action == "request_upgrade":
+            org = get_object_or_404(Organization, pk=request.POST.get("organization", 0),
+                                    memberships__user=request.user)
+            if org.id not in manageable:
+                messages.error(request, "Owner or admin rights required.")
+                return redirect(f"{reverse('dashboard:settings')}?tab=plan")
+            target = request.POST.get("plan", "")
+            label = _PLAN_LABEL.get(target, target)
+            from apps.support.service import create_ticket
+            t = create_ticket(
+                organization=org, user=request.user, category="billing", priority="normal",
+                subject=f"Upgrade request — {label} plan",
+                body=f"{request.user.email} requested upgrading “{org.name}” to the {label} plan.",
+            )
+            messages.success(request, f"Upgrade request sent ({t.number}). Our team will follow "
+                                      "up — you can track it under Help & Support.")
+            return redirect(f"{reverse('dashboard:settings')}?tab=plan")
+
+        # Project rename / delete (owner/admin).
         proj = get_object_or_404(Project, pk=request.POST.get("project", 0), organization__in=orgs)
         if proj.organization_id not in manageable:
             messages.error(request, "Owner or admin rights required.")
-            return redirect("dashboard:settings")
-        action = request.POST.get("action")
+            return redirect(f"{reverse('dashboard:settings')}?tab=projects")
         if action == "rename":
             name = (request.POST.get("name") or "").strip()
             if name:
@@ -1703,12 +1765,45 @@ def settings_page(request):
         elif action == "delete":
             proj.delete()
             messages.success(request, "Project deleted.")
-        return redirect("dashboard:settings")
+        return redirect(f"{reverse('dashboard:settings')}?tab=projects")
+
+    # --- plan & billing cards (one per org) ---
+    month_start = tz.localtime().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    accounts = {a.organization_id: a for a in CreditAccount.objects.filter(organization__in=orgs)}
+    plan_cards = []
+    for o in orgs:
+        acct = accounts.get(o.id)
+        plan = acct.plan if acct else "free"
+        allowance = Decimal(str(plans().get(plan, 0)))
+        balance = acct.balance if acct else Decimal("0")
+        remaining_pct = int(min(balance, allowance) / allowance * 100) if allowance else 0
+        month = UsageRecord.objects.filter(organization=o, created_at__gte=month_start).aggregate(
+            spend=Sum("cost_usd"), credits=Sum("credits_charged"), tokens=Sum("total_tokens"))
+        upgrades = [p for p in _PLAN_ORDER[_PLAN_ORDER.index(plan) + 1:]] if plan in _PLAN_ORDER else []
+        plan_cards.append({
+            "org": o, "can_manage": o.id in manageable, "plan": plan,
+            "plan_label": _PLAN_LABEL.get(plan, plan.title()), "price": _PLAN_PRICE.get(plan, ""),
+            "features": _PLAN_FEATURES.get(plan, []), "allowance": allowance, "balance": balance,
+            "remaining_pct": remaining_pct,
+            "low": remaining_pct < 15,
+            "daily_cap": daily_usd_cap(acct) if acct else None,
+            "month_spend": month["spend"] or Decimal("0"),
+            "month_credits": month["credits"] or Decimal("0"),
+            "month_tokens": month["tokens"] or 0,
+            "upgrades": [{"plan": p, "label": _PLAN_LABEL[p], "price": _PLAN_PRICE[p],
+                          "features": _PLAN_FEATURES[p]} for p in upgrades],
+        })
+
     rows = [
         {"project": p, "can_manage": p.organization_id in manageable}
         for p in Project.objects.filter(organization__in=orgs).select_related("organization")
     ]
-    return render(request, "dashboard/settings.html", {"active": "settings", "rows": rows})
+    return render(request, "dashboard/settings.html", {
+        "active": "settings", "tab": tab, "plan_cards": plan_cards, "rows": rows,
+        "languages": _LANGUAGES, "timezones": _TIMEZONES,
+        "currency": getattr(settings, "APP_DEFAULT_CURRENCY", "USD"),
+        "pref_language": request.user.language, "pref_timezone": request.user.timezone,
+    })
 
 
 _OPS = {
