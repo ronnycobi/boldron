@@ -52,6 +52,28 @@
       backdrop-filter:blur(10px);z-index:5}
     .topbar .crumb{color:var(--muted);font-size:13px}
     .topbar .who{display:flex;align-items:center;gap:14px;font-size:13px;color:var(--ink2)}
+    /* profile menu */
+    .profile{position:relative}
+    .profile-btn{display:flex;align-items:center;gap:10px;background:transparent;border:1px solid var(--line2);
+      border-radius:999px;padding:5px 12px 5px 5px;cursor:pointer;color:var(--ink)}
+    .profile-btn:hover{border-color:var(--brand,#4f7cff)}
+    .avatar{width:30px;height:30px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
+      font-size:12px;font-weight:800;color:#fff;background:linear-gradient(135deg,#4f7cff,#9b6bff)}
+    .profile-btn .pname{font-size:13px;font-weight:700;color:var(--ink);max-width:160px;overflow:hidden;
+      text-overflow:ellipsis;white-space:nowrap}
+    .profile-btn .caret{color:var(--muted);font-size:10px}
+    @media(max-width:640px){.profile-btn .pname{display:none}}
+    .pmenu{position:absolute;right:0;top:46px;min-width:230px;background:var(--panel,#101a30);
+      border:1px solid var(--line2);border-radius:12px;box-shadow:0 20px 50px rgba(0,0,0,.5);padding:8px;z-index:40}
+    .pmenu .phead{padding:8px 10px 10px;border-bottom:1px solid var(--line);margin-bottom:6px}
+    .pmenu .phead .n{font-weight:700;color:var(--ink);font-size:13.5px;word-break:break-word}
+    .pmenu .phead .e{color:var(--muted);font-size:12px;word-break:break-word}
+    .pmenu .phead .role{display:inline-block;margin-top:6px;font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;
+      color:var(--brand,#4f7cff);border:1px solid var(--line2);border-radius:99px;padding:1px 8px}
+    .pmenu a,.pmenu button{display:block;width:100%;text-align:left;background:none;border:0;color:var(--ink2);
+      font-size:13px;padding:8px 10px;border-radius:8px;cursor:pointer}
+    .pmenu a:hover,.pmenu button:hover{background:var(--panel2,#0c1424);color:var(--ink)}
+    .pmenu .sep{height:1px;background:var(--line);margin:6px 0}
     .content{padding:26px 28px;max-width:1180px;width:100%}
 
     h1{font-size:24px;margin:0 0 4px;letter-spacing:-.02em}
@@ -124,13 +146,40 @@
     <div class="topbar">
       <div class="crumb">{% block crumb %}{% endblock %}</div>
       <div class="who">
-        <a href="{% url 'dashboard:account' %}" title="Account &amp; security">{{ request.user.email }}</a>
-        {% if request.user.is_staff %}<a href="/staff/" class="muted">Control Center</a>
-        <a href="/admin/" class="muted">Admin</a>{% endif %}
-        <form action="{% url 'dashboard:logout' %}" method="post" style="display:inline">
-          {% csrf_token %}<button class="ghost" style="padding:5px 11px;font-size:12px">Log out</button>
-        </form>
+        <div class="profile" id="profile">
+          <button class="profile-btn" type="button" aria-haspopup="true" aria-expanded="false"
+                  onclick="var m=document.getElementById('pmenu');var o=m.hidden;m.hidden=!o;this.setAttribute('aria-expanded',o)">
+            <span class="avatar">{{ request.user.initials }}</span>
+            <span class="pname">{{ request.user.display_name }}</span>
+            <span class="caret">▾</span>
+          </button>
+          <div class="pmenu" id="pmenu" hidden>
+            <div class="phead">
+              <div class="n">{{ request.user.display_name }}</div>
+              <div class="e">{{ request.user.email }}</div>
+              {% if request.user.is_staff %}<span class="role">Staff</span>{% endif %}
+              {% if not request.user.email_verified %}<span class="role" style="color:#f5c454;border-color:rgba(245,196,84,.4)">Unverified</span>{% endif %}
+            </div>
+            <a href="{% url 'dashboard:account' %}">Account &amp; security</a>
+            <a href="{% url 'dashboard:people' %}">Team</a>
+            {% if request.user.is_staff %}<div class="sep"></div>
+            <a href="/staff/">Control Center</a>
+            <a href="/admin/">Django admin</a>{% endif %}
+            <div class="sep"></div>
+            <form action="{% url 'dashboard:logout' %}" method="post">{% csrf_token %}
+              <button type="submit">Log out</button>
+            </form>
+          </div>
+        </div>
       </div>
+      <script>
+        document.addEventListener('click', function(e){
+          var p = document.getElementById('profile'), m = document.getElementById('pmenu');
+          if (p && m && !m.hidden && !p.contains(e.target)) {
+            m.hidden = true; p.querySelector('.profile-btn').setAttribute('aria-expanded','false');
+          }
+        });
+      </script>
     </div>
     <div class="content">
       {% if request.user.is_authenticated and not request.user.email_verified %}

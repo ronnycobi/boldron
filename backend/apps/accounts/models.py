@@ -84,3 +84,19 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def short_name(self):
         return self.full_name.split(" ")[0] if self.full_name else self.email
+
+    @property
+    def display_name(self):
+        """A friendly name for the UI — the full name if set, else the email."""
+        return self.full_name.strip() or self.email
+
+    @property
+    def initials(self):
+        """Up to two uppercase initials for an avatar, from the name or email."""
+        name = (self.full_name or "").strip()
+        if name:
+            parts = name.split()
+            if len(parts) >= 2:
+                return (parts[0][0] + parts[-1][0]).upper()
+            return parts[0][:2].upper()
+        return (self.email or "?")[:2].upper()
