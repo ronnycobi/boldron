@@ -1,0 +1,30 @@
+<script>
+/* Show/hide toggle for every password field on the page. No dependencies. */
+(function () {
+  document.querySelectorAll('input[type="password"]').forEach(function (inp) {
+    if (inp.dataset.pwToggle) return;
+    inp.dataset.pwToggle = "1";
+    var wrap = document.createElement("span");
+    wrap.style.cssText = "position:relative;display:block";
+    inp.parentNode.insertBefore(wrap, inp);
+    wrap.appendChild(inp);
+    inp.style.paddingRight = "56px";
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = "Show";
+    btn.setAttribute("aria-label", "Show password");
+    btn.style.cssText =
+      "position:absolute;right:8px;top:50%;transform:translateY(-50%);" +
+      "background:none;border:0;color:#8a93ad;font:600 12px/1 inherit;" +
+      "cursor:pointer;padding:4px 6px;width:auto;margin:0;box-shadow:none";
+    btn.addEventListener("click", function () {
+      var hidden = inp.type === "password";
+      inp.type = hidden ? "text" : "password";
+      btn.textContent = hidden ? "Hide" : "Show";
+      btn.setAttribute("aria-label", (hidden ? "Hide" : "Show") + " password");
+      inp.focus();
+    });
+    wrap.appendChild(btn);
+  });
+})();
+</script>
