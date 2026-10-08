@@ -119,13 +119,47 @@ def _default_stack() -> dict:
     return {"backend": "django", "database": "sqlite"}
 
 
+_NAME_ACRONYMS = {
+    "crm": "CRM", "erp": "ERP", "hr": "HR", "api": "API", "saas": "SaaS",
+    "ui": "UI", "ux": "UX", "ai": "AI", "pos": "POS", "cms": "CMS", "seo": "SEO",
+    "b2b": "B2B", "b2c": "B2C", "mvp": "MVP",
+    "ecommerce": "E-commerce", "e-commerce": "E-commerce",
+}
+_NAME_SMALL = {"a", "an", "the", "for", "and", "or", "of", "to", "with", "in", "on", "by"}
+
+
 def _name_from_brief(brief: str) -> str:
+    """Turn a plain-language brief into a clean, readable project title, e.g.
+    'Build an online shopping website for my store with …' -> 'Online Shopping Website'."""
     import re
-    text = re.sub(r"^\s*(please\s+)?(build|create|make|develop|design)\s+(me\s+)?(a|an|the)?\s*",
-                  "", brief.strip(), flags=re.I)
-    words = text.split()
-    name = " ".join(words[:6]).rstrip(".,").strip()
-    return (name[:60] or "New project").title()
+
+    # Drop the leading request verb + article (article is optional; an explicit
+    # \s+ after it stops 'a' from matching inside 'an').
+    text = re.sub(
+        r"^\s*(?:please\s+)?(?:build|create|make|develop|design|generate|set\s+up)\s+"
+        r"(?:me\s+)?(?:(?:a|an|the)\s+)?",
+        "", brief.strip(), flags=re.I,
+    )
+    # Drop trailing feature clauses and owner clauses ('… for my shop', '… with …').
+    text = re.sub(r"\s+(?:with|that|which|where|including|featuring|so)\b.*$", "", text, flags=re.I)
+    text = re.sub(r"\s+for\s+(?:my|our|a|an|the)\b.*$", "", text, flags=re.I)
+    text = (text.split(",")[0].splitlines() or [""])[0]  # stop at first list item / line break
+
+    words = text.strip(" .,-").split()[:6]
+    if not words:
+        return "New project"
+    out = []
+    for i, w in enumerate(words):
+        lw = w.lower().strip(".,")
+        if lw in _NAME_ACRONYMS:
+            out.append(_NAME_ACRONYMS[lw])
+        elif i and lw in _NAME_SMALL:
+            out.append(lw)                       # keep small words lowercase mid-title
+        elif w.isupper():
+            out.append(w)                        # preserve existing acronyms (REST, API)
+        else:
+            out.append(w[:1].upper() + w[1:])    # capitalize, keep the rest as typed
+    return (" ".join(out)[:60].strip(" -") or "New project")
 
 
 def _start_build(project, brief, user):

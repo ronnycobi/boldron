@@ -687,3 +687,24 @@ class ProfileAvatarTests(TestCase):
         self.client.post(reverse("dashboard:account"), {"action": "remove_avatar"})
         self.user.refresh_from_db()
         self.assertFalse(self.user.avatar)
+
+
+class NameFromBriefTests(TestCase):
+    def test_produces_clean_readable_titles(self):
+        from apps.dashboard.views import _name_from_brief
+        cases = {
+            "Build an online shopping website for my clothing store with cart": "Online Shopping Website",
+            "Build a CRM for my sales team with leads and deals": "CRM",
+            "Build an online store with a product catalog and checkout": "Online Store",
+            "Create a booking system for my salon.": "Booking System",
+            "Build a SaaS platform where teams sign up and pay": "SaaS Platform",
+            "build ecommerce site": "E-commerce Site",
+            "": "New project",
+        }
+        for brief, expected in cases.items():
+            self.assertEqual(_name_from_brief(brief), expected, brief)
+
+    def test_article_an_is_not_mangled(self):
+        # Regression: 'Build an X' must not leave a stray leading 'n'.
+        from apps.dashboard.views import _name_from_brief
+        self.assertFalse(_name_from_brief("Build an app for notes").lower().startswith("n "))
