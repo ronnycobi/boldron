@@ -1,0 +1,20 @@
+{% extends "dashboard/auth_base.html" %}
+{% block title %}Email verification · {{ app_name }}{% endblock %}
+{% block auth %}
+  {% if ok %}
+    <h1 class="title">Email verified</h1>
+    <div class="ok">Thanks — your email address is confirmed and your account is fully unlocked.</div>
+    {% if request.user.is_authenticated %}
+      <form method="get" action="{% url 'dashboard:home' %}"><button type="submit">Go to your workspace →</button></form>
+    {% else %}
+      <form method="get" action="{% url 'dashboard:login' %}"><button type="submit">Sign in →</button></form>
+    {% endif %}
+  {% else %}
+    <h1 class="title">Link {{ reason|default:"invalid" }}</h1>
+    <div class="err">
+      {% if reason == "expired" %}This verification link has expired.{% else %}This verification link is invalid or has already been used.{% endif %}
+      Sign in and use the “Resend email” button to get a fresh one.
+    </div>
+    <p class="foot"><a href="{% url 'dashboard:login' %}">Go to sign in</a></p>
+  {% endif %}
+{% endblock %}

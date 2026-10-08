@@ -57,6 +57,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
     full_name = models.CharField(max_length=255, blank=True)
 
+    # Email ownership: new self-serve sign-ups must confirm their address before
+    # full access. Existing accounts are grandfathered verified in the migration,
+    # and accepting an invitation (sent to that address) also proves ownership.
+    email_verified = models.BooleanField(default=False)
+    email_verified_at = models.DateTimeField(null=True, blank=True)
+
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(
         default=False,

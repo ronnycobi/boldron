@@ -133,6 +133,14 @@
       </div>
     </div>
     <div class="content">
+      {% if request.user.is_authenticated and not request.user.email_verified %}
+      <div class="msg" style="background:rgba(245,196,84,.12);border:1px solid rgba(245,196,84,.35);color:#f5c454;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+        <span>Verify your email (<strong>{{ request.user.email }}</strong>) to unlock building. Check your inbox for the link.</span>
+        <form method="post" action="{% url 'dashboard:resend_verification' %}" style="margin:0">{% csrf_token %}
+          <button class="ghost" style="padding:5px 12px;font-size:12px">Resend email</button>
+        </form>
+      </div>
+      {% endif %}
       {% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}
       {% block content %}{% endblock %}
     </div>

@@ -51,3 +51,25 @@ def send_invitation_email(invitation, accept_url: str) -> int:
         "this email.</p>"
     )
     return send_email(subject=subject, to=invitation.email, text=text, html=html)
+
+
+def send_verification_email(user, verify_url: str) -> int:
+    """Email a new user a link to confirm they own their address."""
+    brand = settings.APP_NAME
+    subject = f"Confirm your email for {brand}"
+    text = (
+        f"Welcome to {brand}! Confirm this email address to unlock your account:\n\n"
+        f"{verify_url}\n\n"
+        "The link expires in a few days. If you didn't create this account, you "
+        "can safely ignore this email."
+    )
+    html = (
+        f"<p>Welcome to <strong>{brand}</strong>! Confirm this email address to "
+        "unlock your account.</p>"
+        f'<p><a href="{verify_url}" style="display:inline-block;background:#4f7cff;'
+        'color:#fff;text-decoration:none;font-weight:700;padding:11px 18px;'
+        'border-radius:10px">Verify my email</a></p>'
+        "<p style=\"color:#667\">The link expires in a few days. If you didn't "
+        "create this account, you can safely ignore this email.</p>"
+    )
+    return send_email(subject=subject, to=user.email, text=text, html=html)

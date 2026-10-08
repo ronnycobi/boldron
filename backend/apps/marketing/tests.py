@@ -163,3 +163,17 @@ class SignupThrottleTests(TestCase):
         r = self.client.post(reverse("marketing:signup"),
                              {"email": "a@x.com", "password1": "x", "password2": "y"})
         self.assertContains(r, "Too many attempts")
+
+
+class SignupVerificationEmailTests(TestCase):
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear(); self.addCleanup(cache.clear)
+
+    def test_signup_sends_a_verification_email(self):
+        from django.core import mail
+        self.client.post(reverse("marketing:signup"),
+                         {"email": "verifyme@x.com", "password1": "supersecret1",
+                          "password2": "supersecret1"})
+        self.assertTrue(any("verifyme@x.com" in m.to for m in mail.outbox))
+        self.assertFalse(User.objects.get(email="verifyme@x.com").email_verified)

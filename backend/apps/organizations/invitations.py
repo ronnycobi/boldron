@@ -75,6 +75,9 @@ def accept_invitation(token: str, user) -> Membership:
     inv.status = InvitationStatus.ACCEPTED
     inv.accepted_at = timezone.now()
     inv.save(update_fields=["status", "accepted_at"])
+    # Accepting an invite sent to this address proves the user owns it.
+    from apps.accounts.verification import mark_verified
+    mark_verified(user)
     from apps.audit.service import record
     record("member.joined", actor=user, organization=inv.organization,
            target=f"user:{user.id}", summary=f"{user.email} joined as {inv.role}")

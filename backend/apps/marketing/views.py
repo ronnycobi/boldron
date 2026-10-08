@@ -239,6 +239,8 @@ def signup(request):
         org.add_member(user, role=Role.OWNER)
         ensure_account(org, plan="free")  # start with free-tier credits
         login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+        from apps.accounts import verification
+        verification.send_verification(request, user)  # confirm the address
         if idea:
             request.session["build_idea"] = idea[:2000]  # carried into the builder
         return redirect("dashboard:home")

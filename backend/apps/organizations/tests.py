@@ -199,3 +199,16 @@ class MemberManagementTests(TestCase):
         invites.revoke_invitation(inv)
         with self.assertRaises(invites.InvitationError):
             invites.resend_invitation(inv)
+
+
+class InviteVerifiesEmailTests(TestCase):
+    def test_accepting_an_invitation_verifies_the_email(self):
+        from apps.organizations import invitations as invites
+        owner = User.objects.create_user(email="ivowner@x.com", password="x")
+        org = Organization.objects.create(name="Acme", created_by=owner)
+        invitee = User.objects.create_user(email="invitee@x.com", password="x")  # unverified
+        self.assertFalse(invitee.email_verified)
+        inv = invites.create_invitation(org, "invitee@x.com", role=Role.MEMBER, invited_by=owner)
+        invites.accept_invitation(inv.token, invitee)
+        invitee.refresh_from_db()
+        self.assertTrue(invitee.email_verified)

@@ -234,6 +234,10 @@ def overview(request):
     manageable = _manageable_ids(user)
 
     if request.method == "POST" and request.POST.get("action") == "build":
+        if not request.user.email_verified:
+            messages.warning(request, "Please verify your email to start building — "
+                                      "check your inbox, or use Resend in the banner above.")
+            return redirect("dashboard:home")
         brief = (request.POST.get("brief") or "").strip()
         if not brief:
             messages.error(request, f"Tell {settings.APP_NAME} what you want to build.")
@@ -1655,6 +1659,27 @@ def account(request):
             return redirect("dashboard:account")
 
     return render(request, "dashboard/account.html", {"active": "account", "pwd_form": pwd_form})
+
+
+def verify_email(request, token):
+    """Confirm an email from a signed link (public — the user may be logged out)."""
+    from apps.accounts import verification
+    user, reason = verification.verify(token)
+    if user:
+        verification.mark_verified(user)
+        return render(request, "dashboard/verify_email.html", {"ok": True})
+    return render(request, "dashboard/verify_email.html", {"ok": False, "reason": reason})
+
+
+@login_required
+def resend_verification(request):
+    from apps.accounts import verification
+    if request.user.email_verified:
+        messages.info(request, "Your email is already verified.")
+    elif request.method == "POST":
+        verification.send_verification(request, request.user)
+        messages.success(request, "Verification email sent — check your inbox.")
+    return redirect("dashboard:home")
 
 
 @login_required

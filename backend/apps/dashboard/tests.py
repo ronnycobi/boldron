@@ -330,7 +330,8 @@ class MachineryLeakGuardTests(TestCase):
 
 class BuilderHomeTests(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(email="b@x.com", password="pw12345!")
+        self.user = User.objects.create_user(email="b@x.com", password="pw12345!",
+                                              email_verified=True)
         self.org = Organization.objects.create(name="Acme")
         self.org.add_member(self.user, role=Role.OWNER)
         self.client.force_login(self.user)
@@ -533,3 +534,52 @@ class PasswordResetThrottleTests(TestCase):
             self.client.post(reverse("dashboard:password_reset"), {"email": "spam@x.com"})
         r = self.client.post(reverse("dashboard:password_reset"), {"email": "spam@x.com"})
         self.assertContains(r, "Too many attempts")
+
+
+class EmailVerificationTests(TestCase):
+    def setUp(self):
+        # New accounts start unverified.
+        self.user = User.objects.create_user(email="unv@x.com", password="pw12345678")
+        self.org = Organization.objects.create(name="Acme")
+        self.org.add_member(self.user, role=Role.OWNER)
+
+    def test_unverified_user_cannot_build(self):
+        self.client.force_login(self.user)
+        r = self.client.post(reverse("dashboard:home"),
+                             {"action": "build", "brief": "Build a CRM"}, follow=True)
+        self.assertContains(r, "verify your email")
+        self.assertEqual(Project.objects.count(), 0)
+
+    def test_dashboard_shows_banner_until_verified(self):
+        from apps.accounts import verification
+        self.client.force_login(self.user)
+        self.assertContains(self.client.get(reverse("dashboard:home")), "Verify your email")
+        verification.mark_verified(self.user)
+        self.assertNotContains(self.client.get(reverse("dashboard:home")), "Verify your email")
+
+    def test_verify_link_marks_verified(self):
+        from apps.accounts import verification
+        token = verification.make_token(self.user)
+        r = self.client.get(reverse("dashboard:verify_email", args=[token]))
+        self.assertContains(r, "Email verified")
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.email_verified)
+
+    def test_invalid_token_is_rejected(self):
+        r = self.client.get(reverse("dashboard:verify_email", args=["not-a-real-token"]))
+        self.assertContains(r, "invalid")
+        self.assertFalse(User.objects.get(pk=self.user.pk).email_verified)
+
+    def test_token_bound_to_email_breaks_if_email_changes(self):
+        from apps.accounts import verification
+        token = verification.make_token(self.user)
+        self.user.email = "moved@x.com"
+        self.user.save(update_fields=["email"])
+        user, reason = verification.verify(token)
+        self.assertIsNone(user)
+
+    def test_resend_sends_an_email(self):
+        self.client.force_login(self.user)
+        self.client.post(reverse("dashboard:resend_verification"))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("unv@x.com", mail.outbox[0].to)
