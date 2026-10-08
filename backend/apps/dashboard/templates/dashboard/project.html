@@ -14,6 +14,20 @@
   <p class="sub">{{ project.organization.name }} · {{ project.get_mode_display }}
     {% if project.description %}<br>{{ project.description }}{% endif %}</p>
 
+  {% if state == "Building" %}
+  <div class="card" style="border-color:rgba(96,165,250,.45);background:linear-gradient(180deg,rgba(96,165,250,.09),transparent);margin-bottom:12px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="width:10px;height:10px;border-radius:99px;background:#60a5fa;box-shadow:0 0 12px #60a5fa;animation:pulse 1.2s infinite"></span>
+      <strong>Building your app…</strong>
+      <span class="muted" style="margin-left:auto;font-variant-numeric:tabular-nums">{{ progress }}%</span>
+    </div>
+    <div class="bar" style="margin-top:10px"><i style="width:{{ progress }}%"></i></div>
+    <p class="muted" style="font-size:12.5px;margin:8px 0 0">{{ app_name }} is designing and generating your app. This page refreshes automatically — you can keep it open.</p>
+  </div>
+  <style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}</style>
+  <script>setTimeout(function(){ location.reload(); }, 4000);</script>
+  {% endif %}
+
   {% if capabilities %}
   <div class="card" style="margin-bottom:4px">
     <h2 style="margin-top:0">Built-in capabilities</h2>
@@ -26,48 +40,44 @@
   </div>
   {% endif %}
 
-  <div class="row">
-    <div class="card" style="grid-column:auto">
-      <h2 style="margin-top:0">Technology stack</h2>
-      {% if can_manage %}
-      <form method="post">
-        {% csrf_token %}<input type="hidden" name="action" value="select_stack">
-        {% for r in stack_roles %}
-          <label>{{ r.role }}</label>
-          <select name="{{ r.role }}">
-            <option value="">— none —</option>
-            {% for opt in r.options %}<option value="{{ opt.id }}" {% if opt.id == r.chosen %}selected{% endif %}>{{ opt.name }}{% if opt.codegen == "supported" %} ✓{% endif %}</option>{% endfor %}
-          </select>
-        {% endfor %}
-        <div style="margin-top:12px"><button type="submit">Save stack</button></div>
-        <p class="muted" style="font-size:11.5px;margin:8px 0 0">✓ = {{ app_name }} can build &amp; run it now</p>
-      </form>
-      {% else %}
-        {% for role, tech in project.technology.items %}<span class="chip">{{ role }}: {{ tech }}</span>{% endfor %}
-        {% if not project.technology %}<span class="empty">No stack selected.</span>{% endif %}
-      {% endif %}
+  <div class="card">
+    <h2 style="margin-top:0">Build activity</h2>
+    <p class="muted" style="margin:-4px 0 10px;font-size:13px">The steps {{ app_name }} takes to design, generate and check your app.</p>
+    {% if tasks %}
+    <table>
+      <tr><th>Step</th><th>Status</th><th>Detail</th></tr>
+      {% for t in tasks %}
+      <tr><td class="strong">{{ t.agent_key|friendly }}</td>
+        <td><span class="badge b-{{ t.status }}">{{ t.get_status_display }}</span></td>
+        <td class="muted">{% if t.messages %}{{ t.messages|last|truncatechars:60 }}{% elif t.error %}{{ t.error|truncatechars:60 }}{% else %}—{% endif %}</td></tr>
+      {% endfor %}
+    </table>
+    {% else %}<p class="empty">No tasks yet.</p>{% endif %}
+    {% if can_manage %}
+    <div class="inline" style="margin-top:14px">
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="run"><button class="ghost" type="submit">▶ Run pending work</button></form>
     </div>
-
-    <div class="card">
-      <h2 style="margin-top:0">Build activity</h2>
-      {% if tasks %}
-      <table>
-        <tr><th>Step</th><th>Status</th><th>Detail</th></tr>
-        {% for t in tasks %}
-        <tr><td class="strong">{{ t.agent_key|friendly }}</td>
-          <td><span class="badge b-{{ t.status }}">{{ t.get_status_display }}</span></td>
-          <td class="muted">{% if t.messages %}{{ t.messages|last|truncatechars:60 }}{% elif t.error %}{{ t.error|truncatechars:60 }}{% else %}—{% endif %}</td></tr>
-        {% endfor %}
-      </table>
-      {% else %}<p class="empty">No tasks yet.</p>{% endif %}
-
-      {% if can_manage %}
-      <div class="inline" style="margin-top:14px">
-        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="run"><button class="ghost" type="submit">▶ Run pending work</button></form>
-      </div>
-      {% endif %}
-    </div>
+    {% endif %}
   </div>
+
+  {% if can_manage %}
+  <details class="card">
+    <summary style="cursor:pointer;font-weight:700;list-style:none">Technology <span class="muted" style="font-weight:400">· chosen for you</span></summary>
+    <p class="muted" style="font-size:12.5px;margin:10px 0">{{ app_name }} picked a stack that works out of the box — you don't need to change this. It's here if you're technical and want a specific stack.</p>
+    <form method="post">
+      {% csrf_token %}<input type="hidden" name="action" value="select_stack">
+      {% for r in stack_roles %}
+        <label>{{ r.role }}</label>
+        <select name="{{ r.role }}">
+          <option value="">— none —</option>
+          {% for opt in r.options %}<option value="{{ opt.id }}" {% if opt.id == r.chosen %}selected{% endif %}>{{ opt.name }}{% if opt.codegen == "supported" %} ✓{% endif %}</option>{% endfor %}
+        </select>
+      {% endfor %}
+      <div style="margin-top:12px"><button type="submit">Save stack</button></div>
+      <p class="muted" style="font-size:11.5px;margin:8px 0 0">✓ = {{ app_name }} can build &amp; run it now</p>
+    </form>
+  </details>
+  {% endif %}
 
   <div class="row" style="margin-top:4px">
     <!-- Continuous change: describe a modification to the EXISTING app -->

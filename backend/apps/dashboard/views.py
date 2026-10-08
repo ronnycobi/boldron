@@ -112,6 +112,13 @@ _BUILD_PIPELINE = ["requirements", "architect", "database", "backend",
                    "frontend", "testing", "code_review", "security"]
 
 
+def _default_stack() -> dict:
+    """A sensible, runnable default stack so non-technical users never have to
+    choose one. Backend + database are what the platform can generate AND run;
+    frontend/mobile are design-led and left for the agents to shape."""
+    return {"backend": "django", "database": "sqlite"}
+
+
 def _name_from_brief(brief: str) -> str:
     import re
     text = re.sub(r"^\s*(please\s+)?(build|create|make|develop|design)\s+(me\s+)?(a|an|the)?\s*",
@@ -142,17 +149,35 @@ def _start_build(project, brief, user):
         if previous is not None:
             t.depends_on.set([previous])
         previous = t
-    orch.run_ready(project)
-    # If this is a store, wire the project to the e-commerce engine (starter catalogue
-    # + shipping + storefront), so a "build me a shop" actually produces a working
-    # store connected to the tested engine — not a bespoke hand-written one.
-    from apps.capabilities.infer import infer_capabilities
-    if any(c.id == "ecommerce" for c in infer_capabilities(brief)):
-        try:
-            from apps.publishing.store_provision import provision_store
-            provision_store(project, brief, user=user)
-        except Exception:
-            pass  # provisioning is best-effort; never break the build
+
+    def _execute():
+        # Drain the pipeline, then (for a store) wire up the real e-commerce engine
+        # so "build me a shop" produces a working store, not a bespoke one.
+        orch.run_ready(project)
+        from apps.capabilities.infer import infer_capabilities
+        if any(c.id == "ecommerce" for c in infer_capabilities(brief)):
+            try:
+                from apps.publishing.store_provision import provision_store
+                provision_store(project, brief, user=user)
+            except Exception:
+                pass  # provisioning is best-effort; never break the build
+
+    # Run the agents OFF the request thread so the user gets an immediate
+    # "building…" screen with live progress instead of a long blank wait. Tests
+    # run it inline for determinism (threads don't share the test transaction).
+    if getattr(settings, "RUNNING_TESTS", False):
+        _execute()
+    else:
+        import threading
+        from django.db import connection
+
+        def _bg():
+            try:
+                _execute()
+            finally:
+                connection.close()  # don't leak this thread's DB connection
+
+        threading.Thread(target=_bg, daemon=True).start()
 
 
 class BoldronLoginView(auth_views.LoginView):
@@ -249,13 +274,14 @@ def overview(request):
             org.add_member(user, role=Role.OWNER)
         project = Project.objects.create(
             organization=org, name=_name_from_brief(brief),
-            created_by=user, description=brief[:500])
+            created_by=user, description=brief[:500],
+            technology=_default_stack())  # agents pick a sensible stack — no choice needed
         project.ensure_default_workspace()
         ProjectContext(project).set(
             ContextKind.REQUIREMENT, "brief", title="What to build",
             content=brief, source="builder")
         _start_build(project, brief, user)
-        messages.success(request, f"{settings.APP_NAME} is building your project.")
+        messages.success(request, f"{settings.APP_NAME} is building your app — follow the progress below.")
         from apps.ai_providers.registry import generation_available
         if not generation_available():
             messages.warning(request, f"Heads up: no AI model is connected, so {settings.APP_NAME} "

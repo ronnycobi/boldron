@@ -132,7 +132,7 @@ class DashboardUITests(TestCase):
         self.client.force_login(self.member)
         resp = self.client.get(reverse("dashboard:project", args=[self.project.id]))
         self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, "Technology stack")
+        self.assertContains(resp, "Built-in capabilities")
         self.assertContains(resp, "Build activity")
 
     def test_owner_queues_task_via_ui(self):
@@ -359,6 +359,17 @@ class BuilderHomeTests(TestCase):
         self.assertIsNotNone(p)
         self.assertTrue(p.name)                       # a name derived from the brief
         self.assertTrue(AgentTask.objects.filter(project=p).exists())  # build kicked off
+
+    def test_build_auto_selects_a_stack_so_users_need_not_choose(self):
+        import tempfile
+        from django.test import override_settings
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
+            self.client.post(reverse("dashboard:home"),
+                             {"action": "build", "brief": "Build an online store with cart and checkout."},
+                             follow=True)
+        p = Project.objects.filter(organization=self.org).order_by("-id").first()
+        self.assertTrue((p.technology or {}).get("backend"))   # chosen for the user
+        self.assertTrue((p.technology or {}).get("database"))
 
     def test_empty_brief_rejected(self):
         r = self.client.post(reverse("dashboard:home"), {"action": "build", "brief": "  "}, follow=True)
