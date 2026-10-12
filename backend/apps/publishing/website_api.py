@@ -167,6 +167,68 @@ class DomainRemoveView(_DomainActionView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class MonitoringView(_SiteView):
+    """Site health: an uptime summary plus the latest probe. GET reads; POST runs
+    a fresh probe. Honest scope — this checks the snapshot the platform actually
+    serves (present/readable + serve latency), never remote server metrics it
+    can't see."""
+
+    def get(self, request, project_pk):
+        from apps.publishing import monitor
+
+        website = self.site(request, project_pk)
+        latest = website.health_checks.first()
+        return Response(
+            {
+                "project": website.project_id,
+                "uptime": monitor.uptime_summary(website),
+                "latest": None
+                if latest is None
+                else {
+                    "status": latest.status,
+                    "detail": latest.detail,
+                    "response_ms": latest.response_ms,
+                    "checked_at": latest.checked_at.isoformat(),
+                },
+            }
+        )
+
+    def post(self, request, project_pk):
+        from apps.publishing import monitor
+
+        self.manage = True
+        website = self.site(request, project_pk)
+        check = monitor.run_check(website)
+        if check is None:
+            return Response(
+                {"detail": "Nothing is published yet to monitor."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return Response(
+            {
+                "status": check.status,
+                "detail": check.detail,
+                "response_ms": check.response_ms,
+                "checked_at": check.checked_at.isoformat(),
+            }
+        )
+
+
+class AnalyticsView(_SiteView):
+    """Visitor analytics for the published site (privacy-preserving, real data).
+    ?days=N (default 30, max 365)."""
+
+    def get(self, request, project_pk):
+        from apps.publishing import analytics
+
+        website = self.site(request, project_pk)
+        try:
+            days = min(365, max(1, int(request.query_params.get("days", 30))))
+        except (TypeError, ValueError):
+            days = 30
+        return Response(analytics.summary(website, days=days))
+
+
 class FormLeadListView(_SiteView):
     """The site's captured leads (form submissions), newest first — read-only."""
 

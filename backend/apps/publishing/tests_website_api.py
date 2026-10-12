@@ -94,3 +94,29 @@ class WebsiteApiTests(TestCase):
         )
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.json()[0]["name"], "Jo")
+
+
+class MonitoringAnalyticsApiTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(email="mo@x.com", password="pw12345!")
+        self.org = Organization.objects.create(name="Org")
+        self.org.add_member(self.owner, role=Role.OWNER)
+        self.project = Project.objects.create(organization=self.org, name="Site")
+        self.website = Website.objects.create(project=self.project, subdomain="mon-x")
+
+    def _auth(self):
+        return auth(self.owner)
+
+    def test_monitoring_summary(self):
+        resp = self.client.get(
+            reverse("commerce_api:website-monitoring", args=[self.project.id]), **self._auth()
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("uptime", resp.json())
+
+    def test_analytics_summary(self):
+        resp = self.client.get(
+            reverse("commerce_api:website-analytics", args=[self.project.id]) + "?days=7",
+            **self._auth(),
+        )
+        self.assertEqual(resp.status_code, 200)
