@@ -1642,21 +1642,12 @@ def resend_verification(request):
     return redirect("dashboard:home")
 
 
-# Plan presentation (the credit plans are free/pro/business; "enterprise" is
-# contact-sales). Prices/features mirror the public pricing — honest, no fakery.
-_PLAN_ORDER = ["free", "pro", "business", "enterprise"]
-_PLAN_LABEL = {"free": "Free", "pro": "Builder", "business": "Business", "enterprise": "Enterprise"}
-_PLAN_PRICE = {"free": "$0", "pro": "$29/mo", "business": "$99/mo", "enterprise": "Custom"}
-_PLAN_FEATURES = {
-    "free": ["Build websites & web apps", "Live preview", "Export your code anytime",
-             "1 published project", "Community support"],
-    "pro": ["Everything in Free", "5× the monthly AI credits", "Deploy to dev & staging",
-            "Git integration", "Custom domains", "Email support"],
-    "business": ["Everything in Builder", "Team collaboration & roles",
-                 "Mobile app-store releases", "Monitoring & audit logs", "Priority support"],
-    "enterprise": ["Everything in Business", "SSO & advanced controls",
-                   "Private deployments", "Dedicated support & SLA"],
-}
+# Plan presentation lives in the shared credits catalog so the web Settings hub
+# and the mobile billing API read the same source.
+from apps.credits.catalog import PLAN_FEATURES as _PLAN_FEATURES  # noqa: E402
+from apps.credits.catalog import PLAN_LABEL as _PLAN_LABEL  # noqa: E402
+from apps.credits.catalog import PLAN_ORDER as _PLAN_ORDER  # noqa: E402
+from apps.credits.catalog import PLAN_PRICE as _PLAN_PRICE  # noqa: E402
 _LANGUAGES = [("", "English (default)"), ("en-us", "English (US)"), ("en-gb", "English (UK)"),
               ("es", "Español"), ("fr", "Français"), ("de", "Deutsch"), ("pt", "Português"),
               ("af", "Afrikaans"), ("ar", "العربية")]

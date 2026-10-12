@@ -18,7 +18,7 @@ from apps.credits.services import (
     record_task_usage,
     spent_today,
 )
-from apps.organizations.models import Organization
+from apps.organizations.models import Organization, Role
 from apps.orchestrator.service import Orchestrator
 from apps.projects.models import Project
 
@@ -269,3 +269,71 @@ class InvoiceUITests(TestCase):
         self.client.post(reverse("dashboard:usage"),
                          {"action": "generate_invoice", "organization": self.org.id})
         self.assertFalse(Invoice.objects.filter(organization=self.org).exists())
+
+
+class BillingApiTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(email="owner@x.com", password="pw12345!")
+        self.member = User.objects.create_user(email="member@x.com", password="pw12345!")
+        self.org = Organization.objects.create(name="Acme")
+        self.org.add_member(self.owner, role=Role.OWNER)
+        self.org.add_member(self.member, role=Role.MEMBER)
+        ensure_account(self.org, plan="pro")  # 5000 credits
+        self.project = Project.objects.create(organization=self.org, name="App")
+        UsageRecord.objects.create(
+            organization=self.org, project=self.project, agent_key="backend",
+            provider="anthropic", model="claude-sonnet-5", total_tokens=1000,
+            cost_usd=Decimal("0.10"), credits_charged=Decimal("10"),
+        )
+
+    def _auth(self, user):
+        from apps.accounts.api import issue_tokens
+
+        return {"HTTP_AUTHORIZATION": f"Bearer {issue_tokens(user)['access']}"}
+
+    def test_billing_summary(self):
+        resp = self.client.get(
+            reverse("credits:billing", args=[self.org.id]), **self._auth(self.owner)
+        )
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertEqual(body["plan"], "pro")
+        self.assertEqual(body["label"], "Builder")
+        self.assertEqual(body["balance"], "5000.0000")
+        self.assertTrue(body["can_manage"])
+        self.assertTrue(any(u["plan"] == "business" for u in body["upgrades"]))
+
+    def test_usage_summary_breaks_down_by_model(self):
+        resp = self.client.get(
+            reverse("credits:usage-summary", args=[self.org.id]), **self._auth(self.owner)
+        )
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertEqual(body["total_tokens"], 1000)
+        self.assertEqual(body["by_model"][0]["model"], "claude-sonnet-5")
+
+    def test_upgrade_request_opens_ticket_for_manager(self):
+        resp = self.client.post(
+            reverse("credits:upgrade-request", args=[self.org.id]),
+            data={"plan": "business"},
+            content_type="application/json",
+            **self._auth(self.owner),
+        )
+        self.assertEqual(resp.status_code, 201)
+        self.assertIn("ticket_number", resp.json())
+
+    def test_upgrade_request_denied_for_member(self):
+        resp = self.client.post(
+            reverse("credits:upgrade-request", args=[self.org.id]),
+            data={"plan": "business"},
+            content_type="application/json",
+            **self._auth(self.member),
+        )
+        self.assertEqual(resp.status_code, 403)
+
+    def test_billing_hidden_from_non_members(self):
+        outsider = User.objects.create_user(email="out@x.com", password="pw12345!")
+        resp = self.client.get(
+            reverse("credits:billing", args=[self.org.id]), **self._auth(outsider)
+        )
+        self.assertEqual(resp.status_code, 404)
