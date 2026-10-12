@@ -9,6 +9,7 @@ import '../features/auth/auth_controller.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/register_screen.dart';
 import '../features/backups/backups_screen.dart';
+import '../features/billing/billing_screen.dart';
 import '../features/build/build_screen.dart';
 import '../features/changes/changes_screen.dart';
 import '../features/commerce/commerce_screen.dart';
@@ -16,7 +17,11 @@ import '../features/deployments/deployments_screen.dart';
 import '../features/projects/project_detail_screen.dart';
 import '../features/projects/projects_screen.dart';
 import '../features/releases/releases_screen.dart';
+import '../features/search/search_screen.dart';
+import '../features/settings/settings_screen.dart';
 import '../features/shell/app_shell.dart';
+import '../features/support/support_screen.dart';
+import '../features/team/team_screen.dart';
 import '../features/website/website_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -128,6 +133,38 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/projects/:id/releases',
         builder: (_, s) => ReleasesScreen(projectId: _idParam(s, 'id')),
+      ),
+
+      // --- org-level & cross-cutting routes ---
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/orgs/:id/billing',
+        builder: (_, s) => BillingScreen(orgId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/orgs/:id/team',
+        builder: (_, s) => TeamScreen(orgId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/support',
+        builder: (_, __) => const SupportScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/support/:id',
+        builder: (_, s) => TicketScreen(ticketId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/search',
+        builder: (_, __) => const SearchScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/settings',
+        builder: (_, __) => const SettingsScreen(),
       ),
     ],
   );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../config/app_config.dart';
 import '../../core/providers.dart';
@@ -10,8 +11,19 @@ class AccountScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authControllerProvider.select((s) => s.user));
+    final orgId = user?.organizations.isNotEmpty == true
+        ? user!.organizations.first.id
+        : null;
     return Scaffold(
-      appBar: AppBar(title: const Text('Account')),
+      appBar: AppBar(
+        title: const Text('Account'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () => context.push('/search'),
+          ),
+        ],
+      ),
       body: user == null
           ? const Center(child: CircularProgressIndicator())
           : ListView(
@@ -55,14 +67,28 @@ class AccountScreen extends ConsumerWidget {
                     subtitle: Text(org.role),
                   ),
                 const Divider(),
-                const _SectionHeader('Support'),
+                const _SectionHeader('Manage'),
+                if (orgId != null)
+                  ListTile(
+                    leading: const Icon(Icons.credit_card),
+                    title: const Text('Billing & usage'),
+                    onTap: () => context.push('/orgs/$orgId/billing'),
+                  ),
+                if (orgId != null)
+                  ListTile(
+                    leading: const Icon(Icons.group_outlined),
+                    title: const Text('Team'),
+                    onTap: () => context.push('/orgs/$orgId/team'),
+                  ),
                 ListTile(
                   leading: const Icon(Icons.help_outline),
                   title: const Text('Help & support'),
-                  subtitle: Text(AppConfig.supportEmail.isEmpty
-                      ? 'Open a support request'
-                      : AppConfig.supportEmail),
-                  onTap: () {},
+                  onTap: () => context.push('/support'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.settings_outlined),
+                  title: const Text('Settings'),
+                  onTap: () => context.push('/settings'),
                 ),
                 const Divider(),
                 ListTile(
