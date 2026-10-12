@@ -6,6 +6,11 @@ __pycache__/
 build/
 dist/
 
+# The unanchored `build/` above (compile output) also matches the Flutter app's
+# "build" FEATURE folder — re-include it so its source is tracked. Real Flutter
+# build output stays ignored via frontend/.gitignore (/build/).
+!frontend/lib/features/build/
+
 # Virtualenvs (this project uses the shared ../env interpreter)
 .venv/
 env/
