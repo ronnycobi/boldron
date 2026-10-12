@@ -8,11 +8,14 @@ import '../features/activity/activity_screen.dart';
 import '../features/auth/auth_controller.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/register_screen.dart';
+import '../features/backups/backups_screen.dart';
 import '../features/build/build_screen.dart';
 import '../features/changes/changes_screen.dart';
+import '../features/deployments/deployments_screen.dart';
 import '../features/projects/project_detail_screen.dart';
 import '../features/projects/projects_screen.dart';
 import '../features/shell/app_shell.dart';
+import '../features/website/website_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -98,6 +101,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/changes/:id',
         builder: (_, s) => ChangeDetailScreen(changeId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/projects/:id/deployments',
+        builder: (_, s) => DeploymentsScreen(projectId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/projects/:id/website',
+        builder: (_, s) => WebsiteScreen(projectId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/projects/:id/backups',
+        builder: (_, s) => BackupsScreen(projectId: _idParam(s, 'id')),
       ),
     ],
   );

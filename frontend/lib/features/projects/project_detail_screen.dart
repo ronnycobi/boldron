@@ -14,6 +14,9 @@ typedef _Area = ({IconData icon, String label, String path});
 /// route lives in the router under /projects/:id/<path>).
 const List<_Area> _areas = [
   (icon: Icons.tune, label: 'Request a change', path: 'changes'),
+  (icon: Icons.rocket_launch_outlined, label: 'Deployments', path: 'deployments'),
+  (icon: Icons.public, label: 'Website', path: 'website'),
+  (icon: Icons.settings_backup_restore, label: 'Backups', path: 'backups'),
 ];
 
 /// The per-project hub: live build status while it builds, plus entry points to
