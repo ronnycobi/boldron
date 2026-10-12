@@ -2,6 +2,7 @@ from django.urls import path
 
 from apps.publishing import api
 from apps.publishing import commerce_api as m
+from apps.publishing import website_api as w
 
 app_name = "commerce_api"
 
@@ -23,4 +24,15 @@ urlpatterns = [
     path("projects/<int:project_pk>/commerce/orders/<int:pk>/cancel/", m.OrderCancelView.as_view(), name="admin-order-cancel"),
     path("projects/<int:project_pk>/commerce/discounts/", m.DiscountListCreateView.as_view(), name="admin-discounts"),
     path("projects/<int:project_pk>/commerce/sales/", m.SalesSummaryView.as_view(), name="admin-sales"),
+
+    # Website management (authenticated) — keyed by project, over publishing.
+    path("projects/<int:project_pk>/website/", w.WebsiteView.as_view(), name="website"),
+    path("projects/<int:project_pk>/website/publish/", w.PublishView.as_view(), name="website-publish"),
+    path("projects/<int:project_pk>/website/versions/", w.VersionListView.as_view(), name="website-versions"),
+    path("projects/<int:project_pk>/website/rollback/", w.RollbackView.as_view(), name="website-rollback"),
+    path("projects/<int:project_pk>/website/domains/", w.DomainListCreateView.as_view(), name="website-domains"),
+    path("projects/<int:project_pk>/website/leads/", w.FormLeadListView.as_view(), name="website-leads"),
+    path("website/domains/<int:pk>/verify/", w.DomainVerifyView.as_view(), name="domain-verify"),
+    path("website/domains/<int:pk>/ssl/", w.DomainSslView.as_view(), name="domain-ssl"),
+    path("website/domains/<int:pk>/", w.DomainRemoveView.as_view(), name="domain-remove"),
 ]
