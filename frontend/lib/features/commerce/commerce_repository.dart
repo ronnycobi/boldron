@@ -142,6 +142,46 @@ class CommerceRepository {
     final data = await _api.get('${_base(projectId)}/sales/');
     return (data as Map).cast<String, dynamic>();
   }
+
+  Future<List<Discount>> discounts(int projectId) async {
+    final data = await _api.get('${_base(projectId)}/discounts/');
+    return (data as List)
+        .map((d) => Discount.fromJson(d as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<void> createDiscount(int projectId,
+      {required String code, int percentOff = 0}) {
+    return _api.post('${_base(projectId)}/discounts/', body: {
+      'code': code,
+      'kind': 'percent',
+      'percent_off': percentOff,
+    });
+  }
+}
+
+class Discount {
+  final int id;
+  final String code;
+  final String kind;
+  final int percentOff;
+  final int amountOffCents;
+
+  const Discount({
+    required this.id,
+    required this.code,
+    required this.kind,
+    required this.percentOff,
+    required this.amountOffCents,
+  });
+
+  factory Discount.fromJson(Map<String, dynamic> j) => Discount(
+        id: j['id'] as int,
+        code: (j['code'] ?? '') as String,
+        kind: (j['kind'] ?? '') as String,
+        percentOff: (j['percent_off'] ?? 0) as int,
+        amountOffCents: (j['amount_off_cents'] ?? 0) as int,
+      );
 }
 
 final commerceRepositoryProvider = Provider<CommerceRepository>(
@@ -155,10 +195,21 @@ final productsProvider =
 
 final ordersProvider =
     FutureProvider.family<List<Order>, int>((ref, projectId) {
-  return ref.watch(commerceRepositoryProvider).orders(projectId);
+  final status = ref.watch(ordersFilterProvider(projectId));
+  return ref
+      .watch(commerceRepositoryProvider)
+      .orders(projectId, status: status.isEmpty ? null : status);
 });
 
 final salesProvider =
     FutureProvider.family<Map<String, dynamic>, int>((ref, projectId) {
   return ref.watch(commerceRepositoryProvider).sales(projectId);
+});
+
+/// Orders filtered by status; pass ('', projectId) for all.
+final ordersFilterProvider = StateProvider.family<String, int>((ref, _) => '');
+
+final discountsProvider =
+    FutureProvider.family<List<Discount>, int>((ref, projectId) {
+  return ref.watch(commerceRepositoryProvider).discounts(projectId);
 });

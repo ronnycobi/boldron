@@ -14,19 +14,21 @@ class CommerceScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Store'),
-          bottom: const TabBar(tabs: [
+          bottom: const TabBar(isScrollable: true, tabs: [
             Tab(text: 'Products'),
             Tab(text: 'Orders'),
+            Tab(text: 'Discounts'),
             Tab(text: 'Sales'),
           ]),
         ),
         body: TabBarView(children: [
           _ProductsTab(projectId: projectId),
           _OrdersTab(projectId: projectId),
+          _DiscountsTab(projectId: projectId),
           _SalesTab(projectId: projectId),
         ]),
       ),
@@ -63,6 +65,7 @@ class _ProductsTab extends ConsumerWidget {
                 separatorBuilder: (_, __) => const Divider(height: 1),
                 itemBuilder: (_, i) {
                   final p = items[i];
+                  final low = p.trackInventory && p.stock > 0 && p.stock <= 5;
                   return ListTile(
                     title: Text(p.name),
                     subtitle: Text([
@@ -70,7 +73,25 @@ class _ProductsTab extends ConsumerWidget {
                       if (p.trackInventory) '${p.stock} in stock',
                       if (!p.active) 'hidden',
                     ].join(' · ')),
-                    trailing: const Icon(Icons.edit_outlined),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (p.trackInventory && !p.inStock)
+                          const Chip(
+                            label: Text('Out'),
+                            visualDensity: VisualDensity.compact,
+                          )
+                        else if (low)
+                          Chip(
+                            label: const Text('Low'),
+                            visualDensity: VisualDensity.compact,
+                            backgroundColor: Theme.of(context)
+                                .colorScheme
+                                .tertiaryContainer,
+                          ),
+                        const Icon(Icons.edit_outlined),
+                      ],
+                    ),
                     onTap: () => _editProduct(context, ref, projectId, p),
                   );
                 },
@@ -202,34 +223,147 @@ class _OrdersTab extends ConsumerWidget {
   final int projectId;
   const _OrdersTab({required this.projectId});
 
+  static const _statuses = ['', 'paid', 'pending', 'refunded', 'cancelled'];
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final orders = ref.watch(ordersProvider(projectId));
-    return orders.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text(_noStore(e), textAlign: TextAlign.center)),
-      data: (items) => items.isEmpty
-          ? const Center(child: Text('No orders yet.'))
-          : RefreshIndicator(
-              onRefresh: () async => ref.refresh(ordersProvider(projectId).future),
-              child: ListView.separated(
-                itemCount: items.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
-                itemBuilder: (_, i) {
-                  final o = items[i];
-                  return ListTile(
-                    title: Text(o.reference),
-                    subtitle: Text([
-                      if (o.customerName.isNotEmpty) o.customerName,
-                      o.status,
-                    ].join(' · ')),
-                    trailing: Text(o.totalDisplay),
-                    onTap: () => _orderDetail(context, ref, projectId, o.id),
-                  );
-                },
-              ),
-            ),
+    final filter = ref.watch(ordersFilterProvider(projectId));
+    return Column(
+      children: [
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            children: [
+              for (final s in _statuses)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ChoiceChip(
+                    label: Text(s.isEmpty ? 'All' : s),
+                    selected: filter == s,
+                    onSelected: (_) =>
+                        ref.read(ordersFilterProvider(projectId).notifier).state = s,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+        Expanded(
+          child: orders.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) =>
+                Center(child: Text(_noStore(e), textAlign: TextAlign.center)),
+            data: (items) => items.isEmpty
+                ? const Center(child: Text('No orders.'))
+                : RefreshIndicator(
+                    onRefresh: () async =>
+                        ref.refresh(ordersProvider(projectId).future),
+                    child: ListView.separated(
+                      itemCount: items.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (_, i) {
+                        final o = items[i];
+                        return ListTile(
+                          title: Text(o.reference),
+                          subtitle: Text([
+                            if (o.customerName.isNotEmpty) o.customerName,
+                            o.status,
+                          ].join(' · ')),
+                          trailing: Text(o.totalDisplay),
+                          onTap: () =>
+                              _orderDetail(context, ref, projectId, o.id),
+                        );
+                      },
+                    ),
+                  ),
+          ),
+        ),
+      ],
     );
+  }
+}
+
+class _DiscountsTab extends ConsumerWidget {
+  final int projectId;
+  const _DiscountsTab({required this.projectId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final discounts = ref.watch(discountsProvider(projectId));
+    return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _create(context, ref),
+        icon: const Icon(Icons.add),
+        label: const Text('Add code'),
+      ),
+      body: discounts.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) =>
+            Center(child: Text(_noStore(e), textAlign: TextAlign.center)),
+        data: (items) => items.isEmpty
+            ? const Center(child: Text('No discount codes yet.'))
+            : ListView(
+                children: [
+                  for (final d in items)
+                    ListTile(
+                      leading: const Icon(Icons.local_offer_outlined),
+                      title: Text(d.code),
+                      subtitle: Text(d.kind == 'percent'
+                          ? '${d.percentOff}% off'
+                          : '${d.amountOffCents / 100} off'),
+                    ),
+                ],
+              ),
+      ),
+    );
+  }
+
+  Future<void> _create(BuildContext context, WidgetRef ref) async {
+    final code = TextEditingController();
+    final percent = TextEditingController(text: '10');
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('New discount code'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+                controller: code,
+                textCapitalization: TextCapitalization.characters,
+                decoration: const InputDecoration(labelText: 'Code (e.g. SAVE10)')),
+            TextField(
+                controller: percent,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Percent off')),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Create')),
+        ],
+      ),
+    );
+    if (ok == true && code.text.trim().isNotEmpty) {
+      try {
+        await ref.read(commerceRepositoryProvider).createDiscount(
+              projectId,
+              code: code.text.trim(),
+              percentOff: int.tryParse(percent.text) ?? 0,
+            );
+        ref.invalidate(discountsProvider(projectId));
+      } on ApiException catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(e.message)));
+        }
+      }
+    }
   }
 }
 
