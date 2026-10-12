@@ -71,3 +71,91 @@ class ReleaseApiTests(TestCase):
         )
         self.assertEqual(resp.status_code, 200)
         self.assertTrue(all(r["status"] == "not_connected" for r in resp.json()))
+
+
+class StoreListingApiTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(email="owner@x.com", password="pw12345!")
+        self.member = User.objects.create_user(email="member@x.com", password="pw12345!")
+        self.org = Organization.objects.create(name="Acme")
+        self.org.add_member(self.owner, role=Role.OWNER)
+        self.org.add_member(self.member, role=Role.MEMBER)
+        self.project = Project.objects.create(organization=self.org, name="App")
+        self.app = service.create_mobile_application(project=self.project, name="My App")
+
+    def test_generate_listing_is_ai_draft_not_approved(self):
+        resp = self.client.post(
+            reverse("release:listing", args=[self.app.id, "google_play"]),
+            **auth(self.owner),
+        )
+        self.assertEqual(resp.status_code, 201)
+        body = resp.json()
+        self.assertTrue(body["ai_generated"])
+        self.assertFalse(body["approved"])  # never auto-approved
+
+    def test_get_listing_reads_draft(self):
+        self.client.post(
+            reverse("release:listing", args=[self.app.id, "google_play"]),
+            **auth(self.owner),
+        )
+        resp = self.client.get(
+            reverse("release:listing", args=[self.app.id, "google_play"]),
+            **auth(self.member),
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertIsNotNone(resp.json()["metadata"])
+        self.assertEqual(resp.json()["provider_label"], "Google Play")
+
+    def test_member_cannot_generate(self):
+        resp = self.client.post(
+            reverse("release:listing", args=[self.app.id, "google_play"]),
+            **auth(self.member),
+        )
+        self.assertEqual(resp.status_code, 403)
+
+    def test_approve_listing(self):
+        self.client.post(
+            reverse("release:listing", args=[self.app.id, "google_play"]),
+            **auth(self.owner),
+        )
+        resp = self.client.post(
+            reverse("release:listing-approve", args=[self.app.id, "google_play"]),
+            **auth(self.owner),
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.json()["approved"])
+
+    def test_approve_before_generate_is_400(self):
+        resp = self.client.post(
+            reverse("release:listing-approve", args=[self.app.id, "google_play"]),
+            **auth(self.owner),
+        )
+        self.assertEqual(resp.status_code, 400)
+
+    def test_unknown_provider_is_404(self):
+        resp = self.client.post(
+            reverse("release:listing", args=[self.app.id, "nokia_store"]),
+            **auth(self.owner),
+        )
+        self.assertEqual(resp.status_code, 404)
+
+    def test_generate_and_approve_screenshots(self):
+        gen = self.client.post(
+            reverse("release:screenshots", args=[self.app.id, "google_play"]),
+            **auth(self.owner),
+        )
+        self.assertEqual(gen.status_code, 201)
+        self.assertIn("screenshots", gen.json())
+        approve = self.client.post(
+            reverse("release:screenshots-approve", args=[self.app.id, "google_play"]),
+            **auth(self.owner),
+        )
+        self.assertEqual(approve.status_code, 200)
+
+    def test_listing_hidden_from_outsider(self):
+        outsider = User.objects.create_user(email="out@x.com", password="pw12345!")
+        resp = self.client.get(
+            reverse("release:listing", args=[self.app.id, "google_play"]),
+            **auth(outsider),
+        )
+        self.assertEqual(resp.status_code, 404)

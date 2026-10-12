@@ -118,6 +118,143 @@ class MobileAppDetailView(APIView):
         return Response(_app_dict(app, detail=True))
 
 
+def _metadata_dict(md) -> dict | None:
+    if md is None:
+        return None
+    gen = md.generated or {}
+    return {
+        "app_name": md.app_name,
+        "short_description": md.short_description,
+        "full_description": md.full_description,
+        "keywords": md.keywords,
+        "category": md.category,
+        "ai_generated": md.ai_generated,
+        "approved": md.approved,
+        "feature_descriptions": gen.get("feature_descriptions", []),
+        "screenshot_captions": gen.get("screenshot_captions", []),
+        "source": gen.get("source", ""),
+        "updated_at": md.updated_at.isoformat(),
+    }
+
+
+def _asset_dict(a) -> dict:
+    return {
+        "id": a.id,
+        "screen_name": a.screen_name,
+        "caption": a.caption,
+        "width": a.width,
+        "height": a.height,
+        "source": a.source,
+        "fmt": a.fmt,
+        "approved": a.approved,
+    }
+
+
+def _valid_provider(provider: str):
+    """Return the provider instance or None (unknown key)."""
+    return get_provider(provider)
+
+
+class StoreListingView(APIView):
+    """A store listing (metadata) for one app + provider.
+
+    GET reads the current draft + screenshots (member). POST generates an
+    AI-assisted draft from the app's real features — marked ai_generated and
+    NOT approved; a human must approve before anything could be submitted
+    (manager). Nothing is auto-submitted and live store ops stay gated.
+    """
+
+    def _store_app(self, request, pk, provider, *, manage):
+        if _valid_provider(provider) is None:
+            return None, Response(
+                {"detail": "Unknown store provider."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        app = get_object_or_404(MobileApplication, pk=pk)
+        if manage:
+            require_manageable_project(request.user, app.project_id)
+        else:
+            if app.project.organization not in organizations_for(request.user):
+                from django.http import Http404
+
+                raise Http404
+        return app, None
+
+    def get(self, request, pk, provider):
+        app, err = self._store_app(request, pk, provider, manage=False)
+        if err:
+            return err
+        store_app = app.store_apps.filter(provider=provider).first()
+        md = getattr(store_app, "metadata", None) if store_app else None
+        screenshots = (
+            [_asset_dict(a) for a in store_app.assets.filter(kind="screenshot")]
+            if store_app
+            else []
+        )
+        return Response(
+            {
+                "provider": provider,
+                "provider_label": _PROVIDER_LABELS.get(provider, provider),
+                "metadata": _metadata_dict(md),
+                "screenshots": screenshots,
+            }
+        )
+
+    def post(self, request, pk, provider):
+        app, err = self._store_app(request, pk, provider, manage=True)
+        if err:
+            return err
+        store_app = service.ensure_store_application(app, provider)
+        md = service.generate_store_listing(store_app, user=request.user)
+        return Response(_metadata_dict(md), status=status.HTTP_201_CREATED)
+
+
+class StoreListingApproveView(APIView):
+    """Approve a listing draft (a human sign-off; never automatic)."""
+
+    def post(self, request, pk, provider):
+        app = get_object_or_404(MobileApplication, pk=pk)
+        require_manageable_project(request.user, app.project_id)
+        store_app = app.store_apps.filter(provider=provider).first()
+        if store_app is None:
+            return Response(
+                {"detail": "Generate a listing before approving it."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        md = service.approve_metadata(store_app, user=request.user)
+        return Response(_metadata_dict(md))
+
+
+class StoreScreenshotsView(APIView):
+    """Generate (POST) store screenshots from the app's real screens. Honest
+    scope: schematic layout previews unless live-capture infra is wired; drafts,
+    never auto-submitted."""
+
+    def post(self, request, pk, provider):
+        app = get_object_or_404(MobileApplication, pk=pk)
+        require_manageable_project(request.user, app.project_id)
+        store_app = service.ensure_store_application(app, provider)
+        assets = service.generate_store_screenshots(store_app, user=request.user)
+        return Response(
+            {"screenshots": [_asset_dict(a) for a in assets]},
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class StoreScreenshotsApproveView(APIView):
+    def post(self, request, pk, provider):
+        app = get_object_or_404(MobileApplication, pk=pk)
+        require_manageable_project(request.user, app.project_id)
+        store_app = app.store_apps.filter(provider=provider).first()
+        if store_app is None:
+            return Response(
+                {"detail": "Generate screenshots before approving them."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        n = service.approve_screenshots(store_app, user=request.user)
+        return Response({"approved": n})
+
+
 class StoreConnectionListView(APIView):
     """An org's store connections — honest status (not_connected until real
     credentials are configured)."""
