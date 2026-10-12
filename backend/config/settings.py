@@ -72,6 +72,16 @@ def env_bool(key: str, default: bool = False) -> bool:
     return val.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def env_int(key: str, default: int) -> int:
+    val = os.environ.get(key)
+    if val is None or not val.strip():
+        return default
+    try:
+        return int(val.strip())
+    except ValueError:
+        return default
+
+
 def env_list(key: str, default: str = "") -> list[str]:
     raw = os.environ.get(key, default)
     return [item.strip() for item in raw.split(",") if item.strip()]
@@ -115,6 +125,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # Third-party
     "rest_framework",
+    "rest_framework_simplejwt.token_blacklist",  # refresh-token revocation (mobile logout)
     # the platform apps (modular monolith; add phased apps here — see docs/PRODUCT.md)
     "apps.core",
     "apps.accounts",
@@ -352,7 +363,15 @@ _default_sender_addr = APP_SUPPORT_EMAIL or "no-reply@localhost"
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", f"{APP_NAME} <{_default_sender_addr}>")
 
 REST_FRAMEWORK = {
+    # Both auth schemes are active. A Bearer token authenticates mobile/API
+    # clients (JWT), and session cookies authenticate the browser (the browsable
+    # API, same-origin fetches) — independent of each other: a Bearer request is
+    # never session-authed, so it carries no CSRF requirement. JWT is listed
+    # first so an invalid or expired Bearer token answers 401 (not 403): the
+    # mobile client relies on that to know when to refresh its token. A
+    # consequence is that any unauthenticated API request now returns 401.
     "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
@@ -366,6 +385,21 @@ REST_FRAMEWORK = {
     ),
     # Unhandled errors return a generic message; details go to internal logs only.
     "EXCEPTION_HANDLER": "apps.core.exceptions.confidential_exception_handler",
+}
+
+# JWT for the mobile/API client. Short-lived access token, longer refresh that
+# rotates on use; the old refresh is blacklisted on rotation and on logout, so a
+# stolen or revoked refresh token stops working. Lifetimes are env-tunable.
+from datetime import timedelta  # noqa: E402
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=env_int("JWT_ACCESS_MINUTES", 30)),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=env_int("JWT_REFRESH_DAYS", 14)),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "UPDATE_LAST_LOGIN": True,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    # Signed with the project SECRET_KEY by default — no separate key to manage.
 }
 
 # --- Security (tightened automatically when DEBUG is off) -------------------

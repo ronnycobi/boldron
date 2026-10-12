@@ -5,6 +5,11 @@
 Django==6.0.2
 djangorestframework==3.17.1
 
+# JWT auth for non-browser clients (the Flutter mobile app). The web app keeps
+# session auth; JWT is additive, so browsers are unaffected. token_blacklist
+# enables real logout/revocation of refresh tokens.
+djangorestframework-simplejwt==5.5.1
+
 # Supported generation target: the FastAPI stack. Must be importable wherever the
 # build sandbox runs generated FastAPI projects (tests use fastapi.testclient,
 # in-process, no network).

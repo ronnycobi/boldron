@@ -108,7 +108,7 @@ class ExportAPITests(TestCase):
 
     def test_requires_auth(self):
         resp = self.client.get(reverse("exporter:export", args=[self.proj_a.id]))
-        self.assertEqual(resp.status_code, 403)
+        self.assertEqual(resp.status_code, 401)
 
     def test_cannot_export_foreign_project(self):
         self.client.force_login(self.alice)

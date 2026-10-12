@@ -14,10 +14,16 @@ class MembershipSummarySerializer(serializers.Serializer):
 
 class UserSerializer(serializers.ModelSerializer):
     organizations = serializers.SerializerMethodField()
+    display_name = serializers.CharField(read_only=True)
+    initials = serializers.CharField(read_only=True)
+    avatar_url = serializers.CharField(read_only=True)
 
     class Meta:
         model = User
-        fields = ["id", "email", "full_name", "date_joined", "organizations"]
+        fields = [
+            "id", "email", "full_name", "display_name", "initials", "avatar_url",
+            "email_verified", "language", "timezone", "date_joined", "organizations",
+        ]
         read_only_fields = fields
 
     def get_organizations(self, obj):

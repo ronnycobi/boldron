@@ -146,7 +146,7 @@ class ModelRouterAPITests(TestCase):
 
     def test_model_list_requires_auth(self):
         self.assertEqual(
-            self.client.get(reverse("model_router:model-list")).status_code, 403
+            self.client.get(reverse("model_router:model-list")).status_code, 401
         )
 
     def test_model_list_returns_catalog(self):
@@ -176,4 +176,4 @@ class ModelRouterAPITests(TestCase):
             {"complexity": "low"},
             content_type="application/json",
         )
-        self.assertEqual(resp.status_code, 403)
+        self.assertEqual(resp.status_code, 401)

@@ -79,7 +79,7 @@ class ProviderCatalogAPITests(TestCase):
 
     def test_requires_authentication(self):
         self.assertEqual(
-            self.client.get(reverse("ai_providers:provider-list")).status_code, 403
+            self.client.get(reverse("ai_providers:provider-list")).status_code, 401
         )
 
     def test_lists_providers_without_leaking_keys(self):

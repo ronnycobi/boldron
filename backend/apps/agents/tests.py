@@ -131,7 +131,7 @@ class AgentCatalogAPITests(TestCase):
         self.user = User.objects.create_user(email="dev@x.com", password="pw12345!")
 
     def test_list_requires_authentication(self):
-        self.assertEqual(self.client.get(reverse("agents:list")).status_code, 403)
+        self.assertEqual(self.client.get(reverse("agents:list")).status_code, 401)
 
     def test_list_returns_full_catalog(self):
         self.client.force_login(self.user)

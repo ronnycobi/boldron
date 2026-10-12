@@ -73,7 +73,7 @@ class CostEstimateAPITests(TestCase):
 
     def test_requires_auth(self):
         resp = self.client.post(reverse("costs:estimate", args=[self.project.id]))
-        self.assertEqual(resp.status_code, 403)
+        self.assertEqual(resp.status_code, 401)
 
     def test_foreign_project_404(self):
         self.client.force_login(self.user)

@@ -139,7 +139,7 @@ class TechnologyAPITests(TestCase):
         self.user = User.objects.create_user(email="u@x.com", password="pw12345!")
 
     def test_technologies_requires_auth(self):
-        self.assertEqual(self.client.get(reverse("technology:list")).status_code, 403)
+        self.assertEqual(self.client.get(reverse("technology:list")).status_code, 401)
 
     def test_technologies_lists_catalog(self):
         self.client.force_login(self.user)

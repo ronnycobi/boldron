@@ -63,7 +63,7 @@ class ProjectAPITests(TestCase):
 
     def test_list_requires_authentication(self):
         resp = self.client.get(reverse("projects:list"))
-        self.assertEqual(resp.status_code, 403)
+        self.assertEqual(resp.status_code, 401)
 
     def test_list_only_shows_own_org_projects(self):
         self.client.force_login(self.alice)
