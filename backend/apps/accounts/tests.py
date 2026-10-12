@@ -256,6 +256,90 @@ class EmailVerificationApiTests(TestCase):
         self.assertEqual(resp.status_code, 200)
 
 
+class AccountApiTests(TestCase):
+    def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
+        self.user = User.objects.create_user(
+            email="acct@example.com", password="old-pw-12345!", full_name="Acct User"
+        )
+
+    def _auth(self):
+        from apps.accounts.api import issue_tokens
+
+        return {"HTTP_AUTHORIZATION": f"Bearer {issue_tokens(self.user)['access']}"}
+
+    def test_get_account_returns_profile(self):
+        resp = self.client.get(reverse("accounts:account"), **self._auth())
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()["email"], "acct@example.com")
+
+    def test_patch_updates_profile(self):
+        resp = self.client.patch(
+            reverse("accounts:account"),
+            data={"full_name": "Renamed", "language": "fr"},
+            content_type="application/json",
+            **self._auth(),
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.full_name, "Renamed")
+        self.assertEqual(self.user.language, "fr")
+
+    def test_patch_rejects_taken_email(self):
+        User.objects.create_user(email="taken@example.com", password="x")
+        resp = self.client.patch(
+            reverse("accounts:account"),
+            data={"email": "taken@example.com"},
+            content_type="application/json",
+            **self._auth(),
+        )
+        self.assertEqual(resp.status_code, 400)
+
+    def test_change_password_revokes_old_refresh_and_reissues(self):
+        from apps.accounts.api import issue_tokens
+
+        old_refresh = issue_tokens(self.user)["refresh"]
+        resp = self.client.post(
+            reverse("accounts:account-password"),
+            data={
+                "old_password": "old-pw-12345!",
+                "new_password1": "new-pw-67890!",
+                "new_password2": "new-pw-67890!",
+            },
+            content_type="application/json",
+            **self._auth(),
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("access", resp.json())  # caller stays signed in
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("new-pw-67890!"))
+        again = self.client.post(
+            reverse("accounts:token-refresh"),
+            data={"refresh": old_refresh},
+            content_type="application/json",
+        )
+        self.assertEqual(again.status_code, 401)
+
+    def test_logout_all_revokes_outstanding_tokens(self):
+        from apps.accounts.api import issue_tokens
+
+        other = issue_tokens(self.user)["refresh"]
+        resp = self.client.post(reverse("accounts:account-logout-all"), **self._auth())
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("access", resp.json())
+        again = self.client.post(
+            reverse("accounts:token-refresh"),
+            data={"refresh": other},
+            content_type="application/json",
+        )
+        self.assertEqual(again.status_code, 401)
+
+    def test_account_requires_auth(self):
+        self.assertEqual(self.client.get(reverse("accounts:account")).status_code, 401)
+
+
 class PasswordResetApiTests(TestCase):
     def setUp(self):
         from django.core.cache import cache

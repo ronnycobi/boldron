@@ -29,3 +29,24 @@ class UserSerializer(serializers.ModelSerializer):
     def get_organizations(self, obj):
         memberships = obj.memberships.select_related("organization")
         return MembershipSummarySerializer(memberships, many=True).data
+
+
+class AccountUpdateSerializer(serializers.ModelSerializer):
+    """Fields a user may edit on their own account."""
+
+    class Meta:
+        model = User
+        fields = ["full_name", "email", "language", "timezone"]
+
+    def validate_email(self, value):
+        email = User.objects.normalize_email(value)
+        if not email:
+            raise serializers.ValidationError("Email can't be blank.")
+        qs = User.objects.filter(email__iexact=email)
+        if self.instance is not None:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError(
+                "That email is already in use by another account."
+            )
+        return email

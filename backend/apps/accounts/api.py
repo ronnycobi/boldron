@@ -236,3 +236,93 @@ class PasswordResetConfirmView(APIView):
             return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
         form.save()
         return Response({"detail": "Your password has been reset — you can sign in now."})
+
+
+def revoke_all_tokens(user) -> int:
+    """Blacklist every outstanding refresh token for the user, so no existing
+    device can mint new access tokens. Returns how many were newly revoked.
+    (Access tokens are short-lived and expire on their own.)"""
+    from rest_framework_simplejwt.token_blacklist.models import (
+        BlacklistedToken,
+        OutstandingToken,
+    )
+
+    revoked = 0
+    for token in OutstandingToken.objects.filter(user=user):
+        _, created = BlacklistedToken.objects.get_or_create(token=token)
+        revoked += int(created)
+    return revoked
+
+
+class AccountView(APIView):
+    """The signed-in user's own account: read the full profile, or edit the
+    fields they're allowed to change (name, email, language, timezone)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response(UserSerializer(request.user).data)
+
+    def patch(self, request):
+        from apps.accounts.serializers import AccountUpdateSerializer
+
+        ser = AccountUpdateSerializer(request.user, data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        return Response(UserSerializer(request.user).data)
+
+
+class ChangePasswordView(APIView):
+    """Change the password (old + new). On success, other devices are signed out
+    (their refresh tokens are revoked) and the caller gets a fresh token pair so
+    it stays signed in."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        from django.contrib.auth.forms import PasswordChangeForm
+
+        form = PasswordChangeForm(
+            request.user,
+            data={
+                "old_password": request.data.get("old_password", ""),
+                "new_password1": request.data.get("new_password1", ""),
+                "new_password2": request.data.get("new_password2", ""),
+            },
+        )
+        if not form.is_valid():
+            return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
+        form.save()
+        revoke_all_tokens(request.user)
+        return Response(issue_tokens(request.user))
+
+
+class LogoutAllView(APIView):
+    """Sign out of every session on every device (revoke all refresh tokens),
+    then hand the caller a fresh pair so this device stays signed in."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        revoked = revoke_all_tokens(request.user)
+        return Response({"revoked": revoked, **issue_tokens(request.user)})
+
+
+class AvatarView(APIView):
+    """Upload (POST, multipart ``avatar``) or remove (DELETE) the profile photo."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        from apps.accounts.avatars import AvatarError, save_avatar
+
+        try:
+            save_avatar(request.user, request.FILES.get("avatar"))
+        except AvatarError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(UserSerializer(request.user).data)
+
+    def delete(self, request):
+        if request.user.avatar:
+            request.user.avatar.delete(save=True)
+        return Response(UserSerializer(request.user).data)
