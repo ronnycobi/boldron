@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/api_exception.dart';
 import 'releases_repository.dart';
+
+const _storeProviders = {
+  'google_play': 'Google Play',
+  'apple_app_store': 'Apple App Store',
+  'huawei_appgallery': 'Huawei AppGallery',
+};
 
 /// Mobile Release Center (spec §18): the project's mobile apps and their
 /// per-store readiness. Live store submission stays gated on the backend until
@@ -97,19 +104,31 @@ class _AppCard extends StatelessWidget {
             Text('v${app.version} (${app.buildNumber})'
                 '${app.packageId.isNotEmpty ? ' · ${app.packageId}' : ''}'),
             const SizedBox(height: 10),
-            if (app.storeApps.isEmpty)
-              const Text('No stores configured yet.',
-                  style: TextStyle(fontSize: 12.5))
-            else
-              for (final s in app.storeApps)
-                ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.store_outlined),
-                  title: Text('${s['provider_label'] ?? s['provider']}'),
-                  subtitle: Text(
-                      'metadata ${s['metadata_status']} · review ${s['review_status']}'),
-                ),
+            for (final s in app.storeApps)
+              ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.store_outlined),
+                title: Text('${s['provider_label'] ?? s['provider']}'),
+                subtitle: Text(
+                    'metadata ${s['metadata_status']} · review ${s['review_status']}'),
+              ),
+            const SizedBox(height: 4),
+            const Text('Prepare a store listing',
+                style: TextStyle(fontSize: 12.5)),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              children: [
+                for (final entry in _storeProviders.entries)
+                  OutlinedButton(
+                    onPressed: () => context.push(
+                      '/mobile-apps/${app.id}/stores/${entry.key}/listing',
+                    ),
+                    child: Text(entry.value),
+                  ),
+              ],
+            ),
           ],
         ),
       ),

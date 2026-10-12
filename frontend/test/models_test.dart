@@ -3,6 +3,7 @@ import 'package:boldron_app/features/changes/changes_repository.dart';
 import 'package:boldron_app/features/commerce/commerce_repository.dart';
 import 'package:boldron_app/features/deployments/deployments_repository.dart';
 import 'package:boldron_app/features/projects/project_models.dart';
+import 'package:boldron_app/features/releases/releases_repository.dart';
 import 'package:boldron_app/features/support/support_repository.dart';
 import 'package:boldron_app/features/website/website_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -156,6 +157,38 @@ void main() {
     });
     expect(w.current!.version, 'v1.0.0');
     expect(w.domains.single.isLive, isFalse);
+  });
+
+  test('StoreListing parses metadata + screenshots', () {
+    final l = StoreListing.fromJson({
+      'provider': 'google_play',
+      'provider_label': 'Google Play',
+      'metadata': {
+        'app_name': 'My App',
+        'short_description': 'Short',
+        'full_description': 'Full',
+        'keywords': 'a, b',
+        'ai_generated': true,
+        'approved': false,
+        'source': 'detected-features',
+      },
+      'screenshots': [
+        {'id': 1, 'screen_name': 'Home', 'caption': 'The home screen', 'approved': false},
+      ],
+    });
+    expect(l.providerLabel, 'Google Play');
+    expect(l.metadata!.aiGenerated, isTrue);
+    expect(l.metadata!.approved, isFalse);
+    expect(l.screenshots.single.caption, 'The home screen');
+
+    final empty = StoreListing.fromJson({
+      'provider': 'apple_app_store',
+      'provider_label': 'Apple App Store',
+      'metadata': null,
+      'screenshots': [],
+    });
+    expect(empty.metadata, isNull);
+    expect(empty.screenshots, isEmpty);
   });
 
   test('Ticket parses thread messages', () {

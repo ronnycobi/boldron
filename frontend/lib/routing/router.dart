@@ -19,6 +19,7 @@ import '../features/deployments/deployments_screen.dart';
 import '../features/projects/project_detail_screen.dart';
 import '../features/projects/projects_screen.dart';
 import '../features/releases/releases_screen.dart';
+import '../features/releases/store_listing_screen.dart';
 import '../features/search/search_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/shell/app_shell.dart';
@@ -27,6 +28,12 @@ import '../features/team/team_screen.dart';
 import '../features/website/website_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
+
+const _storeLabels = {
+  'google_play': 'Google Play',
+  'apple_app_store': 'Apple App Store',
+  'huawei_appgallery': 'Huawei AppGallery',
+};
 
 int _idParam(GoRouterState state, String name) =>
     int.parse(state.pathParameters[name]!);
@@ -140,6 +147,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/projects/:id/releases',
         builder: (_, s) => ReleasesScreen(projectId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/mobile-apps/:appId/stores/:provider/listing',
+        builder: (_, s) {
+          final provider = s.pathParameters['provider']!;
+          return StoreListingScreen(
+            appId: _idParam(s, 'appId'),
+            provider: provider,
+            providerLabel: _storeLabels[provider] ?? provider,
+          );
+        },
       ),
 
       // --- org-level & cross-cutting routes ---
