@@ -1,12 +1,76 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../config/app_config.dart';
+import '../../core/api_exception.dart';
 import '../../core/providers.dart';
+import 'account_repository.dart';
+
+/// Builds an absolute image URL from the (possibly relative) avatar path the
+/// API returns, using the API host origin.
+String? _avatarUrl(String raw) {
+  if (raw.isEmpty) return null;
+  if (raw.startsWith('http')) return raw;
+  final origin = Uri.parse(AppConfig.apiBaseUrl).replace(path: '', query: '');
+  return '$origin$raw';
+}
 
 class AccountScreen extends ConsumerWidget {
   const AccountScreen({super.key});
+
+  Future<void> _changeAvatar(BuildContext context, WidgetRef ref) async {
+    final hasAvatar =
+        ref.read(authControllerProvider).user?.avatarUrl.isNotEmpty ?? false;
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Take photo'),
+              onTap: () => Navigator.pop(ctx, 'camera'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from gallery'),
+              onTap: () => Navigator.pop(ctx, 'gallery'),
+            ),
+            if (hasAvatar)
+              ListTile(
+                leading: const Icon(Icons.delete_outline),
+                title: const Text('Remove photo'),
+                onTap: () => Navigator.pop(ctx, 'remove'),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (choice == null) return;
+    final repo = ref.read(accountRepositoryProvider);
+    try {
+      if (choice == 'remove') {
+        ref.read(authControllerProvider.notifier).setUser(await repo.removeAvatar());
+        return;
+      }
+      final picked = await ImagePicker().pickImage(
+        source: choice == 'camera' ? ImageSource.camera : ImageSource.gallery,
+        maxWidth: 1024,
+        imageQuality: 85,
+      );
+      if (picked == null) return;
+      final user = await repo.uploadAvatar(picked.path);
+      ref.read(authControllerProvider.notifier).setUser(user);
+    } on ApiException catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -30,15 +94,35 @@ class AccountScreen extends ConsumerWidget {
               children: [
                 const SizedBox(height: 16),
                 Center(
-                  child: CircleAvatar(
-                    radius: 36,
-                    backgroundImage: user.avatarUrl.isNotEmpty
-                        ? NetworkImage(user.avatarUrl)
-                        : null,
-                    child: user.avatarUrl.isEmpty
-                        ? Text(user.initials,
-                            style: const TextStyle(fontSize: 24))
-                        : null,
+                  child: GestureDetector(
+                    onTap: () => _changeAvatar(context, ref),
+                    child: Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 36,
+                          backgroundImage: _avatarUrl(user.avatarUrl) != null
+                              ? NetworkImage(_avatarUrl(user.avatarUrl)!)
+                              : null,
+                          child: _avatarUrl(user.avatarUrl) == null
+                              ? Text(user.initials,
+                                  style: const TextStyle(fontSize: 24))
+                              : null,
+                        ),
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: CircleAvatar(
+                            radius: 12,
+                            backgroundColor:
+                                Theme.of(context).colorScheme.primary,
+                            child: Icon(Icons.edit,
+                                size: 14,
+                                color:
+                                    Theme.of(context).colorScheme.onPrimary),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -68,6 +152,11 @@ class AccountScreen extends ConsumerWidget {
                   ),
                 const Divider(),
                 const _SectionHeader('Manage'),
+                ListTile(
+                  leading: const Icon(Icons.manage_accounts_outlined),
+                  title: const Text('Account & security'),
+                  onTap: () => context.push('/account/security'),
+                ),
                 if (orgId != null)
                   ListTile(
                     leading: const Icon(Icons.credit_card),

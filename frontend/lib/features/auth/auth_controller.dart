@@ -96,6 +96,11 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
+  /// Update the cached user after an account operation returned a fresh copy.
+  void setUser(AuthUser user) {
+    state = state.copyWith(user: user);
+  }
+
   Future<bool> _run(Future<AuthUser> Function() action) async {
     state = state.copyWith(busy: true, clearError: true);
     try {

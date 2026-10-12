@@ -61,6 +61,20 @@ class ApiClient {
   Future<dynamic> delete(String path, {Object? body}) =>
       _send(() => _dio.delete(path, data: body));
 
+  /// Multipart upload of a single file field (e.g. an avatar). Goes through the
+  /// same auth/refresh interceptor as every other request.
+  Future<dynamic> postFile(
+    String path, {
+    required String field,
+    required String filePath,
+    String filename = 'upload.jpg',
+  }) async {
+    final form = FormData.fromMap({
+      field: await MultipartFile.fromFile(filePath, filename: filename),
+    });
+    return _send(() => _dio.post(path, data: form));
+  }
+
   // --- interceptors --------------------------------------------------------
 
   Future<void> _onRequest(

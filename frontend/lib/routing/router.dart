@@ -8,6 +8,7 @@ import '../features/activity/activity_screen.dart';
 import '../features/auth/auth_controller.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/register_screen.dart';
+import '../features/account/account_security_screen.dart';
 import '../features/backups/backups_screen.dart';
 import '../features/billing/billing_screen.dart';
 import '../features/build/build_screen.dart';
@@ -165,6 +166,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/settings',
         builder: (_, __) => const SettingsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/account/security',
+        builder: (_, __) => const AccountSecurityScreen(),
       ),
     ],
   );
