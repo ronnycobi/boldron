@@ -35,8 +35,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
+          # Pin the exact SDK the project is developed against. Do NOT also set
+          # `channel` — combining the two makes the action fetch the latest
+          # stable instead of this version, which fails analysis on API that
+          # changed after 3.19 (e.g. CardTheme -> CardThemeData).
           flutter-version: "3.19.6"
-          channel: stable
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
