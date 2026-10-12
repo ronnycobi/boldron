@@ -8,6 +8,7 @@ exposed — only the tokens and a minimal user payload.
 """
 from __future__ import annotations
 
+from django.conf import settings
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -19,6 +20,17 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 
 from apps.accounts.serializers import UserSerializer
 from apps.core import throttle
+
+
+def issue_tokens(user) -> dict:
+    """The standard signed-in payload: a fresh token pair plus the user, so a
+    client can store the tokens and render the authenticated UI in one step."""
+    refresh = RefreshToken.for_user(user)
+    return {
+        "access": str(refresh.access_token),
+        "refresh": str(refresh),
+        "user": UserSerializer(user).data,
+    }
 
 
 class MobileTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -81,3 +93,146 @@ class LogoutView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         return Response(status=status.HTTP_205_RESET_CONTENT)
+
+
+class RegisterView(APIView):
+    """Self-serve sign-up. Validates with the same RegistrationForm + password
+    policy as the web, runs the shared onboarding (org + owner + free credits +
+    verification email), and returns a token pair so the app is signed in at
+    once. The account starts unverified, exactly like the web flow."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        from apps.accounts.forms import RegistrationForm
+        from apps.accounts.registration import onboard_user
+
+        ip = throttle.client_ip(request)
+        retry = throttle.SIGNUP_IP.retry_after(ip)
+        if retry:
+            return Response(
+                {"detail": throttle.too_many_message(retry)},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+        throttle.SIGNUP_IP.hit(ip)
+
+        form = RegistrationForm(data=request.data)
+        if not form.is_valid():
+            return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
+        user = form.save()
+        onboard_user(user, org_name=form.cleaned_data.get("org_name", ""), request=request)
+        return Response(issue_tokens(user), status=status.HTTP_201_CREATED)
+
+
+class VerifyEmailView(APIView):
+    """Confirm an email address from the signed token in the verification link
+    (the mobile app captures it from the deep link and posts it here)."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        from apps.accounts import verification
+
+        token = (request.data.get("token") or "").strip()
+        if not token:
+            return Response(
+                {"detail": "A verification token is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        user, reason = verification.verify(token)
+        if user is None:
+            msg = (
+                "This verification link has expired — request a new one."
+                if reason == "expired"
+                else "This verification link is invalid."
+            )
+            return Response({"detail": msg}, status=status.HTTP_400_BAD_REQUEST)
+        verification.mark_verified(user)
+        return Response({"detail": "Your email address is verified."})
+
+
+class ResendVerificationView(APIView):
+    """Re-send the verification email to the signed-in user."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        from apps.accounts import verification
+
+        if request.user.email_verified:
+            return Response({"detail": "Your email is already verified."})
+        verification.send_verification(request, request.user)
+        return Response({"detail": "Verification email sent — check your inbox."})
+
+
+class PasswordResetRequestView(APIView):
+    """Start a password reset. Sends the same branded, single-use reset email as
+    the web flow. Always returns the same response, so it never reveals whether
+    an address has an account (no enumeration)."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        from django.contrib.auth.forms import PasswordResetForm
+        from django.contrib.auth.tokens import default_token_generator
+
+        email = (request.data.get("email") or "").strip().lower()
+        ip = throttle.client_ip(request)
+        retry = throttle.reset_retry_after(email, ip)
+        if retry:
+            return Response(
+                {"detail": throttle.too_many_message(retry)},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+        throttle.reset_record(email, ip)
+
+        form = PasswordResetForm({"email": email})
+        if form.is_valid():
+            form.save(
+                use_https=request.is_secure(),
+                token_generator=default_token_generator,
+                email_template_name="dashboard/password_reset_email.txt",
+                subject_template_name="dashboard/password_reset_subject.txt",
+                html_email_template_name="dashboard/password_reset_email.html",
+                extra_email_context={"app_name": settings.APP_NAME},
+                request=request,
+            )
+        return Response(
+            {"detail": "If that email has an account, a reset link is on its way."}
+        )
+
+
+class PasswordResetConfirmView(APIView):
+    """Complete a password reset from the uid + token in the emailed link (the
+    same token the web page uses) and a new password."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        from django.contrib.auth.forms import SetPasswordForm
+        from django.contrib.auth.tokens import default_token_generator
+        from django.utils.http import urlsafe_base64_decode
+
+        from apps.accounts.models import User
+
+        uidb64 = (request.data.get("uid") or "").strip()
+        token = (request.data.get("token") or "").strip()
+        try:
+            uid = urlsafe_base64_decode(uidb64).decode()
+            user = User.objects.get(pk=uid)
+        except (ValueError, TypeError, OverflowError, User.DoesNotExist):
+            user = None
+        if user is None or not default_token_generator.check_token(user, token):
+            return Response(
+                {"detail": "This reset link is invalid or has expired."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        form = SetPasswordForm(user, data=request.data)
+        if not form.is_valid():
+            return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
+        form.save()
+        return Response({"detail": "Your password has been reset — you can sign in now."})

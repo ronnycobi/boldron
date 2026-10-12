@@ -165,3 +165,154 @@ class JwtAuthEndpointTests(TestCase):
             content_type="application/json",
         )
         self.assertEqual(locked.status_code, 429)
+
+
+class RegistrationApiTests(TestCase):
+    def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
+
+    def _register(self, **over):
+        payload = {
+            "full_name": "New Person",
+            "email": "new@example.com",
+            "org_name": "New Co",
+            "password1": "sup3r-s3cret-pw",
+            "password2": "sup3r-s3cret-pw",
+        }
+        payload.update(over)
+        return self.client.post(
+            reverse("accounts:register"), data=payload, content_type="application/json"
+        )
+
+    def test_register_creates_user_org_and_returns_tokens(self):
+        from apps.credits.services import get_account
+        from apps.organizations.models import Organization
+
+        resp = self._register()
+        self.assertEqual(resp.status_code, 201)
+        body = resp.json()
+        self.assertIn("access", body)
+        self.assertIn("refresh", body)
+        self.assertEqual(body["user"]["email"], "new@example.com")
+        self.assertFalse(body["user"]["email_verified"])  # starts unverified
+        # Onboarding ran: the org exists, the user owns it, with a free account.
+        self.assertEqual(len(body["user"]["organizations"]), 1)
+        org = Organization.objects.get(name="New Co")
+        self.assertEqual(org.memberships.first().role, "owner")
+        self.assertIsNotNone(get_account(org))
+
+    def test_register_rejects_duplicate_email(self):
+        User.objects.create_user(email="new@example.com", password="x")
+        resp = self._register()
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("email", resp.json())
+
+    def test_register_rejects_password_mismatch(self):
+        resp = self._register(password2="different-pw-entirely")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("password2", resp.json())
+
+    def test_issued_token_authenticates(self):
+        access = self._register().json()["access"]
+        me = self.client.get(reverse("accounts:me"), HTTP_AUTHORIZATION=f"Bearer {access}")
+        self.assertEqual(me.status_code, 200)
+        self.assertEqual(me.json()["email"], "new@example.com")
+
+
+class EmailVerificationApiTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(email="verify@example.com", password="pw12345!")
+
+    def test_valid_token_verifies(self):
+        from apps.accounts import verification
+
+        token = verification.make_token(self.user)
+        resp = self.client.post(
+            reverse("accounts:verify-email"),
+            data={"token": token},
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.email_verified)
+
+    def test_invalid_token_rejected(self):
+        resp = self.client.post(
+            reverse("accounts:verify-email"),
+            data={"token": "garbage"},
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 400)
+
+    def test_resend_requires_auth(self):
+        resp = self.client.post(reverse("accounts:resend-verification"))
+        self.assertEqual(resp.status_code, 401)
+
+    def test_resend_for_authenticated_user(self):
+        self.client.force_login(self.user)
+        resp = self.client.post(reverse("accounts:resend-verification"))
+        self.assertEqual(resp.status_code, 200)
+
+
+class PasswordResetApiTests(TestCase):
+    def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
+        self.user = User.objects.create_user(email="reset@example.com", password="old-pw-12345!")
+
+    def test_request_is_silent_about_unknown_emails(self):
+        # Known and unknown addresses get the same response (no enumeration).
+        known = self.client.post(
+            reverse("accounts:password-reset"),
+            data={"email": "reset@example.com"},
+            content_type="application/json",
+        )
+        unknown = self.client.post(
+            reverse("accounts:password-reset"),
+            data={"email": "nobody@example.com"},
+            content_type="application/json",
+        )
+        self.assertEqual(known.status_code, 200)
+        self.assertEqual(unknown.status_code, 200)
+        self.assertEqual(known.json(), unknown.json())
+
+    def test_confirm_sets_a_new_password(self):
+        from django.contrib.auth.tokens import default_token_generator
+        from django.utils.encoding import force_bytes
+        from django.utils.http import urlsafe_base64_encode
+
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        token = default_token_generator.make_token(self.user)
+        resp = self.client.post(
+            reverse("accounts:password-reset-confirm"),
+            data={
+                "uid": uid,
+                "token": token,
+                "new_password1": "brand-new-pw-999!",
+                "new_password2": "brand-new-pw-999!",
+            },
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("brand-new-pw-999!"))
+
+    def test_confirm_rejects_a_bad_token(self):
+        from django.utils.encoding import force_bytes
+        from django.utils.http import urlsafe_base64_encode
+
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        resp = self.client.post(
+            reverse("accounts:password-reset-confirm"),
+            data={
+                "uid": uid,
+                "token": "bad-token",
+                "new_password1": "brand-new-pw-999!",
+                "new_password2": "brand-new-pw-999!",
+            },
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 400)

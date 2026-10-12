@@ -11,9 +11,8 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.shortcuts import redirect, render
 
-from apps.credits.services import ensure_account, plans
+from apps.credits.services import plans
 from apps.marketing.models import ContactMessage
-from apps.organizations.models import Organization, Role
 from apps.technology.registry import Category
 from apps.technology.registry import registry as tech_registry
 
@@ -231,16 +230,10 @@ def signup(request):
             return render(request, "marketing/signup.html", ctx)
         throttle.SIGNUP_IP.hit(ip)  # count this attempt toward the hourly cap
     if request.method == "POST" and form.is_valid():
+        from apps.accounts.registration import onboard_user
         user = form.save()
-        default_name = f"{user.full_name or user.email.split('@')[0]}'s workspace"
-        org = Organization.objects.create(
-            name=form.cleaned_data.get("org_name") or default_name, created_by=user,
-        )
-        org.add_member(user, role=Role.OWNER)
-        ensure_account(org, plan="free")  # start with free-tier credits
+        onboard_user(user, org_name=form.cleaned_data.get("org_name", ""), request=request)
         login(request, user, backend="django.contrib.auth.backends.ModelBackend")
-        from apps.accounts import verification
-        verification.send_verification(request, user)  # confirm the address
         if idea:
             request.session["build_idea"] = idea[:2000]  # carried into the builder
         return redirect("dashboard:home")
