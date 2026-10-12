@@ -11,9 +11,11 @@ import '../features/auth/register_screen.dart';
 import '../features/backups/backups_screen.dart';
 import '../features/build/build_screen.dart';
 import '../features/changes/changes_screen.dart';
+import '../features/commerce/commerce_screen.dart';
 import '../features/deployments/deployments_screen.dart';
 import '../features/projects/project_detail_screen.dart';
 import '../features/projects/projects_screen.dart';
+import '../features/releases/releases_screen.dart';
 import '../features/shell/app_shell.dart';
 import '../features/website/website_screen.dart';
 
@@ -116,6 +118,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/projects/:id/backups',
         builder: (_, s) => BackupsScreen(projectId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/projects/:id/commerce',
+        builder: (_, s) => CommerceScreen(projectId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/projects/:id/releases',
+        builder: (_, s) => ReleasesScreen(projectId: _idParam(s, 'id')),
       ),
     ],
   );

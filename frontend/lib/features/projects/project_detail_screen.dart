@@ -16,6 +16,8 @@ const List<_Area> _areas = [
   (icon: Icons.tune, label: 'Request a change', path: 'changes'),
   (icon: Icons.rocket_launch_outlined, label: 'Deployments', path: 'deployments'),
   (icon: Icons.public, label: 'Website', path: 'website'),
+  (icon: Icons.storefront_outlined, label: 'Store', path: 'commerce'),
+  (icon: Icons.phone_iphone, label: 'Mobile releases', path: 'releases'),
   (icon: Icons.settings_backup_restore, label: 'Backups', path: 'backups'),
 ];
 
