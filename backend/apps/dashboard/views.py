@@ -409,6 +409,9 @@ def project(request, pk):
         "twin": twin, "changes": proj.changes.all()[:8],
         "backups": proj.backups.all()[:10],
         "credits": _project_credit_summary(proj),
+        # True when any build step ran on the offline fallback — i.e. no live AI
+        # model was reachable, so the output is a placeholder, not real code.
+        "ran_on_stub": proj.agent_tasks.filter(model__istartswith="stub").exists(),
     })
 
 

@@ -737,3 +737,26 @@ class ProjectCreditDisplayTests(TestCase):
         CreditAccount.objects.filter(organization=self.org).delete()
         r = self.client.get(reverse("dashboard:project", args=[self.project.id]))
         self.assertNotContains(r, "credits remaining")
+
+
+class StubBuildWarningTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(email="sw@x.com", password="pw12345678", email_verified=True)
+        self.org = Organization.objects.create(name="Acme")
+        self.org.add_member(self.owner, role=Role.OWNER)
+        self.project = Project.objects.create(organization=self.org, name="Shop", created_by=self.owner)
+        self.client.force_login(self.owner)
+
+    def _task(self, model):
+        AgentTask.objects.create(project=self.project, agent_key="requirements",
+                                 status="completed", model=model, created_by=self.owner)
+
+    def test_warns_when_a_step_ran_on_the_stub(self):
+        self._task("stub-1")
+        r = self.client.get(reverse("dashboard:project", args=[self.project.id]))
+        self.assertContains(r, "offline demo mode")
+
+    def test_no_warning_when_a_real_model_was_used(self):
+        self._task("gemini-flash-latest")
+        r = self.client.get(reverse("dashboard:project", args=[self.project.id]))
+        self.assertNotContains(r, "offline demo mode")

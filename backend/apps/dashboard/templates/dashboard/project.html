@@ -31,6 +31,17 @@
   <script>setTimeout(function(){ location.reload(); }, 4000);</script>
   {% endif %}
 
+  {% if ran_on_stub and state != "Building" %}
+  <div class="card" style="border-color:rgba(245,196,84,.45);background:rgba(245,196,84,.07);margin-bottom:12px">
+    <strong style="color:#f5c454">⚠ This build ran in offline demo mode</strong>
+    <p class="muted" style="font-size:12.5px;margin:6px 0 0">
+      No live AI model was available, so {{ app_name }} ran its offline fallback — the steps
+      completed but produced <strong style="color:var(--ink2)">placeholder output, not real code</strong>.
+      Once a model is connected, rebuild to generate the real app.
+    </p>
+  </div>
+  {% endif %}
+
   {% if capabilities %}
   <div class="card" style="margin-bottom:4px">
     <h2 style="margin-top:0">Built-in capabilities</h2>
