@@ -143,3 +143,45 @@ class DeploymentAPITests(TestCase):
         self.client.force_login(self.alice)
         resp = self.client.get(self._list_url(self.foreign))
         self.assertEqual(resp.status_code, 404)
+
+
+class DeploymentMobileApiTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(email="o@x.com", password="pw12345!")
+        self.org = Organization.objects.create(name="Acme")
+        self.org.add_member(self.owner, role=Role.OWNER)
+        self.project = Project.objects.create(organization=self.org, name="App")
+        _seed(self.project)
+        self.dep = request_deploy(
+            project=self.project, environment="staging", provider="local",
+            created_by=self.owner,
+        )
+
+    def _auth(self, user):
+        from apps.accounts.api import issue_tokens
+
+        return {"HTTP_AUTHORIZATION": f"Bearer {issue_tokens(user)['access']}"}
+
+    def test_environment_summary_lists_all_envs(self):
+        resp = self.client.get(
+            reverse("deployments:environments", args=[self.project.id]), **self._auth(self.owner)
+        )
+        self.assertEqual(resp.status_code, 200)
+        envs = {e["environment"]: e for e in resp.json()["environments"]}
+        self.assertEqual(set(envs), {"development", "staging", "production"})
+        self.assertIsNotNone(envs["staging"]["latest"])  # has the deployment
+        self.assertIsNone(envs["development"]["latest"])  # none yet
+
+    def test_deployment_detail_for_member(self):
+        resp = self.client.get(
+            reverse("deployments:detail", args=[self.dep.id]), **self._auth(self.owner)
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()["environment"], "staging")
+
+    def test_deployment_detail_hidden_from_outsider(self):
+        outsider = User.objects.create_user(email="z@x.com", password="pw12345!")
+        resp = self.client.get(
+            reverse("deployments:detail", args=[self.dep.id]), **self._auth(outsider)
+        )
+        self.assertEqual(resp.status_code, 404)

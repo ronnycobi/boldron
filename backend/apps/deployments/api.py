@@ -68,3 +68,38 @@ class DeploymentRunView(_DeploymentActionView):
         deployment = self.get_deployment()
         run(deployment)
         return Response(DeploymentSerializer(deployment).data)
+
+
+class DeploymentDetailView(APIView):
+    """One deployment — poll this for live status, url and log while it runs."""
+
+    def get(self, request, pk):
+        deployment = get_object_or_404(Deployment, pk=pk)
+        if deployment.project.organization not in organizations_for(request.user):
+            from django.http import Http404
+
+            raise Http404
+        return Response(DeploymentSerializer(deployment).data)
+
+
+class EnvironmentSummaryView(APIView):
+    """The deploy screen: each environment with its latest deployment (status,
+    URL, when), newest first. Read-only aggregation over real deployments."""
+
+    def get(self, request, project_pk):
+        from apps.deployments.models import DeployEnvironment
+
+        project = project_for_read(request.user, project_pk)
+        environments = []
+        for env, label in DeployEnvironment.choices:
+            latest = (
+                project.deployments.filter(environment=env).order_by("-created_at").first()
+            )
+            environments.append(
+                {
+                    "environment": env,
+                    "label": label,
+                    "latest": DeploymentSerializer(latest).data if latest else None,
+                }
+            )
+        return Response({"project": project.id, "environments": environments})
