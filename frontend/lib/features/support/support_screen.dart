@@ -45,8 +45,8 @@ class SupportScreen extends ConsumerWidget {
   }
 
   Future<void> _create(BuildContext context, WidgetRef ref) async {
-    final orgs = ref.read(authControllerProvider).user?.organizations ?? [];
-    if (orgs.isEmpty) return;
+    final orgId = ref.read(activeOrgProvider);
+    if (orgId == null) return;
     final subject = TextEditingController();
     final body = TextEditingController();
     final ok = await showDialog<bool>(
@@ -79,7 +79,7 @@ class SupportScreen extends ConsumerWidget {
     if (ok == true && subject.text.trim().isNotEmpty) {
       try {
         await ref.read(supportRepositoryProvider).create(
-              organization: orgs.first.id,
+              organization: orgId,
               subject: subject.text.trim(),
               body: body.text.trim(),
             );

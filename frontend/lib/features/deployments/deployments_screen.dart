@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/api_exception.dart';
 import 'deployments_repository.dart';
@@ -97,11 +98,18 @@ class _EnvCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 4),
-            Text(
-              latest == null
-                  ? 'Never deployed'
-                  : (latest.url.isNotEmpty ? latest.url : 'Last: ${latest.status}'),
-              style: Theme.of(context).textTheme.bodySmall,
+            InkWell(
+              onTap: latest == null
+                  ? null
+                  : () => context.push('/deployments/${latest.id}'),
+              child: Text(
+                latest == null
+                    ? 'Never deployed'
+                    : (latest.url.isNotEmpty
+                        ? latest.url
+                        : 'Last: ${latest.status} — view log'),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ),
             const SizedBox(height: 10),
             Align(

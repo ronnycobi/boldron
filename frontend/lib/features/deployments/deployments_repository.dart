@@ -9,6 +9,8 @@ class Deployment {
   final String provider;
   final String status;
   final String url;
+  final String log;
+  final bool approved;
   final String createdAt;
 
   const Deployment({
@@ -17,6 +19,8 @@ class Deployment {
     required this.provider,
     required this.status,
     required this.url,
+    required this.log,
+    required this.approved,
     required this.createdAt,
   });
 
@@ -26,6 +30,8 @@ class Deployment {
         provider: (j['provider'] ?? '') as String,
         status: (j['status'] ?? '') as String,
         url: (j['url'] ?? '') as String,
+        log: (j['log'] ?? '') as String,
+        approved: (j['approved'] ?? false) as bool,
         createdAt: (j['created_at'] ?? '') as String,
       );
 }
@@ -68,6 +74,21 @@ class DeploymentsRepository {
         body: {'environment': environment, 'provider': provider});
     return Deployment.fromJson(data as Map<String, dynamic>);
   }
+
+  Future<Deployment> deployment(int id) async {
+    final data = await _api.get('deployments/$id/');
+    return Deployment.fromJson(data as Map<String, dynamic>);
+  }
+
+  Future<Deployment> run(int id) async {
+    final data = await _api.post('deployments/$id/run/');
+    return Deployment.fromJson(data as Map<String, dynamic>);
+  }
+
+  Future<Deployment> approve(int id) async {
+    final data = await _api.post('deployments/$id/approve/');
+    return Deployment.fromJson(data as Map<String, dynamic>);
+  }
 }
 
 final deploymentsRepositoryProvider = Provider<DeploymentsRepository>(
@@ -77,4 +98,9 @@ final deploymentsRepositoryProvider = Provider<DeploymentsRepository>(
 final environmentsProvider =
     FutureProvider.family<List<EnvironmentSummary>, int>((ref, projectId) {
   return ref.watch(deploymentsRepositoryProvider).environments(projectId);
+});
+
+final deploymentProvider =
+    FutureProvider.family<Deployment, int>((ref, id) {
+  return ref.watch(deploymentsRepositoryProvider).deployment(id);
 });

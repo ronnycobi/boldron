@@ -14,6 +14,7 @@ import '../features/billing/billing_screen.dart';
 import '../features/build/build_screen.dart';
 import '../features/changes/changes_screen.dart';
 import '../features/commerce/commerce_screen.dart';
+import '../features/deployments/deployment_detail_screen.dart';
 import '../features/deployments/deployments_screen.dart';
 import '../features/projects/project_detail_screen.dart';
 import '../features/projects/projects_screen.dart';
@@ -114,6 +115,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/projects/:id/deployments',
         builder: (_, s) => DeploymentsScreen(projectId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/deployments/:id',
+        builder: (_, s) => DeploymentDetailScreen(deploymentId: _idParam(s, 'id')),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,

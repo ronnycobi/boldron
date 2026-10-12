@@ -75,9 +75,7 @@ class AccountScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authControllerProvider.select((s) => s.user));
-    final orgId = user?.organizations.isNotEmpty == true
-        ? user!.organizations.first.id
-        : null;
+    final orgId = ref.watch(activeOrgProvider);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Account'),
@@ -145,8 +143,15 @@ class AccountScreen extends ConsumerWidget {
                 const SizedBox(height: 20),
                 const _SectionHeader('Organizations'),
                 for (final org in user.organizations)
-                  ListTile(
-                    leading: const Icon(Icons.business_outlined),
+                  RadioListTile<int>(
+                    value: org.id,
+                    groupValue: orgId,
+                    onChanged: user.organizations.length > 1
+                        ? (v) {
+                            if (v != null) setActiveOrg(ref, v);
+                          }
+                        : null,
+                    secondary: const Icon(Icons.business_outlined),
                     title: Text(org.name),
                     subtitle: Text(org.role),
                   ),

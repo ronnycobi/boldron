@@ -43,3 +43,20 @@ final authControllerProvider =
   ref.listen<int>(sessionExpiredProvider, (_, __) => controller.onSessionExpired());
   return controller;
 });
+
+/// The org the user has explicitly selected in the switcher (null = not chosen).
+final _selectedOrgProvider = StateProvider<int?>((ref) => null);
+
+/// The effective active organization id: the user's explicit choice if it is
+/// still one of their orgs, otherwise their first org (null if they have none).
+final activeOrgProvider = Provider<int?>((ref) {
+  final orgs = ref.watch(authControllerProvider.select((s) => s.user?.organizations)) ?? [];
+  if (orgs.isEmpty) return null;
+  final selected = ref.watch(_selectedOrgProvider);
+  if (selected != null && orgs.any((o) => o.id == selected)) return selected;
+  return orgs.first.id;
+});
+
+/// Call to switch the active organization.
+void setActiveOrg(WidgetRef ref, int orgId) =>
+    ref.read(_selectedOrgProvider.notifier).state = orgId;
