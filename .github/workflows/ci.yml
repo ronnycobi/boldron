@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend (Django)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: System checks
+        run: python backend/manage.py check
+      - name: Tests (hermetic — no real API keys)
+        run: python backend/manage.py test
+        env:
+          DJANGO_DEBUG: "1"
+
+  frontend:
+    name: Mobile client (Flutter)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.19.6"
+          channel: stable
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test

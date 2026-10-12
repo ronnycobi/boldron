@@ -1,16 +1,53 @@
-# boldron_app
+# Mobile client (`frontend/`)
 
-A new Flutter project.
+A Flutter client of the platform — a first-class consumer of the same backend
+API the web app uses (see [`../docs/MOBILE_API.md`](../docs/MOBILE_API.md)). It
+owns presentation, local state and mobile interaction only; all business logic
+stays server-side.
 
-## Getting Started
+## Architecture
 
-This project is a starting point for a Flutter application.
+```
+UI (screens)  →  Riverpod controllers/providers  →  repositories  →  ApiClient  →  secure token storage
+```
 
-A few resources to get you started if this is your first Flutter project:
+- `lib/config/` — compile-time config: branding + API base (all via `--dart-define`).
+- `lib/core/` — `ApiClient` (dio: Bearer auth, single-flight token refresh on 401,
+  typed `ApiException`), `TokenStorage` (Keychain/Keystore), the Riverpod graph.
+- `lib/features/<area>/` — one folder per area: models, repository, provider(s), screens.
+- `lib/routing/` — `go_router` with an auth-gated redirect; detail/area screens are
+  pushed full-screen on the root navigator and are deep-linkable.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+Nothing hard-codes a product name; branding comes from `AppConfig` (spec §43).
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Run
+
+```bash
+flutter pub get
+flutter run --dart-define=API_BASE_URL=http://localhost:8020/api/v1
+```
+
+- iOS simulator reaches the host at `localhost`.
+- Android emulator must use `--dart-define=API_BASE_URL=http://10.0.2.2:8020/api/v1`.
+
+### Branding (per white-label build)
+
+```bash
+flutter build apk \
+  --dart-define=APP_NAME="Acme Studio" \
+  --dart-define=API_BASE_URL=https://api.acme.com/api/v1 \
+  --dart-define=APP_SUPPORT_EMAIL=help@acme.com
+```
+
+Also change the native bundle id / `DEVELOPMENT_TEAM` (iOS) and `applicationId`
+(Android) for a real release; `flutter create` stamped local defaults.
+
+## Test & analyze
+
+```bash
+flutter analyze
+flutter test
+```
+
+`ApiClient` refresh/retry/expiry and the model serialization layer are covered;
+run both before committing (CI runs them too).
