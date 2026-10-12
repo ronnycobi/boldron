@@ -81,6 +81,23 @@ void main() {
     expect(data['email'], 'a@b.com');
   });
 
+  test('normalizes a base URL without a trailing slash', () async {
+    // Regression: base ".../api/v1" + "auth/register/" must NOT fuse into
+    // ".../api/v1auth/register/" (dio concatenates raw).
+    final tokens = FakeTokenStorage(access: 'abc', refresh: 'r1');
+    final main = ScriptedAdapter({'POST auth/register/': [_Resp(200, {'ok': true})]});
+    final mainDio = Dio()..httpClientAdapter = main;
+    final api = ApiClient(
+      tokens: tokens,
+      dio: mainDio,
+      refreshDio: Dio()..httpClientAdapter = ScriptedAdapter({'POST x': [_Resp(200, {})]}),
+      baseUrl: 'http://test/api/v1', // no trailing slash
+    );
+    await api.post('auth/register/', body: {});
+    expect(main.calls.single, 'POST auth/register/');
+    expect(mainDio.options.baseUrl, endsWith('/'));
+  });
+
   test('refreshes the access token on 401 and retries once', () async {
     final tokens = FakeTokenStorage(access: 'expired', refresh: 'r1');
     final main = ScriptedAdapter({

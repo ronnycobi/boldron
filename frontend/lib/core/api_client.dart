@@ -31,7 +31,11 @@ class ApiClient {
   })  : _tokens = tokens,
         _dio = dio ?? Dio(),
         _refreshDio = refreshDio ?? Dio() {
-    final base = baseUrl ?? AppConfig.apiBaseUrl;
+    // Dio joins baseUrl + path by raw concatenation, so the base MUST end with
+    // a "/" or the last segment fuses with the path (…/api/v1 + auth/ →
+    // …/api/v1auth/). Normalize defensively so any configured base works.
+    final raw = baseUrl ?? AppConfig.apiBaseUrl;
+    final base = raw.endsWith('/') ? raw : '$raw/';
     for (final d in [_dio, _refreshDio]) {
       d.options
         ..baseUrl = base

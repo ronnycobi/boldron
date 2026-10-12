@@ -27,9 +27,10 @@ class AppConfig {
   // --- Backend ------------------------------------------------------------
   /// Platform API base, e.g. https://api.example.com/api/v1
   /// Defaults to a local dev server (Android emulator uses 10.0.2.2).
+  /// Must end with a trailing slash (the API client normalizes it either way).
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://localhost:8020/api/v1',
+    defaultValue: 'http://localhost:8020/api/v1/',
   );
 
   /// Deep-link scheme for push/notification routing (spec §37).
