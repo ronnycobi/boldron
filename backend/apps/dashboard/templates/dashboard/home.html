@@ -16,11 +16,44 @@
     .starters button:hover{color:#fff;border-color:var(--brand)}
     .starters .lbl{width:100%;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px}
     .pcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+    .readystrip{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;
+      font-size:12.5px;padding:7px 14px;border-radius:99px;margin:0 auto 16px;border:1px solid var(--line2)}
+    .readystrip .dot{width:8px;height:8px;border-radius:99px;flex:none}
+    .readystrip.ok{color:#34d399;border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.08)}
+    .readystrip.ok .dot{background:#34d399;box-shadow:0 0 8px #34d399}
+    .readystrip.warn{color:#f5c454;border-color:rgba(245,196,84,.4);background:rgba(245,196,84,.08)}
+    .readystrip.warn .dot{background:#f5c454}
+    .readystrip.muted{color:var(--muted)}
+    .readystrip.muted .dot{background:var(--muted)}
+    .readystrip .recheck{width:auto;background:none;border:none;color:inherit;opacity:.8;
+      text-decoration:underline;cursor:pointer;font-size:12px;padding:0 0 0 4px;font-weight:600}
+    .readystrip .recheck:hover{opacity:1}
   </style>
 
   <div class="builder">
     <h1>What do you want to build?</h1>
     <p class="sub">Describe it in your own words. {{ app_name }} turns your idea into working software.</p>
+
+    {% if readiness.state == "ready" %}
+      <div class="readystrip ok">
+        <span class="dot"></span> Real generation ready{% if readiness.provider %} · {{ readiness.provider }}{% endif %}
+        <form method="post" style="display:inline"><input type="hidden" name="action" value="check_models">{% csrf_token %}<button class="recheck" type="submit">Re-check</button></form>
+      </div>
+    {% elif readiness.state == "no_credit" %}
+      <div class="readystrip warn">
+        <span class="dot"></span> Models connected, but none can build right now — a build would run in offline demo mode.
+        <form method="post" style="display:inline"><input type="hidden" name="action" value="check_models">{% csrf_token %}<button class="recheck" type="submit">Check again</button></form>
+      </div>
+    {% elif readiness.state == "none" %}
+      <div class="readystrip warn">
+        <span class="dot"></span> No AI model connected — builds run in offline demo mode until an API key is set.
+      </div>
+    {% else %}
+      <div class="readystrip muted">
+        <span class="dot"></span> Check whether a model can build before you start.
+        <form method="post" style="display:inline"><input type="hidden" name="action" value="check_models">{% csrf_token %}<button class="recheck" type="submit">Check models</button></form>
+      </div>
+    {% endif %}
 
     <form method="post" id="buildform">
       {% csrf_token %}

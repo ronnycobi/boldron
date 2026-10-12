@@ -300,3 +300,70 @@ class GenerationStatusTests(SimpleTestCase):
             s = generation_status()
         self.assertTrue(s["live"])
         self.assertEqual(s["provider"], "openai")
+
+
+class BuildReadinessTests(SimpleTestCase):
+    """The pre-build balance check: probe connected providers, not just keys."""
+
+    def _provider(self, name, ok):
+        from apps.ai_providers.base import ProviderUnavailable
+        p = mock.Mock()
+        p.name = name
+        if ok:
+            p.complete.return_value = mock.Mock()
+        else:
+            p.complete.side_effect = ProviderUnavailable(f"{name}: no usable credit")
+        return p
+
+    def _preflight(self, providers):
+        # Force a real probe path even though RUNNING_TESTS short-circuits it:
+        # patch live_providers and call the internal prober directly.
+        from apps.ai_providers.registry import _probe_provider
+        checked = [_probe_provider(p) for p in providers]
+        ready = next((c["name"] for c in checked if c["ok"]), None)
+        return {"ready": ready is not None, "provider": ready,
+                "checked": checked, "probed": True, "stale": False}
+
+    def test_ready_when_a_probe_succeeds(self):
+        providers = [self._provider("anthropic", ok=False), self._provider("gemini", ok=True)]
+        pf = self._preflight(providers)
+        self.assertTrue(pf["ready"])
+        self.assertEqual(pf["provider"], "gemini")
+
+    def test_no_credit_when_every_probe_fails(self):
+        providers = [self._provider("anthropic", ok=False), self._provider("openai", ok=False)]
+        pf = self._preflight(providers)
+        self.assertFalse(pf["ready"])
+        self.assertIsNone(pf["provider"])
+        self.assertTrue(all(not c["ok"] for c in pf["checked"]))
+
+    def test_build_readiness_none_when_no_live_provider(self):
+        from apps.ai_providers.registry import build_readiness
+        with mock.patch("apps.ai_providers.registry.live_providers", return_value=[]):
+            r = build_readiness(probe=False)
+        self.assertEqual(r["state"], "none")
+        self.assertFalse(r["ready"])
+
+    def test_build_readiness_ready_from_probe(self):
+        from apps.ai_providers.registry import build_readiness
+        good = self._provider("gemini", ok=True)
+        with mock.patch("apps.ai_providers.registry.live_providers", return_value=[good]), \
+             mock.patch("apps.ai_providers.registry.preflight",
+                        return_value={"ready": True, "provider": "gemini",
+                                      "checked": [{"name": "gemini", "ok": True, "reason": ""}],
+                                      "probed": True, "stale": False}):
+            r = build_readiness(force=True)
+        self.assertEqual(r["state"], "ready")
+        self.assertEqual(r["provider"], "gemini")
+
+    def test_build_readiness_no_credit_from_probe(self):
+        from apps.ai_providers.registry import build_readiness
+        bad = self._provider("anthropic", ok=False)
+        with mock.patch("apps.ai_providers.registry.live_providers", return_value=[bad]), \
+             mock.patch("apps.ai_providers.registry.preflight",
+                        return_value={"ready": False, "provider": None,
+                                      "checked": [{"name": "anthropic", "ok": False, "reason": "x"}],
+                                      "probed": True, "stale": False}):
+            r = build_readiness(force=True)
+        self.assertEqual(r["state"], "no_credit")
+        self.assertFalse(r["ready"])

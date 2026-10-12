@@ -292,6 +292,17 @@ def overview(request):
     orgs = list(organizations_for(user))
     manageable = _manageable_ids(user)
 
+    if request.method == "POST" and request.POST.get("action") == "check_models":
+        from apps.ai_providers.registry import build_readiness
+        r = build_readiness(force=True)
+        if r["state"] == "ready":
+            messages.success(request, r["message"])
+        elif r["state"] == "none":
+            messages.info(request, r["message"])
+        else:
+            messages.warning(request, r["message"])
+        return redirect("dashboard:home")
+
     if request.method == "POST" and request.POST.get("action") == "build":
         if not request.user.email_verified:
             messages.warning(request, "Please verify your email to start building — "
@@ -316,11 +327,13 @@ def overview(request):
             content=brief, source="builder")
         _start_build(project, brief, user)
         messages.success(request, f"{settings.APP_NAME} is building your app — follow the progress below.")
-        from apps.ai_providers.registry import generation_available
-        if not generation_available():
-            messages.warning(request, f"Heads up: no AI model is connected, so {settings.APP_NAME} "
-                                      "is running in demo mode — generated output is a placeholder "
-                                      "until a model is connected.")
+        # Real balance check: probe a connected model (cached) rather than just
+        # checking that a key is set, so the demo-mode warning is accurate.
+        from apps.ai_providers.registry import build_readiness
+        r = build_readiness()
+        if not r["ready"]:
+            messages.warning(request, f"Heads up: {r['message']} Generated output will be a "
+                                      "placeholder until a model can serve the build.")
         return redirect("dashboard:project", pk=project.id)
 
     projects = Project.objects.filter(
@@ -329,10 +342,12 @@ def overview(request):
         {"project": p, "state": _project_state(p), "progress": _project_progress(p)}
         for p in projects[:12]
     ]
+    from apps.ai_providers.registry import build_readiness
     return render(request, "dashboard/home.html", {
         "active": "overview", "cards": cards,
         "starters": _STARTERS, "placeholders": _PLACEHOLDERS,
         "prefill": request.session.pop("build_idea", ""),  # carried from marketing signup
+        "readiness": build_readiness(probe=False),  # cached-only: keeps the page instant
     })
 
 
