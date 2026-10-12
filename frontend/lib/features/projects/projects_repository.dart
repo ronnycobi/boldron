@@ -15,6 +15,11 @@ class ProjectsRepository {
         .toList();
   }
 
+  Future<Project> get(int id) async {
+    final data = await _api.get('projects/$id/');
+    return Project.fromJson(data as Map<String, dynamic>);
+  }
+
   /// Start a build from a plain-language brief. Returns the new project id.
   Future<int> build(String brief, {int? organization}) async {
     final data = await _api.post('build/', body: {
@@ -39,7 +44,13 @@ final projectsProvider = FutureProvider<List<Project>>(
   (ref) => ref.watch(projectsRepositoryProvider).list(),
 );
 
-/// Live build status for one project (polled by the build screen).
+/// One project by id (used by the detail hub; supports deep links).
+final projectProvider = FutureProvider.family<Project, int>(
+  (ref, id) => ref.watch(projectsRepositoryProvider).get(id),
+);
+
+/// Live build status for one project. The detail screen re-reads this on a
+/// timer while the build is running (the provider itself stays simple).
 final buildStatusProvider = FutureProvider.family<BuildStatus, int>(
   (ref, projectId) =>
       ref.watch(projectsRepositoryProvider).buildStatus(projectId),

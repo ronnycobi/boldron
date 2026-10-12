@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'project_models.dart';
 import 'projects_repository.dart';
@@ -43,6 +44,7 @@ class _ProjectCard extends StatelessWidget {
     return Card(
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        onTap: () => context.push('/projects/${project.id}'),
         title: Text(project.name,
             style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: project.description.isEmpty
