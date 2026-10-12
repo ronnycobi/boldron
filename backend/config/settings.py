@@ -300,9 +300,17 @@ AI_DEFAULT_PROVIDER = env("AI_DEFAULT_PROVIDER", "stub")
 # --- Generated-project storage ----------------------------------------------
 # Where per-project git working trees live (apps.repositories). Defaults to a
 # gitignored dir beside the backend; set BOLDRON_WORKSPACES_ROOT in production.
-BOLDRON_WORKSPACES_ROOT = env(
-    "BOLDRON_WORKSPACES_ROOT", str(BASE_DIR / "workspaces")
-)
+if RUNNING_TESTS:
+    # Tests must never write generated code into the real workspaces dir — that
+    # pollutes development files and leaks between tests (two tests both see
+    # "project-1"). Use a throwaway temp dir, isolated per test process.
+    import tempfile
+
+    BOLDRON_WORKSPACES_ROOT = tempfile.mkdtemp(prefix="boldron-test-workspaces-")
+else:
+    BOLDRON_WORKSPACES_ROOT = env(
+        "BOLDRON_WORKSPACES_ROOT", str(BASE_DIR / "workspaces")
+    )
 
 # --- Credits & plans (Phase 19) ---------------------------------------------
 # Credits are a platform abstraction over cost. These are config, never

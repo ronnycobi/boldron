@@ -109,3 +109,109 @@ class ProjectAPITests(TestCase):
             content_type="application/json",
         )
         self.assertEqual(resp.status_code, 400)
+
+
+class BuildApiTests(TestCase):
+    """The core mobile loop: describe an app -> build -> poll status."""
+
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            email="builder@x.com", password="pw12345!", full_name="Builder"
+        )
+        self.owner.email_verified = True
+        self.owner.save(update_fields=["email_verified"])
+        self.org = Organization.objects.create(name="Build Org")
+        self.org.add_member(self.owner, role=Role.OWNER)
+
+    def tearDown(self):
+        # A build writes generated files into the (temp, under tests) workspaces
+        # root keyed by project id. Project ids repeat across tests, so clear the
+        # root here to avoid leaking files into other tests that reuse an id.
+        import shutil
+
+        from django.conf import settings
+
+        shutil.rmtree(settings.BOLDRON_WORKSPACES_ROOT, ignore_errors=True)
+
+    def _auth(self, user=None):
+        from apps.accounts.api import issue_tokens
+
+        return {"HTTP_AUTHORIZATION": f"Bearer {issue_tokens(user or self.owner)['access']}"}
+
+    def test_build_from_brief_creates_project_and_runs_pipeline(self):
+        from apps.orchestrator.models import AgentTask
+
+        resp = self.client.post(
+            reverse("projects:build"),
+            data={"brief": "Build an online store for my shop with products and checkout"},
+            content_type="application/json",
+            **self._auth(),
+        )
+        self.assertEqual(resp.status_code, 201)
+        body = resp.json()
+        self.assertIn("project", body)
+        self.assertEqual(body["project"]["name"], "Online Store")
+        pid = body["project"]["id"]
+        # The agent pipeline was queued (runs inline under tests).
+        self.assertTrue(AgentTask.objects.filter(project_id=pid).exists())
+
+    def test_build_requires_verified_email(self):
+        self.owner.email_verified = False
+        self.owner.save(update_fields=["email_verified"])
+        resp = self.client.post(
+            reverse("projects:build"),
+            data={"brief": "Build a CRM"},
+            content_type="application/json",
+            **self._auth(),
+        )
+        self.assertEqual(resp.status_code, 403)
+
+    def test_build_rejects_empty_brief(self):
+        resp = self.client.post(
+            reverse("projects:build"),
+            data={"brief": "   "},
+            content_type="application/json",
+            **self._auth(),
+        )
+        self.assertEqual(resp.status_code, 400)
+
+    def test_build_rejects_unmanaged_org(self):
+        other = Organization.objects.create(name="Not Mine")
+        resp = self.client.post(
+            reverse("projects:build"),
+            data={"brief": "Build a CRM", "organization": other.id},
+            content_type="application/json",
+            **self._auth(),
+        )
+        self.assertEqual(resp.status_code, 400)
+
+    def test_build_status_reports_progress_and_steps(self):
+        pid = self.client.post(
+            reverse("projects:build"),
+            data={"brief": "Build a CRM with contacts and deals"},
+            content_type="application/json",
+            **self._auth(),
+        ).json()["project"]["id"]
+        resp = self.client.get(
+            reverse("projects:build-status", args=[pid]), **self._auth()
+        )
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertIn("state", body)
+        self.assertIn("progress", body)
+        self.assertIsInstance(body["steps"], list)
+        self.assertTrue(body["steps"])  # pipeline steps are present
+        self.assertIn("credits", body)
+
+    def test_build_status_hidden_from_non_members(self):
+        pid = self.client.post(
+            reverse("projects:build"),
+            data={"brief": "Build a CRM"},
+            content_type="application/json",
+            **self._auth(),
+        ).json()["project"]["id"]
+        outsider = User.objects.create_user(email="out@x.com", password="pw12345!")
+        resp = self.client.get(
+            reverse("projects:build-status", args=[pid]), **self._auth(outsider)
+        )
+        self.assertEqual(resp.status_code, 404)

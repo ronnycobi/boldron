@@ -64,7 +64,7 @@ class ConsoleDataTests(TestCase):
     def test_overview_shows_platform_totals(self):
         r = self.client.get(reverse("console:overview"))
         self.assertContains(r, "Acme Corp")
-        self.assertContains(r, "backend")  # recent task agent
+        self.assertContains(r, "100%")  # success rate from the one completed task
 
     def test_org_list_and_detail(self):
         self.assertContains(self.client.get(reverse("console:orgs")), "Acme Corp")

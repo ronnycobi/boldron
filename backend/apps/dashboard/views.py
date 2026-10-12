@@ -50,41 +50,19 @@ from apps.workspaces.models import Workspace
 from apps.technology.registry import ROLES
 from apps.technology.registry import registry as tech_registry
 
-_PIPELINE = [
-    ContextKind.REQUIREMENT,
-    ContextKind.ARCHITECTURE,
-    ContextKind.TECH_DECISION,
-    ContextKind.API,
-    ContextKind.SCHEMA,
-    ContextKind.SCREEN,
-    ContextKind.TESTING,
-    ContextKind.REVIEW,
-]
-_NON_TERMINAL = [s for s, _ in AgentTask._meta.get_field("status").choices
-                 if s not in TERMINAL_STATUSES]
-
-
 def _manageable_ids(user):
     return set(manageable_organizations_for(user).values_list("id", flat=True))
 
 
-def _project_progress(project) -> int:
-    """Rough build progress: share of the design pipeline that has content."""
-    kinds = set(
-        ContextEntry.objects.filter(project=project).values_list("kind", flat=True)
-    )
-    done = sum(1 for k in _PIPELINE if k in kinds)
-    return round(done / len(_PIPELINE) * 100)
-
-
-def _project_state(project) -> str:
-    if project.deployments.filter(status=DeploymentStatus.SUCCEEDED).exists():
-        return "Deployed"
-    if project.agent_tasks.filter(status__in=_NON_TERMINAL).exists():
-        return "Building"
-    if project.mode == "import":
-        return "Analyzing"
-    return project.get_status_display()
+# Build orchestration lives in the shared service so web + mobile behave
+# identically; these module-level aliases keep the existing view code readable.
+from apps.projects.builds import PIPELINE as _PIPELINE  # noqa: E402
+from apps.projects.builds import project_progress as _project_progress  # noqa: E402
+from apps.projects.builds import project_state as _project_state  # noqa: E402
+from apps.projects.builds import name_from_brief as _name_from_brief  # noqa: E402
+from apps.projects.builds import default_stack as _default_stack  # noqa: E402
+from apps.projects.builds import start_build as _start_build  # noqa: E402
+from apps.projects.builds import create_and_start_build  # noqa: E402
 
 
 # --- Home: the builder ("What do you want to build?") -----------------------
@@ -108,112 +86,6 @@ _PLACEHOLDERS = [
     "Build a mobile-friendly invoicing system…",
     "Create a SaaS platform for managing employees and leave…",
 ]
-_BUILD_PIPELINE = ["requirements", "architect", "database", "backend",
-                   "frontend", "testing", "code_review", "security"]
-
-
-def _default_stack() -> dict:
-    """A sensible, runnable default stack so non-technical users never have to
-    choose one. Backend + database are what the platform can generate AND run;
-    frontend/mobile are design-led and left for the agents to shape."""
-    return {"backend": "django", "database": "sqlite"}
-
-
-_NAME_ACRONYMS = {
-    "crm": "CRM", "erp": "ERP", "hr": "HR", "api": "API", "saas": "SaaS",
-    "ui": "UI", "ux": "UX", "ai": "AI", "pos": "POS", "cms": "CMS", "seo": "SEO",
-    "b2b": "B2B", "b2c": "B2C", "mvp": "MVP",
-    "ecommerce": "E-commerce", "e-commerce": "E-commerce",
-}
-_NAME_SMALL = {"a", "an", "the", "for", "and", "or", "of", "to", "with", "in", "on", "by"}
-
-
-def _name_from_brief(brief: str) -> str:
-    """Turn a plain-language brief into a clean, readable project title, e.g.
-    'Build an online shopping website for my store with …' -> 'Online Shopping Website'."""
-    import re
-
-    # Drop the leading request verb + article (article is optional; an explicit
-    # \s+ after it stops 'a' from matching inside 'an').
-    text = re.sub(
-        r"^\s*(?:please\s+)?(?:build|create|make|develop|design|generate|set\s+up)\s+"
-        r"(?:me\s+)?(?:(?:a|an|the)\s+)?",
-        "", brief.strip(), flags=re.I,
-    )
-    # Drop trailing feature clauses and owner clauses ('… for my shop', '… with …').
-    text = re.sub(r"\s+(?:with|that|which|where|including|featuring|so)\b.*$", "", text, flags=re.I)
-    text = re.sub(r"\s+for\s+(?:my|our|a|an|the)\b.*$", "", text, flags=re.I)
-    text = (text.split(",")[0].splitlines() or [""])[0]  # stop at first list item / line break
-
-    words = text.strip(" .,-").split()[:6]
-    if not words:
-        return "New project"
-    out = []
-    for i, w in enumerate(words):
-        lw = w.lower().strip(".,")
-        if lw in _NAME_ACRONYMS:
-            out.append(_NAME_ACRONYMS[lw])
-        elif i and lw in _NAME_SMALL:
-            out.append(lw)                       # keep small words lowercase mid-title
-        elif w.isupper():
-            out.append(w)                        # preserve existing acronyms (REST, API)
-        else:
-            out.append(w[:1].upper() + w[1:])    # capitalize, keep the rest as typed
-    return (" ".join(out)[:60].strip(" -") or "New project")
-
-
-def _start_build(project, brief, user):
-    # Reusable playbooks (skills) matching this brief are applied as guidance the
-    # agents receive — generalizing one-off triggers into an authorable mechanism.
-    effective_brief = brief
-    try:
-        from apps.skills.service import apply_to_project, guidance_for
-        _skills, guidance = guidance_for(brief, organization=project.organization, project=project)
-        if guidance:
-            effective_brief = f"{brief}\n\nApplied playbooks (guidance):\n{guidance}"
-            apply_to_project(project, brief, user=user)
-    except Exception:
-        pass  # skills are additive guidance; never block a build
-
-    orch = Orchestrator()
-    previous = None
-    for key in _BUILD_PIPELINE:
-        t = orch.create_task(project=project, agent_key=key,
-                             input={"brief": effective_brief}, created_by=user)
-        if previous is not None:
-            t.depends_on.set([previous])
-        previous = t
-
-    def _execute():
-        # Drain the pipeline, then (for a store) wire up the real e-commerce engine
-        # so "build me a shop" produces a working store, not a bespoke one.
-        orch.run_ready(project)
-        from apps.capabilities.infer import infer_capabilities
-        if any(c.id == "ecommerce" for c in infer_capabilities(brief)):
-            try:
-                from apps.publishing.store_provision import provision_store
-                provision_store(project, brief, user=user)
-            except Exception:
-                pass  # provisioning is best-effort; never break the build
-
-    # Run the agents OFF the request thread so the user gets an immediate
-    # "building…" screen with live progress instead of a long blank wait. Tests
-    # run it inline for determinism (threads don't share the test transaction).
-    if getattr(settings, "RUNNING_TESTS", False):
-        _execute()
-    else:
-        import threading
-        from django.db import connection
-
-        def _bg():
-            try:
-                _execute()
-            finally:
-                connection.close()  # don't leak this thread's DB connection
-
-        threading.Thread(target=_bg, daemon=True).start()
-
-
 class BoldronLoginView(auth_views.LoginView):
     """After login, platform staff land on the Control Center; customers land on the
     builder. An explicit ?next= is always honored (so deep links still work)."""
@@ -317,15 +189,7 @@ def overview(request):
             org = Organization.objects.create(
                 name=f"{user.short_name}'s workspace", created_by=user)
             org.add_member(user, role=Role.OWNER)
-        project = Project.objects.create(
-            organization=org, name=_name_from_brief(brief),
-            created_by=user, description=brief[:500],
-            technology=_default_stack())  # agents pick a sensible stack — no choice needed
-        project.ensure_default_workspace()
-        ProjectContext(project).set(
-            ContextKind.REQUIREMENT, "brief", title="What to build",
-            content=brief, source="builder")
-        _start_build(project, brief, user)
+        project = create_and_start_build(org, brief, user)
         messages.success(request, f"{settings.APP_NAME} is building your app — follow the progress below.")
         # Real balance check: probe a connected model (cached) rather than just
         # checking that a key is set, so the demo-mode warning is accurate.
@@ -430,32 +294,8 @@ def project(request, pk):
     })
 
 
-def _project_credit_summary(proj) -> dict:
-    """Live AI-credit snapshot for the build screen: the org's current balance
-    plus what this project's build has spent so far (real UsageRecord data)."""
-    from decimal import Decimal
-
-    from django.db.models import Sum
-
-    from apps.credits.models import UsageRecord
-    from apps.credits.services import get_account, plans
-
-    acct = get_account(proj.organization)
-    used = UsageRecord.objects.filter(project=proj).aggregate(
-        credits=Sum("credits_charged"), cost=Sum("cost_usd"), tokens=Sum("total_tokens"))
-    allowance = Decimal(str(plans().get(acct.plan, 0))) if acct else None
-    balance = acct.balance if acct else None
-    return {
-        "has_account": acct is not None,
-        "plan": acct.plan if acct else None,
-        "balance": balance,
-        "allowance": allowance,
-        "remaining_pct": (int(min(balance, allowance) / allowance * 100)
-                          if acct and allowance else None),
-        "used_credits": used["credits"] or Decimal("0"),
-        "used_cost": used["cost"] or Decimal("0"),
-        "used_tokens": used["tokens"] or 0,
-    }
+# Credit snapshot for the build screen lives in the shared build service.
+from apps.projects.builds import credit_summary as _project_credit_summary  # noqa: E402
 
 
 @login_required
