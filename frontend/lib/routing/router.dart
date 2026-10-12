@@ -8,6 +8,7 @@ import '../features/activity/activity_screen.dart';
 import '../features/auth/auth_controller.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/register_screen.dart';
+import '../features/auth/welcome_screen.dart';
 import '../features/account/account_security_screen.dart';
 import '../features/backups/backups_screen.dart';
 import '../features/billing/billing_screen.dart';
@@ -56,10 +57,11 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: refresh,
     redirect: (context, state) {
       final status = ref.read(authControllerProvider).status;
-      final atAuth = state.matchedLocation == '/login' ||
-          state.matchedLocation == '/register';
+      const authRoutes = {'/welcome', '/login', '/register'};
+      final atAuth = authRoutes.contains(state.matchedLocation);
       if (status == AuthStatus.unauthenticated) {
-        return atAuth ? null : '/login';
+        // Signed-out users land on the welcome screen first.
+        return atAuth ? null : '/welcome';
       }
       if (status == AuthStatus.authenticated && atAuth) {
         return '/';
@@ -67,6 +69,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
+      GoRoute(path: '/welcome', builder: (_, __) => const WelcomeScreen()),
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
       StatefulShellRoute.indexedStack(
