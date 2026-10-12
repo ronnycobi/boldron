@@ -708,3 +708,32 @@ class NameFromBriefTests(TestCase):
         # Regression: 'Build an X' must not leave a stray leading 'n'.
         from apps.dashboard.views import _name_from_brief
         self.assertFalse(_name_from_brief("Build an app for notes").lower().startswith("n "))
+
+
+class ProjectCreditDisplayTests(TestCase):
+    def setUp(self):
+        from apps.credits.services import ensure_account
+        self.owner = User.objects.create_user(email="pc@x.com", password="pw12345678", email_verified=True)
+        self.org = Organization.objects.create(name="Acme")
+        self.org.add_member(self.owner, role=Role.OWNER)
+        ensure_account(self.org, plan="free")  # grants 1000 credits
+        self.project = Project.objects.create(organization=self.org, name="Shop", created_by=self.owner)
+        self.client.force_login(self.owner)
+
+    def test_project_page_shows_credit_balance_and_build_usage(self):
+        from decimal import Decimal
+        from apps.credits.models import UsageRecord
+        UsageRecord.objects.create(organization=self.org, project=self.project,
+                                   total_tokens=1000, cost_usd=Decimal("0.50"),
+                                   credits_charged=Decimal("50"))
+        r = self.client.get(reverse("dashboard:project", args=[self.project.id]))
+        self.assertContains(r, "AI credits")             # the usage line
+        self.assertContains(r, "credits remaining")
+        self.assertContains(r, "50")                     # used on this build
+
+    def test_no_credit_line_without_an_account(self):
+        # A project whose org has no credit account (unlimited/dev) shows nothing.
+        from apps.credits.models import CreditAccount
+        CreditAccount.objects.filter(organization=self.org).delete()
+        r = self.client.get(reverse("dashboard:project", args=[self.project.id]))
+        self.assertNotContains(r, "credits remaining")

@@ -23,6 +23,9 @@
     </div>
     <div class="bar" style="margin-top:10px"><i style="width:{{ progress }}%"></i></div>
     <p class="muted" style="font-size:12.5px;margin:8px 0 0">{{ app_name }} is designing and generating your app. This page refreshes automatically — you can keep it open.</p>
+    {% if credits.has_account %}
+    <p class="muted" style="font-size:12.5px;margin:6px 0 0">AI credits: <strong style="color:var(--ink2)">{{ credits.balance|floatformat:0 }}</strong> left{% if credits.allowance %} of {{ credits.allowance|floatformat:0 }}{% endif %} · this build has used <strong style="color:var(--ink2)">{{ credits.used_credits|floatformat:0 }}</strong> so far.</p>
+    {% endif %}
   </div>
   <style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}</style>
   <script>setTimeout(function(){ location.reload(); }, 4000);</script>
@@ -53,6 +56,13 @@
       {% endfor %}
     </table>
     {% else %}<p class="empty">No tasks yet.</p>{% endif %}
+    {% if credits.has_account %}
+    <p class="muted" style="font-size:12.5px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)">
+      This build has used <strong style="color:var(--ink2)">{{ credits.used_credits|floatformat:0 }}</strong> AI credits
+      ({{ credits.used_tokens }} tokens){% if credits.balance is not None %} · <strong style="color:var(--ink2)">{{ credits.balance|floatformat:0 }}</strong> credits remaining{% endif %}.
+      <a href="{% url 'dashboard:settings' %}?tab=plan">Plan &amp; credits →</a>
+    </p>
+    {% endif %}
     {% if can_manage %}
     <div class="inline" style="margin-top:14px">
       <form method="post">{% csrf_token %}<input type="hidden" name="action" value="run"><button class="ghost" type="submit">▶ Run pending work</button></form>

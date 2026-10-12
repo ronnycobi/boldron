@@ -408,7 +408,36 @@ def project(request, pk):
         "capabilities": infer_capabilities(proj.description or proj.name),
         "twin": twin, "changes": proj.changes.all()[:8],
         "backups": proj.backups.all()[:10],
+        "credits": _project_credit_summary(proj),
     })
+
+
+def _project_credit_summary(proj) -> dict:
+    """Live AI-credit snapshot for the build screen: the org's current balance
+    plus what this project's build has spent so far (real UsageRecord data)."""
+    from decimal import Decimal
+
+    from django.db.models import Sum
+
+    from apps.credits.models import UsageRecord
+    from apps.credits.services import get_account, plans
+
+    acct = get_account(proj.organization)
+    used = UsageRecord.objects.filter(project=proj).aggregate(
+        credits=Sum("credits_charged"), cost=Sum("cost_usd"), tokens=Sum("total_tokens"))
+    allowance = Decimal(str(plans().get(acct.plan, 0))) if acct else None
+    balance = acct.balance if acct else None
+    return {
+        "has_account": acct is not None,
+        "plan": acct.plan if acct else None,
+        "balance": balance,
+        "allowance": allowance,
+        "remaining_pct": (int(min(balance, allowance) / allowance * 100)
+                          if acct and allowance else None),
+        "used_credits": used["credits"] or Decimal("0"),
+        "used_cost": used["cost"] or Decimal("0"),
+        "used_tokens": used["tokens"] or 0,
+    }
 
 
 @login_required
