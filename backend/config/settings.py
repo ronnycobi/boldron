@@ -186,6 +186,8 @@ MIDDLEWARE = [
     # so a customer domain is served from our controlled allowlist before host
     # validation rejects it as an unknown ALLOWED_HOST.
     "apps.publishing.middleware.CustomDomainMiddleware",
+    # Dev-only CORS for local web clients (no-op unless DEBUG + localhost origin).
+    "apps.core.middleware.DevCorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",

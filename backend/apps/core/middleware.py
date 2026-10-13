@@ -39,6 +39,52 @@ class UserLocaleMiddleware:
             translation.deactivate()
 
 
+class DevCorsMiddleware:
+    """Development-only CORS for local clients (e.g. the Flutter web build on
+    another localhost port calling this API). ACTIVE ONLY WHEN settings.DEBUG is
+    True and the Origin is a localhost/127.0.0.1 origin — it never relaxes CORS
+    in production or for any non-local origin. Reflects the specific allowed
+    origin (never '*' with credentials) and answers preflight requests."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    @staticmethod
+    def _allowed(origin: str) -> bool:
+        if not origin:
+            return False
+        from urllib.parse import urlparse
+
+        host = urlparse(origin).hostname or ""
+        return host in {"localhost", "127.0.0.1", "::1"}
+
+    def __call__(self, request):
+        from django.conf import settings
+
+        origin = request.META.get("HTTP_ORIGIN", "")
+        allow = settings.DEBUG and self._allowed(origin)
+
+        # Short-circuit the CORS preflight so the browser proceeds.
+        if allow and request.method == "OPTIONS" and "HTTP_ACCESS_CONTROL_REQUEST_METHOD" in request.META:
+            from django.http import HttpResponse
+
+            response = HttpResponse(status=204)
+        else:
+            response = self.get_response(request)
+
+        if allow:
+            response["Access-Control-Allow-Origin"] = origin
+            response["Vary"] = "Origin"
+            response["Access-Control-Allow-Credentials"] = "true"
+            response["Access-Control-Allow-Methods"] = "GET, POST, PATCH, DELETE, OPTIONS"
+            response["Access-Control-Allow-Headers"] = (
+                request.META.get("HTTP_ACCESS_CONTROL_REQUEST_HEADERS")
+                or "Authorization, Content-Type, X-Request-Id"
+            )
+            response["Access-Control-Max-Age"] = "600"
+        return response
+
+
 class TechnologyConfidentialityMiddleware:
     # Headers that reveal the implementation stack. Removed if anything set them.
     FINGERPRINT_HEADERS = ("X-Powered-By", "X-Runtime", "X-AspNet-Version", "Via")
