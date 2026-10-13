@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../config/brand.dart';
 import 'project_models.dart';
 import 'projects_repository.dart';
 
@@ -122,7 +123,7 @@ class _Header extends StatelessWidget {
               child: Text(project.name,
                   style: Theme.of(context).textTheme.headlineSmall),
             ),
-            Chip(label: Text(project.status.isEmpty ? '—' : project.status)),
+            StatusBadge(project.status),
           ],
         ),
         if (project.description.isNotEmpty) ...[
@@ -141,10 +142,8 @@ class _BuildStatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final building = status.state == 'Building';
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+    return PanelCard(
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -176,7 +175,6 @@ class _BuildStatusCard extends StatelessWidget {
               ),
           ],
         ),
-      ),
     );
   }
 
@@ -246,13 +244,19 @@ class _AreaTile extends StatelessWidget {
   const _AreaTile({required this.icon, required this.label, required this.onTap});
 
   @override
-  Widget build(BuildContext context) => Card(
-        margin: const EdgeInsets.only(bottom: 8),
-        child: ListTile(
-          leading: Icon(icon),
-          title: Text(label),
-          trailing: const Icon(Icons.chevron_right),
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: PanelCard(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           onTap: onTap,
+          child: Row(
+            children: [
+              Icon(icon, size: 20),
+              const SizedBox(width: 14),
+              Expanded(child: Text(label)),
+              const Icon(Icons.chevron_right),
+            ],
+          ),
         ),
       );
 }

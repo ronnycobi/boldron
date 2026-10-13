@@ -29,6 +29,131 @@ class BrandText extends StatelessWidget {
   }
 }
 
+/// The brand logo: a gradient rounded-square mark + the gradient wordmark,
+/// mirroring the web header logo.
+class BrandLogo extends StatelessWidget {
+  final String name;
+  final double size;
+  const BrandLogo({super.key, required this.name, this.size = 34});
+
+  @override
+  Widget build(BuildContext context) {
+    final mark = name.isNotEmpty ? name[0].toUpperCase() : 'B';
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            gradient: AppTheme.brandGradient,
+            borderRadius: BorderRadius.circular(size * 0.28),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            mark,
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              fontSize: size * 0.56,
+            ),
+          ),
+        ),
+        SizedBox(width: size * 0.32),
+        BrandText(
+          name,
+          style: TextStyle(fontSize: size * 0.72, letterSpacing: -0.5),
+        ),
+      ],
+    );
+  }
+}
+
+/// A content panel matching the web card: a subtle top→bottom gradient with a
+/// hairline border and rounded corners.
+class PanelCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+  final VoidCallback? onTap;
+  const PanelCard({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.all(16),
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final card = DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [AppTheme.panel, AppTheme.panel2],
+        ),
+        border: Border.all(color: AppTheme.line),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Padding(padding: padding, child: child),
+    );
+    if (onTap == null) return card;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: card,
+      ),
+    );
+  }
+}
+
+/// A status pill coloured like the web badges (green/blue/amber/red/grey).
+class StatusBadge extends StatelessWidget {
+  final String status;
+  const StatusBadge(this.status, {super.key});
+
+  static (Color, Color) _colors(String s) {
+    s = s.toLowerCase();
+    const okbg = Color(0x2434D399), failbg = Color(0x24F87171);
+    const runbg = Color(0x2460A5FA), waitbg = Color(0x24FBBF24);
+    const idle = Color(0xFF8A93AD), idlebg = Color(0x1F8A93AD);
+    if (['completed', 'succeeded', 'deployed', 'done', 'active', 'paid', 'published']
+        .contains(s)) {
+      return (AppTheme.ok, okbg);
+    }
+    if (['failed', 'timeout', 'error', 'cancelled', 'refunded'].contains(s)) {
+      return (AppTheme.fail, failbg);
+    }
+    if (['running', 'planning', 'deploying', 'building', 'implementing', 'analyzing']
+        .contains(s)) {
+      return (AppTheme.run, runbg);
+    }
+    if (s.startsWith('waiting') ||
+        ['planned', 'awaiting_approval', 'pending', 'awaiting payment', 'draft']
+            .contains(s)) {
+      return (AppTheme.wait, waitbg);
+    }
+    return (idle, idlebg);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final (fg, bg) = _colors(status);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Text(
+        status.isEmpty ? '—' : status,
+        style: TextStyle(color: fg, fontSize: 11.5, fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+}
+
 /// Primary call-to-action with the brand gradient (the web's gradient buttons).
 class GradientButton extends StatelessWidget {
   final VoidCallback? onPressed;

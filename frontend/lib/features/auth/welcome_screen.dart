@@ -30,12 +30,8 @@ class WelcomeScreen extends StatelessWidget {
           child: Column(
             children: [
               const Spacer(flex: 2),
-              BrandText(
-                AppConfig.appName,
-                style: theme.textTheme.displaySmall,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
+              const BrandLogo(name: AppConfig.appName, size: 48),
+              const SizedBox(height: 12),
               Text(
                 AppConfig.tagline,
                 style: theme.textTheme.titleMedium

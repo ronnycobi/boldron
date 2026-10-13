@@ -51,11 +51,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    BrandText(
-                      AppConfig.appName,
-                      style: Theme.of(context).textTheme.headlineMedium,
-                      textAlign: TextAlign.center,
-                    ),
+                    const Center(
+                        child: BrandLogo(name: AppConfig.appName, size: 44)),
                     const SizedBox(height: 4),
                     Text(
                       'Sign in to continue',

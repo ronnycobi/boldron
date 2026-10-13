@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../config/brand.dart';
 import '../../core/api_exception.dart';
 import 'changes_repository.dart';
 
@@ -87,7 +88,13 @@ class _ChangesScreenState extends ConsumerState<ChangesScreen> {
                         return ListTile(
                           title: Text(c.description,
                               maxLines: 2, overflow: TextOverflow.ellipsis),
-                          subtitle: Text(c.statusDisplay),
+                          subtitle: Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: StatusBadge(c.status),
+                            ),
+                          ),
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () => context.push('/changes/${c.id}'),
                         );

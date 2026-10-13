@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../config/brand.dart';
 import 'project_models.dart';
 import 'projects_repository.dart';
 
@@ -41,26 +42,33 @@ class _ProjectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        onTap: () => context.push('/projects/${project.id}'),
-        title: Text(project.name,
-            style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: project.description.isEmpty
-            ? null
-            : Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  project.description,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-        trailing: Chip(
-          label: Text(project.status.isEmpty ? '—' : project.status),
-          visualDensity: VisualDensity.compact,
-        ),
+    return PanelCard(
+      onTap: () => context.push('/projects/${project.id}'),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(project.name,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 15)),
+                if (project.description.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    project.description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          StatusBadge(project.status),
+        ],
       ),
     );
   }

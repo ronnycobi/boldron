@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../config/brand.dart';
 import '../../core/api_exception.dart';
 import 'deployments_repository.dart';
 
@@ -90,11 +91,7 @@ class _EnvCard extends StatelessWidget {
                 Text(env.label,
                     style: Theme.of(context).textTheme.titleMedium),
                 const Spacer(),
-                if (latest != null)
-                  Chip(
-                    label: Text(latest.status),
-                    visualDensity: VisualDensity.compact,
-                  ),
+                if (latest != null) StatusBadge(latest.status),
               ],
             ),
             const SizedBox(height: 4),
