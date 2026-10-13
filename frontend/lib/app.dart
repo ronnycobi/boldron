@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'config/app_config.dart';
+import 'config/brand.dart';
 import 'config/theme.dart';
 import 'core/providers.dart';
 import 'features/auth/auth_controller.dart';
@@ -20,8 +21,7 @@ class BoldronApp extends ConsumerWidget {
     if (status == AuthStatus.unknown) {
       return MaterialApp(
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.light(),
-        darkTheme: AppTheme.dark(),
+        theme: AppTheme.dark(),
         home: const _Splash(),
       );
     }
@@ -30,8 +30,10 @@ class BoldronApp extends ConsumerWidget {
     return MaterialApp.router(
       title: AppConfig.appName,
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
+      // Dark-first, matching the website — regardless of the system setting.
+      theme: AppTheme.dark(),
       darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.dark,
       routerConfig: router,
     );
   }
@@ -42,17 +44,19 @@ class _Splash extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                AppConfig.appName,
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              const SizedBox(height: 20),
-              const CircularProgressIndicator(),
-            ],
+        body: BrandBackground(
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                BrandText(
+                  AppConfig.appName,
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                const SizedBox(height: 20),
+                const CircularProgressIndicator(),
+              ],
+            ),
           ),
         ),
       );

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../config/app_config.dart';
+import '../../config/brand.dart';
 import '../../core/api_exception.dart';
 import '../../core/providers.dart';
 import '../projects/projects_repository.dart';
@@ -105,16 +106,30 @@ class _BuildScreenState extends ConsumerState<BuildScreen> {
               ),
             ),
             const SizedBox(height: 14),
-            FilledButton.icon(
+            GradientButton(
               onPressed: _busy ? null : _build,
-              icon: _busy
-                  ? const SizedBox(
-                      height: 18,
-                      width: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+              child: _busy
+                  ? const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        ),
+                        SizedBox(width: 10),
+                        Text('Starting…'),
+                      ],
                     )
-                  : const Icon(Icons.arrow_forward),
-              label: Text(_busy ? 'Starting…' : 'Build'),
+                  : const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.arrow_forward),
+                        SizedBox(width: 8),
+                        Text('Build'),
+                      ],
+                    ),
             ),
             const SizedBox(height: 24),
             Text('Start with an example',

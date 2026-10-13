@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../config/app_config.dart';
+import '../../config/brand.dart';
 
 /// First screen a signed-out user sees: a short welcome with a primary
 /// "Get started" (sign up) and a secondary "I already have an account"
@@ -22,16 +23,16 @@ class WelcomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      body: SafeArea(
+      body: BrandBackground(
+        child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
           child: Column(
             children: [
               const Spacer(flex: 2),
-              Text(
+              BrandText(
                 AppConfig.appName,
-                style: theme.textTheme.displaySmall
-                    ?.copyWith(fontWeight: FontWeight.w700),
+                style: theme.textTheme.displaySmall,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
@@ -71,7 +72,7 @@ class WelcomeScreen extends StatelessWidget {
                   ),
                 ),
               const Spacer(flex: 3),
-              FilledButton(
+              GradientButton(
                 onPressed: () => context.push('/register'),
                 child: const Text('Get started'),
               ),
@@ -83,6 +84,7 @@ class WelcomeScreen extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }

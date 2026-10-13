@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../config/app_config.dart';
+import '../../config/brand.dart';
 import '../../core/providers.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -112,13 +113,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       ),
                     ],
                     const SizedBox(height: 20),
-                    FilledButton(
+                    GradientButton(
                       onPressed: state.busy ? null : _submit,
                       child: state.busy
                           ? const SizedBox(
                               height: 20,
                               width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
                             )
                           : const Text('Create account'),
                     ),

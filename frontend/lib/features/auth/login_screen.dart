@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../config/app_config.dart';
+import '../../config/brand.dart';
 import '../../core/providers.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -37,7 +38,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(authControllerProvider);
     return Scaffold(
-      body: SafeArea(
+      body: BrandBackground(
+        child: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
@@ -49,7 +51,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
+                    BrandText(
                       AppConfig.appName,
                       style: Theme.of(context).textTheme.headlineMedium,
                       textAlign: TextAlign.center,
@@ -96,13 +98,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ],
                     const SizedBox(height: 20),
-                    FilledButton(
+                    GradientButton(
                       onPressed: state.busy ? null : _submit,
                       child: state.busy
                           ? const SizedBox(
                               height: 20,
                               width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
                             )
                           : const Text('Sign in'),
                     ),
@@ -118,6 +121,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
         ),
+      ),
       ),
     );
   }
