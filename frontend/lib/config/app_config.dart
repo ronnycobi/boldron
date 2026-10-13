@@ -10,12 +10,12 @@ class AppConfig {
 
   // --- Branding (from --dart-define, never hard-coded) ---------------------
   static const String appName =
-      String.fromEnvironment('APP_NAME', defaultValue: 'Application');
+      String.fromEnvironment('APP_NAME', defaultValue: 'Boldron');
   static const String companyName =
       String.fromEnvironment('APP_COMPANY_NAME', defaultValue: '');
   static const String tagline = String.fromEnvironment(
     'APP_TAGLINE',
-    defaultValue: 'Turn your idea into working software.',
+    defaultValue: 'Build software by describing it.',
   );
   static const String supportEmail =
       String.fromEnvironment('APP_SUPPORT_EMAIL', defaultValue: '');
