@@ -1,0 +1,7 @@
+{
+  "APP_NAME": "Your Brand",
+  "APP_TAGLINE": "Build software by describing it.",
+  "APP_SUPPORT_EMAIL": "support@yourbrand.com",
+  "APP_WEBSITE_URL": "https://yourbrand.com",
+  "API_BASE_URL": "https://api.yourbrand.com/api/v1/"
+}

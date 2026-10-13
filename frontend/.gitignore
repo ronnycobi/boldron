@@ -41,3 +41,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Per-brand dart-define configs (brand applied per build; code stays brand-agnostic)
+/dart_defines/*.json
+!/dart_defines/example.json

@@ -22,13 +22,27 @@ Nothing hard-codes a product name; branding comes from `AppConfig` (spec §43).
 
 ## Run
 
+The app is **brand-agnostic by default** (`APP_NAME` falls back to "Application",
+spec §43). Supply a brand at build time. The simplest way is a dart-defines
+file (brand configs live under `dart_defines/` and are gitignored like the web
+`.env`; copy `dart_defines/example.json`):
+
 ```bash
 flutter pub get
-flutter run --dart-define=API_BASE_URL=http://localhost:8020/api/v1
+flutter run --dart-define-from-file=dart_defines/boldron.json
+```
+
+Or pass defines individually:
+
+```bash
+flutter run \
+  --dart-define=APP_NAME=Boldron \
+  --dart-define=API_BASE_URL=http://localhost:8020/api/v1/
 ```
 
 - iOS simulator reaches the host at `localhost`.
-- Android emulator must use `--dart-define=API_BASE_URL=http://10.0.2.2:8020/api/v1`.
+- Android emulator must use `API_BASE_URL=http://10.0.2.2:8020/api/v1/`.
+- The API base should end with a trailing slash (the client normalizes it anyway).
 
 ### Branding (per white-label build)
 
