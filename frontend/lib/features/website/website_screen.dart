@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../config/brand.dart';
 import '../../config/theme.dart';
@@ -119,6 +120,28 @@ class _WebsiteScreenState extends ConsumerState<WebsiteScreen> {
                         : () => _run(() => repo.rollback(widget.projectId),
                             'Rolled back.'),
                     child: const Text('Roll back'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => context.push(
+                        '/projects/${widget.projectId}/website/monitoring'),
+                    icon: const Icon(Icons.favorite_border, size: 18),
+                    label: const Text('Health'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => context.push(
+                        '/projects/${widget.projectId}/website/analytics'),
+                    icon: const Icon(Icons.insights_outlined, size: 18),
+                    label: const Text('Analytics'),
                   ),
                 ),
               ],

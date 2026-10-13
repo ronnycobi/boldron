@@ -104,6 +104,21 @@ class WebsiteRepository {
   Future<void> connectDomain(int projectId, String hostname) =>
       _api.post('projects/$projectId/website/domains/',
           body: {'hostname': hostname});
+
+  Future<Map<String, dynamic>> monitoring(int projectId) async {
+    final data = await _api.get('projects/$projectId/website/monitoring/');
+    return (data as Map).cast<String, dynamic>();
+  }
+
+  Future<Map<String, dynamic>> runCheck(int projectId) async {
+    final data = await _api.post('projects/$projectId/website/monitoring/');
+    return (data as Map).cast<String, dynamic>();
+  }
+
+  Future<Map<String, dynamic>> analytics(int projectId) async {
+    final data = await _api.get('projects/$projectId/website/analytics/');
+    return (data as Map).cast<String, dynamic>();
+  }
 }
 
 final websiteRepositoryProvider = Provider<WebsiteRepository>(
@@ -113,4 +128,14 @@ final websiteRepositoryProvider = Provider<WebsiteRepository>(
 final websiteProvider =
     FutureProvider.family<WebsiteInfo, int>((ref, projectId) {
   return ref.watch(websiteRepositoryProvider).info(projectId);
+});
+
+final monitoringProvider =
+    FutureProvider.family<Map<String, dynamic>, int>((ref, projectId) {
+  return ref.watch(websiteRepositoryProvider).monitoring(projectId);
+});
+
+final analyticsProvider =
+    FutureProvider.family<Map<String, dynamic>, int>((ref, projectId) {
+  return ref.watch(websiteRepositoryProvider).analytics(projectId);
 });

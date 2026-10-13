@@ -6,6 +6,7 @@ import '../core/providers.dart';
 import '../features/account/account_screen.dart';
 import '../features/activity/activity_screen.dart';
 import '../features/auth/auth_controller.dart';
+import '../features/auth/forgot_password_screen.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/register_screen.dart';
 import '../features/auth/welcome_screen.dart';
@@ -26,6 +27,8 @@ import '../features/settings/settings_screen.dart';
 import '../features/shell/app_shell.dart';
 import '../features/support/support_screen.dart';
 import '../features/team/team_screen.dart';
+import '../features/website/analytics_screen.dart';
+import '../features/website/monitoring_screen.dart';
 import '../features/website/website_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -57,7 +60,12 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: refresh,
     redirect: (context, state) {
       final status = ref.read(authControllerProvider).status;
-      const authRoutes = {'/welcome', '/login', '/register'};
+      const authRoutes = {
+        '/welcome',
+        '/login',
+        '/register',
+        '/forgot-password'
+      };
       final atAuth = authRoutes.contains(state.matchedLocation);
       if (status == AuthStatus.unauthenticated) {
         // Signed-out users land on the welcome screen first.
@@ -71,6 +79,9 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/welcome', builder: (_, __) => const WelcomeScreen()),
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
+      GoRoute(
+          path: '/forgot-password',
+          builder: (_, __) => const ForgotPasswordScreen()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navShell) => AppShell(navShell: navShell),
@@ -135,6 +146,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/projects/:id/website',
         builder: (_, s) => WebsiteScreen(projectId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/projects/:id/website/monitoring',
+        builder: (_, s) => MonitoringScreen(projectId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/projects/:id/website/analytics',
+        builder: (_, s) => AnalyticsScreen(projectId: _idParam(s, 'id')),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
