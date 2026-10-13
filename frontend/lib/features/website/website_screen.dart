@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../config/brand.dart';
+import '../../config/theme.dart';
 import '../../core/api_exception.dart';
 import 'website_repository.dart';
 
@@ -87,7 +89,8 @@ class _WebsiteScreenState extends ConsumerState<WebsiteScreen> {
         data: (info) => ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Card(
+            PanelCard(
+              padding: EdgeInsets.zero,
               child: ListTile(
                 title: Text(info.subdomain),
                 subtitle: Text(info.current == null
@@ -139,14 +142,18 @@ class _WebsiteScreenState extends ConsumerState<WebsiteScreen> {
                 child: Text('No custom domains connected.'),
               ),
             for (final d in info.domains)
-              Card(
-                child: ListTile(
-                  title: Text(d.hostname),
-                  subtitle: Text(
-                      'Verify: ${d.verificationStatus} · SSL: ${d.sslStatus}'),
-                  trailing: Icon(
-                    d.isLive ? Icons.verified : Icons.pending_outlined,
-                    color: d.isLive ? Colors.green : null,
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: PanelCard(
+                  padding: EdgeInsets.zero,
+                  child: ListTile(
+                    title: Text(d.hostname),
+                    subtitle: Text(
+                        'Verify: ${d.verificationStatus} · SSL: ${d.sslStatus}'),
+                    trailing: Icon(
+                      d.isLive ? Icons.verified : Icons.pending_outlined,
+                      color: d.isLive ? AppTheme.ok : null,
+                    ),
                   ),
                 ),
               ),

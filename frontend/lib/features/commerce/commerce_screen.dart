@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../config/brand.dart';
 import '../../core/api_exception.dart';
 import 'commerce_repository.dart';
 
@@ -267,10 +268,21 @@ class _OrdersTab extends ConsumerWidget {
                         final o = items[i];
                         return ListTile(
                           title: Text(o.reference),
-                          subtitle: Text([
-                            if (o.customerName.isNotEmpty) o.customerName,
-                            o.status,
-                          ].join(' · ')),
+                          subtitle: Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Row(
+                              children: [
+                                StatusBadge(o.status),
+                                if (o.customerName.isNotEmpty) ...[
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Text(o.customerName,
+                                        overflow: TextOverflow.ellipsis),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
                           trailing: Text(o.totalDisplay),
                           onTap: () =>
                               _orderDetail(context, ref, projectId, o.id),

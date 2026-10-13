@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../config/app_config.dart';
 import '../../config/brand.dart';
+import '../../config/theme.dart';
 import '../../core/api_exception.dart';
 import '../../core/providers.dart';
 import '../projects/projects_repository.dart';
@@ -95,14 +96,29 @@ class _BuildScreenState extends ConsumerState<BuildScreen> {
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: _brief,
-              minLines: 4,
-              maxLines: 8,
-              textInputAction: TextInputAction.newline,
-              decoration: const InputDecoration(
-                hintText:
-                    'e.g. Build a booking system for my salon with reminders…',
+            // The hero prompt box — rounded like the web's big "describe it" field.
+            Container(
+              decoration: BoxDecoration(
+                color: AppTheme.panel2,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.line2),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              child: TextField(
+                controller: _brief,
+                minLines: 5,
+                maxLines: 9,
+                textInputAction: TextInputAction.newline,
+                style: const TextStyle(fontSize: 15, height: 1.5),
+                decoration: const InputDecoration(
+                  filled: false,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  contentPadding: EdgeInsets.all(14),
+                  hintText:
+                      'e.g. Build a booking system for my salon with reminders…',
+                ),
               ),
             ),
             const SizedBox(height: 14),

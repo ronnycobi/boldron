@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../config/brand.dart';
 import '../../core/api_exception.dart';
 import '../../core/providers.dart';
 import 'support_repository.dart';
@@ -33,7 +34,16 @@ class SupportScreen extends ConsumerWidget {
                     final t = items[i];
                     return ListTile(
                       title: Text(t.subject),
-                      subtitle: Text('${t.number} · ${t.status}'),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Row(
+                          children: [
+                            StatusBadge(t.status),
+                            const SizedBox(width: 8),
+                            Text(t.number),
+                          ],
+                        ),
+                      ),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => context.push('/support/${t.id}'),
                     );

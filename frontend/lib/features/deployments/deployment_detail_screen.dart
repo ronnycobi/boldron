@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../config/brand.dart';
 import '../../core/api_exception.dart';
 import 'deployments_repository.dart';
 
@@ -73,7 +74,7 @@ class _DeploymentDetailScreenState
                 Text(d.environment,
                     style: Theme.of(context).textTheme.titleLarge),
                 const Spacer(),
-                Chip(label: Text(d.status)),
+                StatusBadge(d.status),
               ],
             ),
             if (d.url.isNotEmpty) ...[

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../config/brand.dart';
 import '../../core/api_exception.dart';
 import 'releases_repository.dart';
 
@@ -66,10 +67,9 @@ class _StoreListingScreenState extends ConsumerState<StoreListingScreen> {
               if (md == null)
                 const Text('No listing yet. Generate a draft from your app.')
               else
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(14),
-                    child: Column(
+                PanelCard(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
@@ -107,7 +107,6 @@ class _StoreListingScreenState extends ConsumerState<StoreListingScreen> {
                         ],
                       ],
                     ),
-                  ),
                 ),
               const SizedBox(height: 10),
               Wrap(

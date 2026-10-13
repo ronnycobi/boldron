@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../config/brand.dart';
 import '../../core/api_exception.dart';
 import 'billing_repository.dart';
 
@@ -25,29 +26,30 @@ class BillingScreen extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text('${b['label'] ?? b['plan']}',
-                              style: Theme.of(context).textTheme.titleLarge),
-                          const Spacer(),
-                          Text('${b['price'] ?? ''}'),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      LinearProgressIndicator(value: remaining / 100),
-                      const SizedBox(height: 6),
-                      Text(
-                          'Credits: ${b['balance']} left of ${b['allowance']} ($remaining%)'),
-                      const SizedBox(height: 4),
-                      Text('This month: ${b['month_credits']} credits used'),
-                    ],
-                  ),
+              PanelCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text('${b['label'] ?? b['plan']}',
+                            style: Theme.of(context).textTheme.titleLarge),
+                        const Spacer(),
+                        Text('${b['price'] ?? ''}'),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(99),
+                      child: LinearProgressIndicator(
+                          value: remaining / 100, minHeight: 9),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                        'Credits: ${b['balance']} left of ${b['allowance']} ($remaining%)'),
+                    const SizedBox(height: 4),
+                    Text('This month: ${b['month_credits']} credits used'),
+                  ],
                 ),
               ),
               const SizedBox(height: 16),
@@ -57,27 +59,24 @@ class BillingScreen extends ConsumerWidget {
                 data: (u) {
                   final byModel = (u['by_model'] as List?) ?? [];
                   if (byModel.isEmpty) return const SizedBox.shrink();
-                  return Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Usage this month',
-                              style: Theme.of(context).textTheme.titleMedium),
-                          const SizedBox(height: 8),
-                          for (final m in byModel)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 2),
-                              child: Row(
-                                children: [
-                                  Expanded(child: Text('${(m as Map)['model']}')),
-                                  Text('${m['credits']} cr'),
-                                ],
-                              ),
+                  return PanelCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Usage this month',
+                            style: Theme.of(context).textTheme.titleMedium),
+                        const SizedBox(height: 8),
+                        for (final m in byModel)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 2),
+                            child: Row(
+                              children: [
+                                Expanded(child: Text('${(m as Map)['model']}')),
+                                Text('${m['credits']} cr'),
+                              ],
                             ),
-                        ],
-                      ),
+                          ),
+                      ],
                     ),
                   );
                 },
@@ -87,15 +86,24 @@ class BillingScreen extends ConsumerWidget {
                 Text('Upgrade', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
                 for (final u in upgrades)
-                  Card(
-                    child: ListTile(
-                      title: Text('${(u as Map)['label']} · ${u['price']}'),
-                      trailing: FilledButton.tonal(
-                        onPressed: (b['can_manage'] ?? false) as bool
-                            ? () => _requestUpgrade(
-                                context, ref, '${u['plan']}', '${u['label']}')
-                            : null,
-                        child: const Text('Request'),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: PanelCard(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      child: Row(
+                        children: [
+                          Expanded(
+                              child: Text(
+                                  '${(u as Map)['label']} · ${u['price']}')),
+                          FilledButton.tonal(
+                            onPressed: (b['can_manage'] ?? false) as bool
+                                ? () => _requestUpgrade(
+                                    context, ref, '${u['plan']}', '${u['label']}')
+                                : null,
+                            child: const Text('Request'),
+                          ),
+                        ],
                       ),
                     ),
                   ),
