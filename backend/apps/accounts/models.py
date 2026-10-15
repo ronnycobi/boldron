@@ -79,6 +79,30 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     avatar = models.ImageField(upload_to="avatars/", null=True, blank=True)
 
+    # Optional profile details the user can set and that are shown back to them
+    # (account page, mobile account, team listings). All free-text, all optional.
+    job_title = models.CharField(max_length=120, blank=True)
+    pronouns = models.CharField(max_length=40, blank=True)
+    bio = models.TextField(max_length=1000, blank=True)
+
+    # Accessibility preferences (spec §11). These are wired to real effects on
+    # both web (base layout) and mobile (MediaQuery) — never cosmetic no-ops.
+    FONT_SM, FONT_MD, FONT_LG, FONT_XL = "sm", "md", "lg", "xl"
+    FONT_SCALES = [
+        (FONT_SM, "Small"),
+        (FONT_MD, "Normal"),
+        (FONT_LG, "Large"),
+        (FONT_XL, "Extra large"),
+    ]
+    # Multipliers applied to the base text size for each choice.
+    FONT_SCALE_FACTORS = {FONT_SM: 0.9, FONT_MD: 1.0, FONT_LG: 1.15, FONT_XL: 1.3}
+    font_scale = models.CharField(max_length=2, choices=FONT_SCALES, default=FONT_MD)
+    reduce_motion = models.BooleanField(default=False)
+
+    @property
+    def font_scale_factor(self) -> float:
+        return self.FONT_SCALE_FACTORS.get(self.font_scale, 1.0)
+
     objects = UserManager()
 
     USERNAME_FIELD = "email"

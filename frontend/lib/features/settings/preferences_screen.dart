@@ -24,9 +24,26 @@ class _PreferencesScreenState extends ConsumerState<PreferencesScreen> {
     'America/Los_Angeles', 'Asia/Dubai', 'Asia/Singapore', 'Australia/Sydney',
   ];
 
+  static const _fontScales = {
+    'sm': 'Small', 'md': 'Normal', 'lg': 'Large', 'xl': 'Extra large',
+  };
+
   String _language = '';
   String _timezone = '';
+  String _fontScale = 'md';
+  bool _reduceMotion = false;
   bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fill from the signed-in user's current preferences.
+    final user = ref.read(authControllerProvider).user;
+    if (user != null) {
+      _fontScale = user.fontScale;
+      _reduceMotion = user.reduceMotion;
+    }
+  }
 
   Future<void> _save() async {
     setState(() => _saving = true);
@@ -34,6 +51,8 @@ class _PreferencesScreenState extends ConsumerState<PreferencesScreen> {
       await ref.read(settingsRepositoryProvider).updateAccount({
         'language': _language,
         'timezone': _timezone,
+        'font_scale': _fontScale,
+        'reduce_motion': _reduceMotion,
       });
       await ref.read(authControllerProvider.notifier).refreshUser();
       if (mounted) {
@@ -79,6 +98,26 @@ class _PreferencesScreenState extends ConsumerState<PreferencesScreen> {
                     value: tz, child: Text(tz.isEmpty ? 'Default' : tz)),
             ],
             onChanged: (v) => setState(() => _timezone = v ?? ''),
+          ),
+          const SizedBox(height: 20),
+          Text('Appearance & accessibility',
+              style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            value: _fontScale,
+            decoration: const InputDecoration(labelText: 'Text size'),
+            items: [
+              for (final e in _fontScales.entries)
+                DropdownMenuItem(value: e.key, child: Text(e.value)),
+            ],
+            onChanged: (v) => setState(() => _fontScale = v ?? 'md'),
+          ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Reduce motion'),
+            subtitle: const Text('Minimise animations and transitions.'),
+            value: _reduceMotion,
+            onChanged: (v) => setState(() => _reduceMotion = v),
           ),
           const SizedBox(height: 12),
           FilledButton(

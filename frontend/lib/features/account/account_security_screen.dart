@@ -18,6 +18,9 @@ class _AccountSecurityScreenState
     extends ConsumerState<AccountSecurityScreen> {
   late final TextEditingController _name;
   late final TextEditingController _email;
+  late final TextEditingController _jobTitle;
+  late final TextEditingController _pronouns;
+  late final TextEditingController _bio;
   bool _savingProfile = false;
 
   @override
@@ -26,12 +29,18 @@ class _AccountSecurityScreenState
     final user = ref.read(authControllerProvider).user;
     _name = TextEditingController(text: user?.fullName ?? '');
     _email = TextEditingController(text: user?.email ?? '');
+    _jobTitle = TextEditingController(text: user?.jobTitle ?? '');
+    _pronouns = TextEditingController(text: user?.pronouns ?? '');
+    _bio = TextEditingController(text: user?.bio ?? '');
   }
 
   @override
   void dispose() {
     _name.dispose();
     _email.dispose();
+    _jobTitle.dispose();
+    _pronouns.dispose();
+    _bio.dispose();
     super.dispose();
   }
 
@@ -41,6 +50,9 @@ class _AccountSecurityScreenState
       final user = await ref.read(accountRepositoryProvider).updateProfile({
         'full_name': _name.text.trim(),
         'email': _email.text.trim(),
+        'job_title': _jobTitle.text.trim(),
+        'pronouns': _pronouns.text.trim(),
+        'bio': _bio.text.trim(),
       });
       ref.read(authControllerProvider.notifier).setUser(user);
       _toast('Profile updated.');
@@ -121,6 +133,28 @@ class _AccountSecurityScreenState
             controller: _email,
             keyboardType: TextInputType.emailAddress,
             decoration: const InputDecoration(labelText: 'Email'),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _jobTitle,
+            textCapitalization: TextCapitalization.words,
+            maxLength: 120,
+            decoration: const InputDecoration(
+                labelText: 'Job title', counterText: ''),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _pronouns,
+            maxLength: 40,
+            decoration: const InputDecoration(
+                labelText: 'Pronouns', counterText: '', hintText: 'she/her'),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _bio,
+            maxLines: 3,
+            maxLength: 1000,
+            decoration: const InputDecoration(labelText: 'Bio'),
           ),
           const SizedBox(height: 12),
           FilledButton(

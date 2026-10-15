@@ -34,6 +34,12 @@ class AuthUser {
   final String avatarUrl;
   final bool emailVerified;
   final List<OrgSummary> organizations;
+  // Profile details + accessibility preferences (spec §4/§11).
+  final String jobTitle;
+  final String pronouns;
+  final String bio;
+  final String fontScale; // sm | md | lg | xl
+  final bool reduceMotion;
 
   const AuthUser({
     required this.id,
@@ -44,7 +50,21 @@ class AuthUser {
     required this.avatarUrl,
     required this.emailVerified,
     required this.organizations,
+    this.jobTitle = '',
+    this.pronouns = '',
+    this.bio = '',
+    this.fontScale = 'md',
+    this.reduceMotion = false,
   });
+
+  /// Text-scale multiplier for the chosen size (mirrors the backend factors).
+  double get fontScaleFactor => const {
+        'sm': 0.9,
+        'md': 1.0,
+        'lg': 1.15,
+        'xl': 1.3,
+      }[fontScale] ??
+      1.0;
 
   factory AuthUser.fromJson(Map<String, dynamic> json) => AuthUser(
         id: json['id'] as int,
@@ -57,5 +77,10 @@ class AuthUser {
         organizations: ((json['organizations'] as List?) ?? [])
             .map((o) => OrgSummary.fromJson(o as Map<String, dynamic>))
             .toList(),
+        jobTitle: (json['job_title'] ?? '') as String,
+        pronouns: (json['pronouns'] ?? '') as String,
+        bio: (json['bio'] ?? '') as String,
+        fontScale: (json['font_scale'] ?? 'md') as String,
+        reduceMotion: (json['reduce_motion'] ?? false) as bool,
       );
 }

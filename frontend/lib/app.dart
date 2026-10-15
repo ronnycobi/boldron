@@ -27,6 +27,7 @@ class BoldronApp extends ConsumerWidget {
     }
 
     final router = ref.watch(routerProvider);
+    final user = ref.watch(authControllerProvider.select((s) => s.user));
     return MaterialApp.router(
       title: AppConfig.appName,
       debugShowCheckedModeBanner: false,
@@ -35,6 +36,22 @@ class BoldronApp extends ConsumerWidget {
       darkTheme: AppTheme.dark(),
       themeMode: ThemeMode.dark,
       routerConfig: router,
+      // Apply the signed-in user's accessibility preferences app-wide: text
+      // size scales real text; reduce-motion disables implicit animations.
+      builder: (context, child) {
+        final media = MediaQuery.of(context);
+        final scale = user?.fontScaleFactor ?? 1.0;
+        return MediaQuery(
+          data: media.copyWith(
+            textScaler: TextScaler.linear(
+              media.textScaler.scale(1.0) * scale,
+            ),
+            disableAnimations:
+                media.disableAnimations || (user?.reduceMotion ?? false),
+          ),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 }

@@ -44,6 +44,12 @@
       <input name="full_name" value="{{ request.user.full_name }}" placeholder="Ada Lovelace">
       <label>Email (your sign-in)</label>
       <input type="email" name="email" value="{{ request.user.email }}" required>
+      <label>Job title</label>
+      <input name="job_title" value="{{ request.user.job_title }}" placeholder="Founder" maxlength="120">
+      <label>Pronouns</label>
+      <input name="pronouns" value="{{ request.user.pronouns }}" placeholder="she/her" maxlength="40">
+      <label>Bio</label>
+      <textarea name="bio" rows="3" maxlength="1000" placeholder="A sentence or two about you.">{{ request.user.bio }}</textarea>
       <button class="btn" type="submit">Save profile</button>
     </form>
   </div>

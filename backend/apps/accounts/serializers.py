@@ -23,6 +23,7 @@ class UserSerializer(serializers.ModelSerializer):
         fields = [
             "id", "email", "full_name", "display_name", "initials", "avatar_url",
             "email_verified", "language", "timezone", "date_joined", "organizations",
+            "job_title", "pronouns", "bio", "font_scale", "reduce_motion",
         ]
         read_only_fields = fields
 
@@ -36,7 +37,10 @@ class AccountUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["full_name", "email", "language", "timezone"]
+        fields = [
+            "full_name", "email", "language", "timezone",
+            "job_title", "pronouns", "bio", "font_scale", "reduce_motion",
+        ]
 
     def validate_email(self, value):
         email = User.objects.normalize_email(value)

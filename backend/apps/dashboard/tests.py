@@ -101,6 +101,60 @@ class MfaWebFlowTests(TestCase):
         self.assertRedirects(r, reverse("dashboard:login"), fetch_redirect_response=False)
 
 
+class ProfilePrefsWebTests(TestCase):
+    """P1c on the web: profile detail fields + accessibility prefs with real,
+    observable effects on the app layout."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(email="prefs@x.com", password="pw12345678")
+        self.client.force_login(self.user)
+
+    def test_profile_form_saves_detail_fields(self):
+        self.client.post(reverse("dashboard:account"), {
+            "action": "profile",
+            "full_name": "Ada Lovelace",
+            "email": "prefs@x.com",
+            "job_title": "Engineer",
+            "pronouns": "she/her",
+            "bio": "Hello.",
+        })
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.job_title, "Engineer")
+        self.assertEqual(self.user.pronouns, "she/her")
+        self.assertEqual(self.user.bio, "Hello.")
+
+    def test_preferences_save_font_scale_and_reduce_motion(self):
+        self.client.post(reverse("dashboard:settings"), {
+            "action": "save_preferences",
+            "language": "",
+            "timezone": "",
+            "font_scale": "lg",
+            "reduce_motion": "on",
+        })
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.font_scale, "lg")
+        self.assertTrue(self.user.reduce_motion)
+
+    def test_invalid_font_scale_falls_back_to_normal(self):
+        self.client.post(reverse("dashboard:settings"), {
+            "action": "save_preferences", "font_scale": "huge",
+        })
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.font_scale, "md")
+
+    def test_layout_applies_zoom_and_reduce_motion(self):
+        self.user.font_scale = "lg"
+        self.user.reduce_motion = True
+        self.user.save(update_fields=["font_scale", "reduce_motion"])
+        html = self.client.get(reverse("dashboard:account")).content.decode()
+        self.assertIn("zoom:1.15", html)
+        self.assertIn("reduce-motion", html)
+
+    def test_normal_prefs_add_no_zoom(self):
+        html = self.client.get(reverse("dashboard:account")).content.decode()
+        self.assertNotIn("zoom:", html)
+
+
 class PasswordResetFlowTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(email="reset@x.com", password="oldpass12345")

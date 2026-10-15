@@ -32,7 +32,10 @@ class SettingsServiceTests(TestCase):
         # Built sections are marked available; unbuilt ones are honest, not faked.
         account = {s["key"]: s for s in data["sections"]["account"]}
         self.assertTrue(account["profile"]["available"])
-        self.assertFalse(account["appearance"]["available"])
+        # Appearance & accessibility are wired (P1c); connected accounts are not.
+        self.assertTrue(account["appearance"]["available"])
+        self.assertTrue(account["accessibility"]["available"])
+        self.assertFalse(account["connected"]["available"])
 
     def test_unverified_email_raises_an_alert(self):
         from apps.settings import service

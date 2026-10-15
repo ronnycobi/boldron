@@ -1656,7 +1656,10 @@ def account(request):
                 messages.error(request, "That email is already in use by another account.")
             else:
                 user.full_name, user.email = full_name, email
-                user.save(update_fields=["full_name", "email"])
+                user.job_title = (request.POST.get("job_title") or "").strip()[:120]
+                user.pronouns = (request.POST.get("pronouns") or "").strip()[:40]
+                user.bio = (request.POST.get("bio") or "").strip()[:1000]
+                user.save(update_fields=["full_name", "email", "job_title", "pronouns", "bio"])
                 messages.success(request, "Profile updated.")
                 return redirect("dashboard:account")
         elif action == "password":
@@ -1819,12 +1822,16 @@ def settings_page(request):
     if request.method == "POST":
         action = request.POST.get("action")
         if action == "save_preferences":
+            from apps.accounts.models import User as _User
             u = request.user
             lang = (request.POST.get("language") or "").strip()[:16]
             u.language = lang if lang in dict(_LANGUAGES) else ""
             tzname = (request.POST.get("timezone") or "").strip()[:64]
             u.timezone = tzname if tzname in _TIMEZONES else ""
-            u.save(update_fields=["language", "timezone"])
+            scale = (request.POST.get("font_scale") or "").strip()
+            u.font_scale = scale if scale in dict(_User.FONT_SCALES) else _User.FONT_MD
+            u.reduce_motion = request.POST.get("reduce_motion") == "on"
+            u.save(update_fields=["language", "timezone", "font_scale", "reduce_motion"])
             messages.success(request, "Preferences saved.")
             return redirect(f"{reverse('dashboard:settings')}?tab=preferences")
 
@@ -1894,11 +1901,14 @@ def settings_page(request):
         {"project": p, "can_manage": p.organization_id in manageable}
         for p in Project.objects.filter(organization__in=orgs).select_related("organization")
     ]
+    from apps.accounts.models import User as _User
     return render(request, "dashboard/settings.html", {
         "active": "settings", "tab": tab, "plan_cards": plan_cards, "rows": rows,
         "languages": _LANGUAGES, "timezones": _TIMEZONES,
         "currency": getattr(settings, "APP_DEFAULT_CURRENCY", "USD"),
         "pref_language": request.user.language, "pref_timezone": request.user.timezone,
+        "font_scales": _User.FONT_SCALES, "pref_font_scale": request.user.font_scale,
+        "pref_reduce_motion": request.user.reduce_motion,
     })
 
 

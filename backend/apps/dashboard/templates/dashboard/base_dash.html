@@ -135,8 +135,19 @@
       .navgroup{margin:0}.navgroup .lbl{display:none}.nav{display:flex;gap:4px}
     }
   </style>
+  {% if request.user.is_authenticated %}
+  <style>
+    /* Accessibility preferences (account settings), applied app-wide. */
+    body.reduce-motion *,
+    body.reduce-motion *::before,
+    body.reduce-motion *::after{
+      animation-duration:.001ms!important;animation-iteration-count:1!important;
+      transition-duration:.001ms!important;scroll-behavior:auto!important;
+    }
+  </style>
+  {% endif %}
 </head>
-<body>
+<body{% if request.user.is_authenticated %}{% if request.user.reduce_motion %} class="reduce-motion"{% endif %}{% if request.user.font_scale_factor != 1.0 %} style="zoom:{{ request.user.font_scale_factor }}"{% endif %}{% endif %}>
 <div class="layout">
   <aside class="side">
     <div class="logo"><span class="mark"><img src="{% if app_logo_url %}{{ app_logo_url }}{% else %}{% static 'img/boldron-mark.svg' %}{% endif %}" alt="{{ app_name }}" onerror="this.remove()"></span><b>{{ app_name }}</b></div>

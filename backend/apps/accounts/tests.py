@@ -639,3 +639,50 @@ class MfaJwtLoginTests(TestCase):
         )
         self.assertEqual(resp.status_code, 200)
         self.assertIn("access", resp.json())
+
+
+class ProfileAndPrefsTests(TestCase):
+    """P1c: extra profile fields + accessibility preferences (real effects)."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(email="p1c@x.com", password="pw12345!")
+
+    def test_font_scale_factor_maps_choices(self):
+        self.user.font_scale = User.FONT_LG
+        self.assertEqual(self.user.font_scale_factor, 1.15)
+        self.user.font_scale = User.FONT_MD
+        self.assertEqual(self.user.font_scale_factor, 1.0)
+
+    def test_account_patch_updates_profile_and_prefs(self):
+        from apps.accounts.api import issue_tokens
+
+        auth = {"HTTP_AUTHORIZATION": f"Bearer {issue_tokens(self.user)['access']}"}
+        resp = self.client.patch(
+            reverse("accounts:account"),
+            data={
+                "job_title": "Founder",
+                "pronouns": "they/them",
+                "bio": "Building things.",
+                "font_scale": "lg",
+                "reduce_motion": True,
+            },
+            content_type="application/json",
+            **auth,
+        )
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertEqual(body["job_title"], "Founder")
+        self.assertEqual(body["pronouns"], "they/them")
+        self.assertEqual(body["font_scale"], "lg")
+        self.assertTrue(body["reduce_motion"])
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.job_title, "Founder")
+        self.assertTrue(self.user.reduce_motion)
+
+    def test_me_payload_includes_new_fields(self):
+        from apps.accounts.api import issue_tokens
+
+        auth = {"HTTP_AUTHORIZATION": f"Bearer {issue_tokens(self.user)['access']}"}
+        body = self.client.get(reverse("accounts:me"), **auth).json()
+        for key in ("job_title", "pronouns", "bio", "font_scale", "reduce_motion"):
+            self.assertIn(key, body)

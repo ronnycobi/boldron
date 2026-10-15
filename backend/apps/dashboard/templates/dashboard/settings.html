@@ -52,6 +52,19 @@
       <label>Billing currency</label>
       <input value="{{ currency }}" disabled>
       <p class="muted" style="font-size:12px;margin:6px 0 0">Set per deployment by your workspace admin.</p>
+
+      <h3 style="margin:22px 0 2px;font-size:14px">Appearance &amp; accessibility</h3>
+      <label>Text size</label>
+      <select name="font_scale">
+        {% for v, l in font_scales %}<option value="{{ v }}"{% if v == pref_font_scale %} selected{% endif %}>{{ l }}</option>{% endfor %}
+      </select>
+      <p class="muted" style="font-size:12px;margin:6px 0 0">Scales text across the dashboard.</p>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:14px;text-transform:none;letter-spacing:0;font-weight:500">
+        <input type="checkbox" name="reduce_motion" style="width:auto;margin:0"{% if pref_reduce_motion %} checked{% endif %}>
+        Reduce motion
+      </label>
+      <p class="muted" style="font-size:12px;margin:6px 0 0">Minimises animations and transitions.</p>
+
       <div style="margin-top:16px"><button class="btn" type="submit">Save preferences</button></div>
     </form>
   </div>
