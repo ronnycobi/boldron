@@ -171,6 +171,7 @@ INSTALLED_APPS = [
     "apps.hooks",
     "apps.marketing",
     "apps.notifications",
+    "apps.settings",
 ]
 
 # --- Auth redirects (server-rendered dashboard UI) --------------------------

@@ -1657,6 +1657,20 @@ _TIMEZONES = ["", "UTC", "Africa/Johannesburg", "Europe/London", "Europe/Berlin"
 
 
 @login_required
+def settings_center(request):
+    """The Settings control center: a status-aware overview of the whole
+    platform's settings, scoped to user / organization / project. Reads the
+    shared settings service (no new source of truth); sections that aren't wired
+    yet are shown honestly as upcoming, not faked."""
+    from apps.settings import service
+
+    return render(request, "dashboard/settings_center.html", {
+        "active": "settings",
+        "overview": service.overview(request.user),
+    })
+
+
+@login_required
 def settings_page(request):
     """Settings hub: plan & billing, usage summary, preferences, and projects."""
     from decimal import Decimal

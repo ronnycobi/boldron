@@ -1,0 +1,92 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}Settings · {{ app_name }}{% endblock %}
+{% block crumb %}Settings{% endblock %}
+{% block content %}
+<style>
+  .sc-alert{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line2);
+    border-radius:12px;padding:12px 14px;margin-bottom:10px;background:var(--panel2)}
+  .sc-alert.warning{border-color:rgba(245,196,84,.4);background:rgba(245,196,84,.07)}
+  .sc-alert .ico{font-size:16px;line-height:1.3}
+  .sc-alert .t{font-weight:700;color:var(--ink)}
+  .sc-alert .d{color:var(--muted);font-size:13px}
+  .sc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .sc-sec{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    border:1px solid var(--line);border-radius:11px;padding:11px 13px;background:linear-gradient(180deg,var(--panel),var(--panel2));color:var(--ink2)}
+  a.sc-sec:hover{border-color:var(--brand);color:#fff}
+  .sc-sec.soon{opacity:.55}
+  .sc-sec .soon-tag{font-size:9.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);
+    border:1px solid var(--line2);border-radius:99px;padding:1px 7px}
+  .sc-scope{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);
+    font-weight:700;margin:22px 0 10px}
+</style>
+
+<h1>Settings</h1>
+<p class="sub">Your control center — account, organization and project settings in one place.</p>
+
+{% if overview.alerts %}
+  <div style="margin:4px 0 18px">
+    {% for a in overview.alerts %}
+    <div class="sc-alert {{ a.level }}">
+      <span class="ico">⚠</span>
+      <div style="flex:1">
+        <div class="t">{{ a.title }}</div>
+        <div class="d">{{ a.detail }}</div>
+      </div>
+      {% if a.route %}<a class="btn ghost" style="padding:5px 12px;font-size:12px" href="{% url a.route %}">Fix</a>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+  <div class="card">
+    <div class="k" style="color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px">Account</div>
+    <div style="font-weight:700;margin-top:6px">{{ overview.account.display_name }}</div>
+    <div class="muted" style="font-size:12.5px">{{ overview.account.email }}
+      {% if overview.account.email_verified %}<span class="badge b-completed" style="margin-left:6px">Verified</span>
+      {% else %}<span class="badge b-waiting_for_approval" style="margin-left:6px">Unverified</span>{% endif %}</div>
+  </div>
+  {% for org in overview.organizations %}
+  <div class="card">
+    <div class="k" style="color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px">Organization</div>
+    <div style="font-weight:700;margin-top:6px">{{ org.name }}</div>
+    <div class="muted" style="font-size:12.5px">{{ org.role|title }} · {{ org.members }} member{{ org.members|pluralize }}
+      {% if org.plan %}· {{ org.plan|title }}{% endif %}
+      {% if org.credits_pct is not None %}· {{ org.credits_pct }}% credits{% endif %}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="sc-scope">Your account</div>
+<div class="sc-grid">
+  {% for s in overview.sections.account %}
+    {% if s.available %}
+      <a class="sc-sec" href="{% url s.route %}">{{ s.label }} <span>→</span></a>
+    {% else %}
+      <div class="sc-sec soon">{{ s.label }} <span class="soon-tag">soon</span></div>
+    {% endif %}
+  {% endfor %}
+</div>
+
+<div class="sc-scope">Organization</div>
+<div class="sc-grid">
+  {% for s in overview.sections.organization %}
+    {% if s.available %}
+      <a class="sc-sec" href="{% url s.route %}">{{ s.label }} <span>→</span></a>
+    {% else %}
+      <div class="sc-sec soon">{{ s.label }} <span class="soon-tag">soon</span></div>
+    {% endif %}
+  {% endfor %}
+</div>
+
+<div class="sc-scope">Project <span style="text-transform:none;letter-spacing:0;font-weight:400">· open a project to manage its settings</span></div>
+<div class="sc-grid">
+  {% for s in overview.sections.project %}
+    {% if s.available %}
+      <a class="sc-sec" href="{% url 'dashboard:projects' %}">{{ s.label }} <span>→</span></a>
+    {% else %}
+      <div class="sc-sec soon">{{ s.label }} <span class="soon-tag">soon</span></div>
+    {% endif %}
+  {% endfor %}
+</div>
+{% endblock %}
