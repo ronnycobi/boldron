@@ -10,6 +10,12 @@ class SettingsRepository {
   Future<void> updateAccount(Map<String, dynamic> fields) =>
       _api.patch('account/', body: fields);
 
+  /// The settings control-center overview (alerts + status + section map).
+  Future<Map<String, dynamic>> overview() async {
+    final data = await _api.get('settings/overview/');
+    return (data as Map).cast<String, dynamic>();
+  }
+
   Future<List<Map<String, dynamic>>> integrations() async {
     final data = await _api.get('integrations/');
     return ((data as Map)['integrations'] as List)
@@ -24,4 +30,8 @@ final settingsRepositoryProvider = Provider<SettingsRepository>(
 
 final integrationsProvider = FutureProvider<List<Map<String, dynamic>>>(
   (ref) => ref.watch(settingsRepositoryProvider).integrations(),
+);
+
+final settingsOverviewProvider = FutureProvider<Map<String, dynamic>>(
+  (ref) => ref.watch(settingsRepositoryProvider).overview(),
 );
