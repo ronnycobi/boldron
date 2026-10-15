@@ -20,6 +20,7 @@ const List<_Area> _areas = [
   (icon: Icons.storefront_outlined, label: 'Store', path: 'commerce'),
   (icon: Icons.phone_iphone, label: 'Mobile releases', path: 'releases'),
   (icon: Icons.settings_backup_restore, label: 'Backups', path: 'backups'),
+  (icon: Icons.key_outlined, label: 'Environment', path: 'environment'),
 ];
 
 /// The per-project hub: live build status while it builds, plus entry points to

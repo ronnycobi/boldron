@@ -1915,6 +1915,48 @@ def org_ai(request):
 
 
 @login_required
+def project_environment(request, pk):
+    """A project's environment variables (spec §20). Members view; owners/admins
+    edit. Values set here are really injected into the project's preview run."""
+    from apps.projects import env as envsvc
+
+    proj = get_object_or_404(
+        Project.objects.filter(organization__in=organizations_for(request.user)), pk=pk
+    )
+    can_manage = proj.organization_id in _manageable_ids(request.user)
+
+    if request.method == "POST":
+        if not can_manage:
+            messages.error(request, "Owner or admin rights required.")
+            return redirect("dashboard:environment", pk=pk)
+        action = request.POST.get("action")
+        if action == "set":
+            try:
+                envsvc.set_var(
+                    proj, request.POST.get("key", ""), request.POST.get("value", ""),
+                    is_secret=request.POST.get("is_secret") == "on",
+                )
+                from apps.settings.service import audit_change
+                audit_change("project.env_set", actor=request.user,
+                             organization=proj.organization,
+                             summary=f"{proj.name}: set {request.POST.get('key', '')}")
+                messages.success(request, "Variable saved.")
+            except envsvc.EnvVarError as exc:
+                messages.error(request, str(exc))
+        elif action == "delete":
+            envsvc.delete_var(proj, request.POST.get("var", 0))
+            messages.success(request, "Variable deleted.")
+        return redirect("dashboard:environment", pk=pk)
+
+    return render(request, "dashboard/environment.html", {
+        "active": "projects",
+        "project": proj,
+        "can_manage": can_manage,
+        "vars": [envsvc.public_dict(v) for v in envsvc.list_vars(proj)],
+    })
+
+
+@login_required
 def org_developer(request):
     """Developer settings (spec §21/§22): programmatic API keys + outbound
     webhooks, per organization. Managing requires org rights. Secrets (a key's

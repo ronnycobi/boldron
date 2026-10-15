@@ -255,6 +255,24 @@ class OrgSettingsWebTests(TestCase):
         html = self.client.get(reverse("dashboard:org_integrations")).content.decode()
         self.assertIn("Integrations", html)
 
+    def test_project_environment_manager_can_set(self):
+        from apps.projects.models import EnvVar, Project
+        proj = Project.objects.create(organization=self.org, name="WebApp")
+        self.client.force_login(self.owner)
+        self.client.post(reverse("dashboard:environment", args=[proj.id]), {
+            "action": "set", "key": "API_URL", "value": "https://x",
+        })
+        self.assertTrue(EnvVar.objects.filter(project=proj, key="API_URL").exists())
+
+    def test_project_environment_member_cannot_set(self):
+        from apps.projects.models import EnvVar, Project
+        proj = Project.objects.create(organization=self.org, name="WebApp2")
+        self.client.force_login(self.member)
+        self.client.post(reverse("dashboard:environment", args=[proj.id]), {
+            "action": "set", "key": "API_URL", "value": "https://x",
+        })
+        self.assertFalse(EnvVar.objects.filter(project=proj).exists())
+
 
 class PasswordResetFlowTests(TestCase):
     def setUp(self):

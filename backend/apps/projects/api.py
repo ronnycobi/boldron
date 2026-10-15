@@ -148,3 +148,50 @@ class BuildStatusView(APIView):
                 "credits": credits,
             }
         )
+
+
+class EnvVarListCreateView(APIView):
+    """List a project's environment variables (members) or set one (managers).
+
+    Secret values are never returned — reads mask them. Setting a key that
+    already exists updates it (idempotent upsert)."""
+
+    def get(self, request, pk):
+        from apps.projects.access import project_for_read
+        from apps.projects.env import list_vars, public_dict
+
+        project = project_for_read(request.user, pk)
+        return Response([public_dict(v) for v in list_vars(project)])
+
+    def post(self, request, pk):
+        from apps.projects.access import require_manageable_project
+        from apps.projects.env import EnvVarError, public_dict, set_var
+
+        project = require_manageable_project(request.user, pk)
+        try:
+            var = set_var(
+                project,
+                request.data.get("key", ""),
+                request.data.get("value", ""),
+                is_secret=bool(request.data.get("is_secret", False)),
+            )
+        except EnvVarError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        from apps.settings.service import audit_change
+        audit_change("project.env_set", actor=request.user,
+                     organization=project.organization,
+                     summary=f"{project.name}: set {var.key}")
+        return Response(public_dict(var), status=status.HTTP_201_CREATED)
+
+
+class EnvVarDetailView(APIView):
+    """Delete one environment variable (managers)."""
+
+    def delete(self, request, pk, var_id):
+        from apps.projects.access import require_manageable_project
+        from apps.projects.env import delete_var
+
+        project = require_manageable_project(request.user, pk)
+        if not delete_var(project, var_id):
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        return Response(status=status.HTTP_204_NO_CONTENT)

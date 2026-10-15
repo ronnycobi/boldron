@@ -102,7 +102,7 @@ class PreviewRunner:
         self.stop(project.id)
         port = _free_port()
         command = self._resolve(run["command"], port)
-        env = self._child_env(run, port)
+        env = self._child_env(run, port, project)
         try:
             proc = subprocess.Popen(
                 command, cwd=str(repo.path), env=env,
@@ -127,10 +127,19 @@ class PreviewRunner:
         return [tools.get(a, a).replace("$PORT", str(port)) for a in command]
 
     @staticmethod
-    def _child_env(run, port):
+    def _child_env(run, port, project=None):
         env = {k: v for k, v in os.environ.items()
                if not any(s in k.upper() for s in _SECRETY)}
         env[run.get("port_env", "PORT")] = str(port)
+        # The project's own environment variables (customer app config) — these
+        # are set in Project settings and are really injected here.
+        if project is not None:
+            try:
+                from apps.projects.env import env_for_project
+                for k, v in env_for_project(project).items():
+                    env[str(k)] = str(v)
+            except Exception:
+                pass  # never let a bad var stop the preview from starting
         for k, v in (run.get("env") or {}).items():
             env[str(k)] = str(v)
         return env

@@ -1,0 +1,54 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}Environment · {{ project.name }} · {{ app_name }}{% endblock %}
+{% block crumb %}<a href="{% url 'dashboard:project' project.id %}">{{ project.name }}</a> · Environment{% endblock %}
+{% block content %}
+<style>
+  .ev{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+  .ev:last-child{border-bottom:none}
+  .ev .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+  .ev .val{color:var(--muted);font-size:12.5px}
+</style>
+
+<h1>Environment variables</h1>
+<p class="sub">Configuration for <strong>{{ project.name }}</strong>. These are injected into the app when it runs in preview. Mark sensitive values as secret — they're stored to inject but never shown again.</p>
+
+<div class="card" style="margin-bottom:16px">
+  {% for v in vars %}
+    <div class="ev">
+      <div>
+        <span class="mono">{{ v.key }}</span>
+        {% if v.is_secret %}<span class="badge b-waiting_for_approval" style="margin-left:6px">secret</span>{% endif %}
+        <div class="val mono">{{ v.value|default:"(empty)" }}</div>
+      </div>
+      {% if can_manage %}
+      <form method="post" onsubmit="return confirm('Delete {{ v.key }}?')">{% csrf_token %}
+        <input type="hidden" name="action" value="delete">
+        <input type="hidden" name="var" value="{{ v.id }}">
+        <button class="btn ghost" type="submit" style="padding:5px 12px;font-size:12px">Delete</button>
+      </form>
+      {% endif %}
+    </div>
+  {% empty %}
+    <p class="muted">No environment variables yet.</p>
+  {% endfor %}
+</div>
+
+{% if can_manage %}
+<div class="card">
+  <h2 style="margin-top:0">Add / update a variable</h2>
+  <form method="post">{% csrf_token %}
+    <input type="hidden" name="action" value="set">
+    <label>Key</label>
+    <input name="key" placeholder="DATABASE_URL" required style="font-family:ui-monospace,monospace">
+    <label>Value</label>
+    <input name="value" placeholder="value">
+    <label style="display:flex;align-items:center;gap:8px;margin-top:12px;text-transform:none;letter-spacing:0;font-weight:500">
+      <input type="checkbox" name="is_secret" style="width:auto;margin:0"> Secret (mask the value after saving)
+    </label>
+    <div style="margin-top:12px"><button class="btn" type="submit">Save variable</button></div>
+  </form>
+</div>
+{% else %}
+  <p class="muted" style="font-size:12px">You need owner or admin rights to change environment variables.</p>
+{% endif %}
+{% endblock %}

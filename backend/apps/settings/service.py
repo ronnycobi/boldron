@@ -61,7 +61,7 @@ def _project_sections() -> list[dict]:
         {"key": "deployment", "label": "Deployment", "available": True, "scope_note": "per project"},
         {"key": "domains", "label": "Domains", "available": True, "scope_note": "per project"},
         {"key": "ai", "label": "AI", "available": False},
-        {"key": "environment", "label": "Environment & secrets", "available": False},
+        {"key": "environment", "label": "Environment & secrets", "available": True, "scope_note": "per project"},
         {"key": "repository", "label": "Repository", "available": False},
         {"key": "analytics", "label": "Analytics", "available": True, "scope_note": "per project"},
         {"key": "security", "label": "Security", "available": True, "scope_note": "per project"},

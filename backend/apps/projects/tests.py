@@ -215,3 +215,126 @@ class BuildApiTests(TestCase):
             reverse("projects:build-status", args=[pid]), **self._auth(outsider)
         )
         self.assertEqual(resp.status_code, 404)
+
+
+def _auth(user):
+    from apps.accounts.api import issue_tokens
+
+    return {"HTTP_AUTHORIZATION": f"Bearer {issue_tokens(user)['access']}"}
+
+
+class EnvVarServiceTests(TestCase):
+    def setUp(self):
+        self.org = Organization.objects.create(name="EnvCo")
+        self.project = Project.objects.create(organization=self.org, name="App")
+
+    def test_key_validation(self):
+        from apps.projects import env
+
+        with self.assertRaises(env.EnvVarError):
+            env.set_var(self.project, "bad-key", "x")
+        with self.assertRaises(env.EnvVarError):
+            env.set_var(self.project, "1LEADING_DIGIT", "x")
+        env.set_var(self.project, "GOOD_KEY", "x")  # ok
+
+    def test_upsert_and_env_for_project(self):
+        from apps.projects import env
+
+        env.set_var(self.project, "API_URL", "https://a")
+        env.set_var(self.project, "API_URL", "https://b")  # update, not duplicate
+        self.assertEqual(self.project.env_vars.count(), 1)
+        self.assertEqual(env.env_for_project(self.project), {"API_URL": "https://b"})
+
+    def test_secret_value_is_masked_on_read(self):
+        from apps.projects import env
+
+        var = env.set_var(self.project, "TOKEN", "s3cr3t", is_secret=True)
+        pub = env.public_dict(var)
+        self.assertEqual(pub["value"], env.MASK)
+        self.assertTrue(pub["has_value"])
+        # But the real value is still what gets injected.
+        self.assertEqual(env.env_for_project(self.project)["TOKEN"], "s3cr3t")
+
+
+class EnvVarApiTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(email="eo@x.com", password="pw12345!")
+        self.member = User.objects.create_user(email="em@x.com", password="pw12345!")
+        self.org = Organization.objects.create(name="EnvApi")
+        self.org.add_member(self.owner, role=Role.OWNER)
+        self.org.add_member(self.member, role=Role.MEMBER)
+        self.project = Project.objects.create(organization=self.org, name="App")
+
+    def test_member_can_read_manager_can_write(self):
+        create = self.client.post(
+            reverse("projects:env-list", args=[self.project.id]),
+            data={"key": "API_URL", "value": "https://a"},
+            content_type="application/json", **_auth(self.owner),
+        )
+        self.assertEqual(create.status_code, 201)
+        listed = self.client.get(
+            reverse("projects:env-list", args=[self.project.id]), **_auth(self.member)
+        )
+        self.assertEqual(listed.status_code, 200)
+        self.assertEqual(listed.json()[0]["key"], "API_URL")
+
+    def test_member_cannot_write(self):
+        resp = self.client.post(
+            reverse("projects:env-list", args=[self.project.id]),
+            data={"key": "X", "value": "y"},
+            content_type="application/json", **_auth(self.member),
+        )
+        self.assertEqual(resp.status_code, 403)
+
+    def test_secret_value_never_returned(self):
+        self.client.post(
+            reverse("projects:env-list", args=[self.project.id]),
+            data={"key": "TOKEN", "value": "s3cr3t", "is_secret": True},
+            content_type="application/json", **_auth(self.owner),
+        )
+        listed = self.client.get(
+            reverse("projects:env-list", args=[self.project.id]), **_auth(self.owner)
+        ).json()
+        tok = next(v for v in listed if v["key"] == "TOKEN")
+        self.assertNotEqual(tok["value"], "s3cr3t")
+        self.assertTrue(tok["is_secret"])
+
+    def test_delete(self):
+        from apps.projects.models import EnvVar
+
+        self.client.post(
+            reverse("projects:env-list", args=[self.project.id]),
+            data={"key": "API_URL", "value": "a"},
+            content_type="application/json", **_auth(self.owner),
+        )
+        var = EnvVar.objects.get(project=self.project, key="API_URL")
+        resp = self.client.delete(
+            reverse("projects:env-detail", args=[self.project.id, var.id]),
+            **_auth(self.owner),
+        )
+        self.assertEqual(resp.status_code, 204)
+        self.assertFalse(EnvVar.objects.filter(id=var.id).exists())
+
+    def test_foreign_project_is_invisible(self):
+        other = User.objects.create_user(email="ex@x.com", password="pw12345!")
+        resp = self.client.get(
+            reverse("projects:env-list", args=[self.project.id]), **_auth(other)
+        )
+        self.assertEqual(resp.status_code, 404)
+
+
+class EnvVarInjectionTests(TestCase):
+    """The genuine consumer: preview_runner injects the project's env vars."""
+
+    def setUp(self):
+        self.org = Organization.objects.create(name="InjCo")
+        self.project = Project.objects.create(organization=self.org, name="App")
+
+    def test_child_env_includes_project_vars(self):
+        from apps.preview_runner.runner import PreviewRunner
+        from apps.projects import env
+
+        env.set_var(self.project, "MY_FLAG", "on")
+        child = PreviewRunner._child_env({"command": []}, 8000, self.project)
+        self.assertEqual(child["MY_FLAG"], "on")
+        self.assertEqual(child["PORT"], "8000")

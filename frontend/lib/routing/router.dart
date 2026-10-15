@@ -19,6 +19,7 @@ import '../features/changes/changes_screen.dart';
 import '../features/commerce/commerce_screen.dart';
 import '../features/deployments/deployment_detail_screen.dart';
 import '../features/deployments/deployments_screen.dart';
+import '../features/projects/environment_screen.dart';
 import '../features/projects/project_detail_screen.dart';
 import '../features/projects/projects_screen.dart';
 import '../features/releases/releases_screen.dart';
@@ -178,6 +179,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/projects/:id/commerce',
         builder: (_, s) => CommerceScreen(projectId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/projects/:id/environment',
+        builder: (_, s) => EnvironmentScreen(projectId: _idParam(s, 'id')),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,

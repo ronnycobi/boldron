@@ -33,6 +33,20 @@ class ProjectsRepository {
     final data = await _api.get('projects/$projectId/build-status/');
     return BuildStatus.fromJson(data as Map<String, dynamic>);
   }
+
+  /// A project's environment variables (secret values come back masked).
+  Future<List<Map<String, dynamic>>> envVars(int projectId) async {
+    final data = await _api.get('projects/$projectId/env/');
+    return (data as List).map((e) => (e as Map).cast<String, dynamic>()).toList();
+  }
+
+  Future<void> setEnvVar(int projectId, String key, String value,
+          {bool isSecret = false}) =>
+      _api.post('projects/$projectId/env/',
+          body: {'key': key, 'value': value, 'is_secret': isSecret});
+
+  Future<void> deleteEnvVar(int projectId, int varId) =>
+      _api.delete('projects/$projectId/env/$varId/');
 }
 
 final projectsRepositoryProvider = Provider<ProjectsRepository>(
@@ -54,4 +68,10 @@ final projectProvider = FutureProvider.family<Project, int>(
 final buildStatusProvider = FutureProvider.family<BuildStatus, int>(
   (ref, projectId) =>
       ref.watch(projectsRepositoryProvider).buildStatus(projectId),
+);
+
+/// A project's environment variables.
+final envVarsProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, int>(
+  (ref, projectId) => ref.watch(projectsRepositoryProvider).envVars(projectId),
 );

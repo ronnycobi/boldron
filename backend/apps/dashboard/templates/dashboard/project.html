@@ -9,6 +9,7 @@
       <a class="btn" href="{% url 'dashboard:publish_center' project.id %}">Publish →</a>
       <a class="btn ghost" href="{% url 'dashboard:release_center' project.id %}">Mobile release →</a>
       <a class="btn ghost" href="{% url 'dashboard:preview' project.id %}">Open preview →</a>
+      <a class="btn ghost" href="{% url 'dashboard:environment' project.id %}">Environment →</a>
     </div>
   </div>
   <p class="sub">{{ project.organization.name }} · {{ project.get_mode_display }}

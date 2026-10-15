@@ -90,3 +90,36 @@ class Project(models.Model):
         return Workspace.objects.create(
             project=self, name="Main", is_default=True
         )
+
+
+class EnvVar(models.Model):
+    """A project's environment variable (spec §20).
+
+    These are the *customer's app* configuration — values the platform must
+    store so it can inject them into the project's preview/run process (see
+    apps.preview_runner). That is different from platform secrets, which remain
+    environment-only and are never stored in the DB. A var flagged `is_secret` is
+    masked in every read (its value is write-only); non-secret values are shown
+    so they can be edited. Values are not encrypted at rest in this phase — a
+    limitation stated honestly rather than faked with reversible 'encryption'.
+    """
+
+    project = models.ForeignKey(
+        "projects.Project", on_delete=models.CASCADE, related_name="env_vars"
+    )
+    key = models.CharField(max_length=128)
+    value = models.TextField(blank=True)
+    is_secret = models.BooleanField(default=False)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["key"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project", "key"], name="unique_env_key_per_project"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.key} ({self.project_id})"
