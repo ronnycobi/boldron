@@ -137,6 +137,17 @@ class Orchestrator:
         except NoExecutableAgent as exc:
             return self._handle_failure(task, str(exc))
 
+        # Apply the organization's AI routing preferences to this agent's router,
+        # so every completion in the build respects the org's AI settings. Soft:
+        # the router still falls back when the preferred provider/model isn't
+        # available (see ModelRouter._with_preferences).
+        if hasattr(agent, "router"):
+            from apps.model_router.router import ModelRouter
+            from apps.organizations.ai_settings import preferences_for
+            agent.router = ModelRouter(
+                preferences=preferences_for(task.project.organization)
+            )
+
         context = AgentContext(
             input=task.input,
             project_id=task.project_id,

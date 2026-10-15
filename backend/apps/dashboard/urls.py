@@ -39,6 +39,7 @@ urlpatterns = [
     path("settings/", views.settings_center, name="settings_center"),
     path("settings/organization/", views.org_settings, name="org_settings"),
     path("settings/roles/", views.org_roles, name="org_roles"),
+    path("settings/ai/", views.org_ai, name="org_ai"),
     path("settings/security/", views.security_center, name="security_center"),
     path("settings/security/mfa/", views.mfa_setup, name="mfa_setup"),
     path("settings/preferences/", views.settings_page, name="settings"),

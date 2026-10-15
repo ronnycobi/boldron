@@ -1,0 +1,68 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}AI settings · {{ app_name }}{% endblock %}
+{% block crumb %}Settings · AI{% endblock %}
+{% block content %}
+<h1>AI settings</h1>
+<p class="sub">Choose which connected AI provider your organization's builds prefer. This is a soft preference — if it isn't available, builds fall back to the best option automatically.</p>
+
+<div class="sc-alert {% if generation.live %}{% else %}warning{% endif %}" style="display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line2);border-radius:12px;padding:12px 14px;margin:4px 0 18px;background:var(--panel2)">
+  <span style="font-size:16px">{% if generation.live %}✓{% else %}⚠{% endif %}</span>
+  <div>{{ generation.message }}</div>
+</div>
+
+{% if not options %}
+  <div class="card"><p class="muted">No AI providers are configured on this deployment. Provider API keys are set via the environment (e.g. <code>ANTHROPIC_API_KEY</code>); once a key is set, it becomes selectable here.</p></div>
+{% endif %}
+
+{% for c in cards %}
+  <div class="card" style="margin-bottom:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <h2 style="margin:0">{{ c.org.name }}</h2>
+    </div>
+    {% if c.can_manage %}
+    <form method="post" style="margin-top:10px">{% csrf_token %}
+      <input type="hidden" name="organization" value="{{ c.org.id }}">
+      <label>Preferred provider</label>
+      <select name="preferred_provider" data-org="{{ c.org.id }}" onchange="syncModels(this)">
+        <option value="">Platform default (automatic)</option>
+        {% for o in options %}
+          <option value="{{ o.provider }}"{% if o.provider == c.prefs.preferred_provider %} selected{% endif %}{% if not o.available %} data-unavailable="1"{% endif %}>
+            {{ o.provider|title }}{% if not o.available %} (not connected){% endif %}
+          </option>
+        {% endfor %}
+      </select>
+      <label>Preferred model <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">(optional)</span></label>
+      <select name="preferred_model" id="model-{{ c.org.id }}">
+        <option value="">Best available for the provider</option>
+        {% for o in options %}{% for m in o.models %}
+          <option value="{{ m.model }}" data-provider="{{ o.provider }}"{% if m.model == c.prefs.preferred_model %} selected{% endif %}>{{ m.label }}</option>
+        {% endfor %}{% endfor %}
+      </select>
+      <div style="margin-top:12px"><button class="btn" type="submit">Save AI settings</button></div>
+    </form>
+    {% else %}
+      <p class="muted" style="font-size:13px">Preferred provider:
+        {% if c.prefs.preferred_provider %}{{ c.prefs.preferred_provider|title }}{% if c.prefs.preferred_model %} · {{ c.prefs.preferred_model }}{% endif %}{% else %}Platform default{% endif %}</p>
+      <p class="muted" style="font-size:12px">You need owner or admin rights to change AI settings.</p>
+    {% endif %}
+  </div>
+{% endfor %}
+
+<script>
+  // Show only the models that belong to the chosen provider (plus the default).
+  function syncModels(sel){
+    var org = sel.getAttribute('data-org');
+    var provider = sel.value;
+    var model = document.getElementById('model-' + org);
+    if(!model) return;
+    for(var i=0;i<model.options.length;i++){
+      var opt = model.options[i];
+      if(!opt.value){ opt.hidden = false; continue; }
+      var match = opt.getAttribute('data-provider') === provider;
+      opt.hidden = !provider || !match;
+      if(opt.selected && opt.hidden){ model.value = ''; }
+    }
+  }
+  document.querySelectorAll('select[name="preferred_provider"]').forEach(syncModels);
+</script>
+{% endblock %}

@@ -1873,6 +1873,48 @@ def org_roles(request):
 
 
 @login_required
+def org_ai(request):
+    """Organization AI settings (spec §19): a soft preferred provider/model for
+    the org's builds. Keys stay environment-only; this only chooses among the
+    providers already connected. Editing requires org management rights."""
+    from apps.ai_providers.registry import generation_status
+    from apps.organizations import ai_settings
+    from apps.organizations.permissions import has_perm
+
+    orgs = list(organizations_for(request.user).order_by("name"))
+
+    if request.method == "POST":
+        org = get_object_or_404(Organization, pk=request.POST.get("organization", 0),
+                                memberships__user=request.user)
+        if not has_perm(request.user, org, "org.manage"):
+            messages.error(request, "You don't have permission to change AI settings.")
+            return redirect("dashboard:org_ai")
+        try:
+            ai_settings.set_preferences(
+                org,
+                preferred_provider=request.POST.get("preferred_provider", ""),
+                preferred_model=request.POST.get("preferred_model", ""),
+                actor=request.user,
+            )
+            messages.success(request, "AI settings saved.")
+        except ValueError as exc:
+            messages.error(request, str(exc))
+        return redirect("dashboard:org_ai")
+
+    cards = [{
+        "org": o,
+        "can_manage": has_perm(request.user, o, "org.manage"),
+        "prefs": ai_settings.preferences_for(o),
+    } for o in orgs]
+    return render(request, "dashboard/org_ai.html", {
+        "active": "settings",
+        "cards": cards,
+        "options": ai_settings.available_options(),
+        "generation": generation_status(),
+    })
+
+
+@login_required
 def settings_page(request):
     """Settings hub: plan & billing, usage summary, preferences, and projects."""
     from decimal import Decimal

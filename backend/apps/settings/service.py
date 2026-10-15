@@ -39,7 +39,7 @@ def _org_sections() -> list[dict]:
         {"key": "roles", "label": "Roles & permissions", "available": True, "route": "dashboard:org_roles"},
         {"key": "billing", "label": "Billing & plan", "available": True, "route": "dashboard:settings"},
         {"key": "usage", "label": "Usage", "available": True, "route": "dashboard:usage"},
-        {"key": "ai", "label": "AI", "available": False},
+        {"key": "ai", "label": "AI", "available": True, "route": "dashboard:org_ai"},
         {"key": "integrations", "label": "Integrations", "available": False},
         {"key": "developer", "label": "Developer & API", "available": False},
         {"key": "domains", "label": "Domains", "available": False},

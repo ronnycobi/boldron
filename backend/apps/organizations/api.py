@@ -126,6 +126,50 @@ class OrganizationRolesView(APIView):
         })
 
 
+class OrganizationAiView(APIView):
+    """The organization's AI routing preferences + the real options available.
+
+    Read is open to any member; changing requires org management rights. No API
+    keys are ever read or written here — only which providers are connected and
+    which the org prefers."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        from apps.ai_providers.registry import generation_status
+        from apps.organizations import ai_settings
+        from apps.organizations.permissions import has_perm
+
+        org = _get_org(request.user, pk)
+        return Response({
+            "preferences": ai_settings.preferences_for(org),
+            "options": ai_settings.available_options(),
+            "generation": generation_status(),
+            "can_manage": has_perm(request.user, org, "org.manage"),
+        })
+
+    def patch(self, request, pk):
+        from apps.organizations import ai_settings
+        from apps.organizations.permissions import has_perm
+
+        org = _get_org(request.user, pk)
+        if not has_perm(request.user, org, "org.manage"):
+            return Response(
+                {"detail": "You don't have permission to change AI settings."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        try:
+            ai_settings.set_preferences(
+                org,
+                preferred_provider=request.data.get("preferred_provider", "") or "",
+                preferred_model=request.data.get("preferred_model", "") or "",
+                actor=request.user,
+            )
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"preferences": ai_settings.preferences_for(org)})
+
+
 class MemberListView(APIView):
     permission_classes = [IsAuthenticated]
 

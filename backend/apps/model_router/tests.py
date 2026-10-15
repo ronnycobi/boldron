@@ -177,3 +177,30 @@ class ModelRouterAPITests(TestCase):
             content_type="application/json",
         )
         self.assertEqual(resp.status_code, 401)
+
+
+class RouterPreferenceTests(TestCase):
+    """Org AI preferences are merged softly into routing requests."""
+
+    def test_preferences_fill_unset_fields(self):
+        from apps.model_router.router import ModelRouter, RoutingRequest
+
+        router = ModelRouter(preferences={
+            "preferred_provider": "anthropic", "preferred_model": "claude-x"})
+        merged = router._with_preferences(RoutingRequest())
+        self.assertEqual(merged.preferred_provider, "anthropic")
+        self.assertEqual(merged.preferred_model, "claude-x")
+
+    def test_explicit_request_is_not_overridden(self):
+        from apps.model_router.router import ModelRouter, RoutingRequest
+
+        router = ModelRouter(preferences={"preferred_provider": "anthropic"})
+        req = RoutingRequest(preferred_provider="openai")
+        merged = router._with_preferences(req)
+        self.assertEqual(merged.preferred_provider, "openai")  # request wins
+
+    def test_no_preferences_is_a_noop(self):
+        from apps.model_router.router import ModelRouter, RoutingRequest
+
+        req = RoutingRequest()
+        self.assertIs(ModelRouter()._with_preferences(req), req)

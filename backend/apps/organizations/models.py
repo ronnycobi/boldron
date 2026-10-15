@@ -99,6 +99,27 @@ class Membership(models.Model):
         return self.role in {Role.OWNER, Role.ADMIN}
 
 
+class OrgAiPreference(models.Model):
+    """An organization's AI routing preferences (spec §19).
+
+    A soft preference for which connected provider/model the Model Router should
+    favour for this org's work. Honoured only when the choice is actually
+    available — the router still falls back otherwise, so a preference never
+    breaks a build. API keys are NEVER stored here: provider credentials remain
+    environment-only. Blank means "use the platform default policy".
+    """
+
+    organization = models.OneToOneField(
+        Organization, on_delete=models.CASCADE, related_name="ai_preference"
+    )
+    preferred_provider = models.CharField(max_length=32, blank=True)
+    preferred_model = models.CharField(max_length=64, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"AI prefs for {self.organization} ({self.preferred_provider or 'default'})"
+
+
 class Team(models.Model):
     """A named subgroup within an organization. Members must belong to the org."""
 

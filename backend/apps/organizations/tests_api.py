@@ -244,3 +244,56 @@ class OrgSettingsAndRolesApiTests(TestCase):
             reverse("organizations:roles", args=[self.org.id]), **auth(outsider)
         )
         self.assertEqual(resp.status_code, 404)
+
+
+class OrgAiApiTests(TestCase):
+    """The per-org AI settings endpoint."""
+
+    def setUp(self):
+        self.owner = User.objects.create_user(email="aio@x.com", password="pw12345!")
+        self.member = User.objects.create_user(email="aim@x.com", password="pw12345!")
+        self.org = Organization.objects.create(name="AiCo")
+        self.org.add_member(self.owner, role=Role.OWNER)
+        self.org.add_member(self.member, role=Role.MEMBER)
+
+    def test_get_returns_options_and_generation(self):
+        resp = self.client.get(
+            reverse("organizations:ai", args=[self.org.id]), **auth(self.member)
+        )
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertIn("preferences", body)
+        self.assertIn("options", body)
+        self.assertIn("live", body["generation"])
+        self.assertFalse(body["can_manage"])  # member
+
+    def test_member_cannot_change(self):
+        resp = self.client.patch(
+            reverse("organizations:ai", args=[self.org.id]),
+            data={"preferred_provider": "anthropic"},
+            content_type="application/json",
+            **auth(self.member),
+        )
+        self.assertEqual(resp.status_code, 403)
+
+    def test_owner_sets_valid_preference(self):
+        from apps.organizations import ai_settings
+
+        provider = ai_settings.available_options()[0]["provider"]
+        resp = self.client.patch(
+            reverse("organizations:ai", args=[self.org.id]),
+            data={"preferred_provider": provider},
+            content_type="application/json",
+            **auth(self.owner),
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()["preferences"]["preferred_provider"], provider)
+
+    def test_owner_unknown_provider_is_400(self):
+        resp = self.client.patch(
+            reverse("organizations:ai", args=[self.org.id]),
+            data={"preferred_provider": "nope"},
+            content_type="application/json",
+            **auth(self.owner),
+        )
+        self.assertEqual(resp.status_code, 400)

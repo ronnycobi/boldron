@@ -14,7 +14,7 @@ Two standing policies:
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import StrEnum
 
 from apps.ai_providers.base import CompletionRequest, ProviderUnavailable
@@ -65,8 +65,24 @@ class NoModelAvailable(Exception):
 
 
 class ModelRouter:
-    def __init__(self, catalog: list[ModelProfile] = None):
+    def __init__(self, catalog: list[ModelProfile] = None, *, preferences: dict | None = None):
         self.catalog = catalog if catalog is not None else MODEL_CATALOG
+        # Optional soft org preferences {preferred_provider, preferred_model}.
+        # Applied only when a request doesn't already specify them, and still
+        # subject to availability — so a preference never forces or breaks a build.
+        self.preferences = preferences or {}
+
+    def _with_preferences(self, request: RoutingRequest) -> RoutingRequest:
+        prov = self.preferences.get("preferred_provider") or ""
+        model = self.preferences.get("preferred_model") or ""
+        if not prov and not model:
+            return request
+        changes = {}
+        if prov and not request.preferred_provider:
+            changes["preferred_provider"] = prov
+        if model and not request.preferred_model:
+            changes["preferred_model"] = model
+        return replace(request, **changes) if changes else request
 
     # --- availability -----------------------------------------------------
 
@@ -104,6 +120,7 @@ class ModelRouter:
     # --- routing ----------------------------------------------------------
 
     def route(self, request: RoutingRequest) -> RoutingDecision:
+        request = self._with_preferences(request)
         profiles = self._available()
         if request.allowed_providers:
             allowed = set(request.allowed_providers)

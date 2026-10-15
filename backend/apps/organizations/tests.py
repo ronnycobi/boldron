@@ -250,3 +250,57 @@ class PermissionsTests(TestCase):
         self.assertEqual({r["key"] for r in rows}, set(perms.PERMISSION_KEYS))
         for row in rows:
             self.assertEqual(set(row["roles"].keys()), {"owner", "admin", "member"})
+
+
+class AiSettingsTests(TestCase):
+    """Per-org AI preferences (soft routing hints; no secrets stored)."""
+
+    def setUp(self):
+        self.org = Organization.objects.create(name="AiOrg")
+
+    def test_default_is_empty(self):
+        from apps.organizations import ai_settings
+
+        self.assertEqual(
+            ai_settings.preferences_for(self.org),
+            {"preferred_provider": "", "preferred_model": ""},
+        )
+
+    def test_options_exclude_the_stub(self):
+        from apps.organizations import ai_settings
+
+        providers = {o["provider"] for o in ai_settings.available_options()}
+        self.assertNotIn("stub", providers)
+
+    def test_set_valid_provider(self):
+        from apps.organizations import ai_settings
+
+        opts = ai_settings.available_options()
+        self.assertTrue(opts, "expected at least one routable provider")
+        provider = opts[0]["provider"]
+        ai_settings.set_preferences(self.org, preferred_provider=provider)
+        self.assertEqual(
+            ai_settings.preferences_for(self.org)["preferred_provider"], provider
+        )
+
+    def test_unknown_provider_rejected(self):
+        from apps.organizations import ai_settings
+
+        with self.assertRaises(ValueError):
+            ai_settings.set_preferences(self.org, preferred_provider="made-up")
+
+    def test_model_without_provider_rejected(self):
+        from apps.organizations import ai_settings
+
+        with self.assertRaises(ValueError):
+            ai_settings.set_preferences(self.org, preferred_model="some-model")
+
+    def test_blank_clears_preference(self):
+        from apps.organizations import ai_settings
+
+        provider = ai_settings.available_options()[0]["provider"]
+        ai_settings.set_preferences(self.org, preferred_provider=provider)
+        ai_settings.set_preferences(self.org, preferred_provider="")
+        self.assertEqual(
+            ai_settings.preferences_for(self.org)["preferred_provider"], ""
+        )

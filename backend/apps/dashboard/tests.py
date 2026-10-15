@@ -202,6 +202,32 @@ class OrgSettingsWebTests(TestCase):
         self.assertIn("Manage owners", html)
         self.assertIn("Edit organization settings", html)
 
+    def test_ai_page_renders_for_member(self):
+        self.client.force_login(self.member)
+        html = self.client.get(reverse("dashboard:org_ai")).content.decode()
+        self.assertIn("AI settings", html)
+
+    def test_owner_can_save_ai_preference(self):
+        from apps.organizations import ai_settings
+        self.client.force_login(self.owner)
+        provider = ai_settings.available_options()[0]["provider"]
+        self.client.post(reverse("dashboard:org_ai"), {
+            "organization": self.org.id, "preferred_provider": provider,
+        })
+        self.assertEqual(
+            ai_settings.preferences_for(self.org)["preferred_provider"], provider
+        )
+
+    def test_member_cannot_save_ai_preference(self):
+        from apps.organizations import ai_settings
+        self.client.force_login(self.member)
+        self.client.post(reverse("dashboard:org_ai"), {
+            "organization": self.org.id, "preferred_provider": "anthropic",
+        })
+        self.assertEqual(
+            ai_settings.preferences_for(self.org)["preferred_provider"], ""
+        )
+
 
 class PasswordResetFlowTests(TestCase):
     def setUp(self):

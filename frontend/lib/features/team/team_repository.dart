@@ -96,6 +96,17 @@ class TeamRepository {
     final data = await _api.get('organizations/$orgId/roles/');
     return (data as Map).cast<String, dynamic>();
   }
+
+  /// AI preferences + the connected providers/models + generation status.
+  Future<Map<String, dynamic>> aiSettings(int orgId) async {
+    final data = await _api.get('organizations/$orgId/ai/');
+    return (data as Map).cast<String, dynamic>();
+  }
+
+  Future<void> updateAiSettings(int orgId,
+          {String provider = '', String model = ''}) =>
+      _api.patch('organizations/$orgId/ai/',
+          body: {'preferred_provider': provider, 'preferred_model': model});
 }
 
 final teamRepositoryProvider = Provider<TeamRepository>(
@@ -120,4 +131,9 @@ final organizationProvider =
 final orgRolesProvider =
     FutureProvider.family<Map<String, dynamic>, int>((ref, orgId) {
   return ref.watch(teamRepositoryProvider).roles(orgId);
+});
+
+final orgAiProvider =
+    FutureProvider.family<Map<String, dynamic>, int>((ref, orgId) {
+  return ref.watch(teamRepositoryProvider).aiSettings(orgId);
 });
