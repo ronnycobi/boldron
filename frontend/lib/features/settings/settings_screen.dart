@@ -29,13 +29,15 @@ class SettingsScreen extends ConsumerWidget {
         return orgId == null ? null : '/orgs/$orgId/roles';
       case 'organization.ai':
         return orgId == null ? null : '/orgs/$orgId/ai';
+      case 'organization.developer':
+        return orgId == null ? null : '/orgs/$orgId/developer';
+      case 'organization.integrations':
+        return '/settings/integrations';
       case 'organization.members':
         return orgId == null ? null : '/orgs/$orgId/team';
       case 'organization.billing':
       case 'organization.usage':
         return orgId == null ? null : '/orgs/$orgId/billing';
-      case 'organization.integrations':
-        return '/settings/preferences';
       default:
         return null;
     }

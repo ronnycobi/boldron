@@ -228,6 +228,33 @@ class OrgSettingsWebTests(TestCase):
             ai_settings.preferences_for(self.org)["preferred_provider"], ""
         )
 
+    def test_developer_page_create_api_key(self):
+        from apps.developer.models import ApiKey
+        self.client.force_login(self.owner)
+        self.client.post(reverse("dashboard:org_developer"), {
+            "organization": self.org.id, "action": "create_key", "name": "CI",
+        })
+        self.assertTrue(ApiKey.objects.filter(organization=self.org, name="CI").exists())
+
+    def test_developer_page_hidden_from_non_manager(self):
+        self.client.force_login(self.member)
+        html = self.client.get(reverse("dashboard:org_developer")).content.decode()
+        self.assertIn("owner or admin rights", html)
+
+    def test_developer_create_webhook_requires_https(self):
+        from apps.developer.models import Webhook
+        self.client.force_login(self.owner)
+        self.client.post(reverse("dashboard:org_developer"), {
+            "organization": self.org.id, "action": "create_webhook",
+            "url": "http://insecure", "events": ["build.completed"],
+        })
+        self.assertFalse(Webhook.objects.filter(organization=self.org).exists())
+
+    def test_integrations_page_renders(self):
+        self.client.force_login(self.member)
+        html = self.client.get(reverse("dashboard:org_integrations")).content.decode()
+        self.assertIn("Integrations", html)
+
 
 class PasswordResetFlowTests(TestCase):
     def setUp(self):

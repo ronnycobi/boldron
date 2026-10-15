@@ -172,6 +172,7 @@ INSTALLED_APPS = [
     "apps.marketing",
     "apps.notifications",
     "apps.settings",
+    "apps.developer",
 ]
 
 # --- Auth redirects (server-rendered dashboard UI) --------------------------
@@ -386,6 +387,9 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
+        # Additive: a programmatic API key (Api-Key / X-API-Key) authenticates as
+        # the user who created it. Last so Bearer/session win when both present.
+        "apps.developer.authentication.ApiKeyAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",

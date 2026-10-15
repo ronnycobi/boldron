@@ -163,6 +163,18 @@ def start_build(project, brief, user) -> None:
                 provision_store(project, brief, user=user)
             except Exception:
                 pass  # provisioning is best-effort; never break the build
+        # Fire the real build.completed event to any subscribed org webhooks.
+        try:
+            from apps.developer.service import dispatch
+            dispatch(project.organization, "build.completed", {
+                "project_id": project.id,
+                "project_name": project.name,
+                "state": project_state(project),
+                "progress": project_progress(project),
+                "ran_on_stub": ran_on_stub(project),
+            })
+        except Exception:
+            pass  # webhook delivery is best-effort; never break the build
 
     if getattr(settings, "RUNNING_TESTS", False):
         _execute()

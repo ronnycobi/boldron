@@ -1,0 +1,91 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}Developer & API · {{ app_name }}{% endblock %}
+{% block crumb %}Settings · Developer &amp; API{% endblock %}
+{% block content %}
+<style>
+  .dv-key{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:10px 0;border-bottom:1px solid var(--line)}
+  .dv-key:last-child{border-bottom:none}
+  .dv-mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+  .dv-sub{color:var(--muted);font-size:12px}
+  .dv-events label{display:inline-flex;align-items:center;gap:5px;margin:0 12px 6px 0;
+    text-transform:none;letter-spacing:0;font-weight:500;font-size:13px}
+</style>
+
+<h1>Developer &amp; API</h1>
+<p class="sub">Programmatic API keys and outbound webhooks for your organization.</p>
+
+{% if not has_manageable %}
+  <div class="card"><p class="muted">You need owner or admin rights in an organization to manage developer settings.</p></div>
+{% endif %}
+
+{% for c in cards %}
+  <h2 style="margin:22px 0 2px">{{ c.org.name }}</h2>
+
+  <div class="card" style="margin-bottom:14px">
+    <h3 style="margin:0 0 8px">API keys</h3>
+    <p class="dv-sub">Authenticate API requests with <span class="dv-mono">Authorization: Api-Key &lt;key&gt;</span>. A key acts as you, limited to the API.</p>
+    {% for k in c.keys %}
+      <div class="dv-key">
+        <div>
+          <span class="dv-mono">{{ k.masked }}</span> · {{ k.name }}
+          {% if not k.is_active %}<span class="badge b-failed" style="margin-left:6px">Revoked</span>{% endif %}
+          <div class="dv-sub">created {{ k.created_at|date:"M j, Y" }}{% if k.last_used_at %} · last used {{ k.last_used_at|date:"M j, Y" }}{% endif %}</div>
+        </div>
+        {% if k.is_active %}
+        <form method="post" onsubmit="return confirm('Revoke this key? Any client using it will stop working.')">{% csrf_token %}
+          <input type="hidden" name="organization" value="{{ c.org.id }}">
+          <input type="hidden" name="action" value="revoke_key">
+          <input type="hidden" name="key" value="{{ k.id }}">
+          <button class="btn ghost" type="submit" style="padding:5px 12px;font-size:12px">Revoke</button>
+        </form>
+        {% endif %}
+      </div>
+    {% empty %}
+      <p class="dv-sub">No API keys yet.</p>
+    {% endfor %}
+    <form method="post" style="display:flex;gap:8px;align-items:flex-end;margin-top:12px;flex-wrap:wrap">{% csrf_token %}
+      <input type="hidden" name="organization" value="{{ c.org.id }}">
+      <input type="hidden" name="action" value="create_key">
+      <div style="flex:1;min-width:180px"><label>New key name</label>
+        <input name="name" placeholder="CI pipeline" required maxlength="120"></div>
+      <button class="btn" type="submit">Create API key</button>
+    </form>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <h3 style="margin:0 0 8px">Webhooks</h3>
+    <p class="dv-sub">We POST a signed JSON payload (HMAC in <span class="dv-mono">X-Boldron-Signature</span>) to your URL when a subscribed event occurs.</p>
+    {% for w in c.webhooks %}
+      <div class="dv-key">
+        <div>
+          <span class="dv-mono">{{ w.url }}</span>
+          {% if not w.active %}<span class="badge b-failed" style="margin-left:6px">Inactive</span>{% endif %}
+          <div class="dv-sub">events: {% if w.events %}{{ w.events|join:", " }}{% else %}all{% endif %}</div>
+        </div>
+        <form method="post" onsubmit="return confirm('Delete this webhook?')">{% csrf_token %}
+          <input type="hidden" name="organization" value="{{ c.org.id }}">
+          <input type="hidden" name="action" value="delete_webhook">
+          <input type="hidden" name="webhook" value="{{ w.id }}">
+          <button class="btn ghost" type="submit" style="padding:5px 12px;font-size:12px">Delete</button>
+        </form>
+      </div>
+    {% empty %}
+      <p class="dv-sub">No webhooks yet.</p>
+    {% endfor %}
+    <form method="post" style="margin-top:12px">{% csrf_token %}
+      <input type="hidden" name="organization" value="{{ c.org.id }}">
+      <input type="hidden" name="action" value="create_webhook">
+      <label>Endpoint URL</label>
+      <input name="url" type="url" placeholder="https://example.com/hooks/boldron" required>
+      <label style="margin-top:10px">Events</label>
+      <div class="dv-events">
+        {% for e in events %}
+          <label><input type="checkbox" name="events" value="{{ e.key }}" style="width:auto;margin:0"> {{ e.key }} <span class="dv-sub">— {{ e.description }}</span></label>
+        {% endfor %}
+      </div>
+      <div style="margin-top:10px"><button class="btn" type="submit">Add webhook</button></div>
+    </form>
+  </div>
+{% endfor %}
+{% endblock %}

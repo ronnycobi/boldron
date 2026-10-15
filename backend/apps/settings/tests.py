@@ -36,6 +36,10 @@ class SettingsServiceTests(TestCase):
         self.assertTrue(account["appearance"]["available"])
         self.assertTrue(account["accessibility"]["available"])
         self.assertFalse(account["connected"]["available"])
+        # Org developer + integrations are wired (P4).
+        org = {s["key"]: s for s in data["sections"]["organization"]}
+        self.assertTrue(org["developer"]["available"])
+        self.assertTrue(org["integrations"]["available"])
 
     def test_unverified_email_raises_an_alert(self):
         from apps.settings import service

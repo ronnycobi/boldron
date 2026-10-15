@@ -1,0 +1,26 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}Integrations · {{ app_name }}{% endblock %}
+{% block crumb %}Settings · Integrations{% endblock %}
+{% block content %}
+<h1>Integrations</h1>
+<p class="sub">Connectors the platform supports. A connector is active only once its credentials are configured on this deployment — nothing is shown as connected unless it genuinely is.</p>
+
+<div class="card">
+  {% for it in integrations %}
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)">
+    <div>
+      <strong>{{ it.provider }}</strong>
+      <div class="muted" style="font-size:12px">{{ it.actions|join:", " }}</div>
+    </div>
+    {% if it.configured %}
+      <span class="badge b-completed">Connected</span>
+    {% else %}
+      <span class="badge b-waiting_for_approval">Not connected</span>
+    {% endif %}
+  </div>
+  {% empty %}
+    <p class="muted">No connectors are available on this deployment.</p>
+  {% endfor %}
+  <p class="muted" style="font-size:12px;margin:12px 0 0">Connector credentials are set via the environment by your operator. Once a credential is present, the connector shows as connected here.</p>
+</div>
+{% endblock %}

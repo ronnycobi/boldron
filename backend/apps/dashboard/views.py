@@ -1915,6 +1915,93 @@ def org_ai(request):
 
 
 @login_required
+def org_developer(request):
+    """Developer settings (spec §21/§22): programmatic API keys + outbound
+    webhooks, per organization. Managing requires org rights. Secrets (a key's
+    plaintext, a webhook's signing secret) are shown exactly once, on creation."""
+    from apps.developer.events import EVENTS, is_known
+    from apps.developer.models import ApiKey, Webhook
+    from apps.organizations.permissions import has_perm
+
+    manageable = [o for o in organizations_for(request.user).order_by("name")
+                  if has_perm(request.user, o, "org.manage")]
+    mids = {o.id for o in manageable}
+
+    if request.method == "POST":
+        org = get_object_or_404(Organization, pk=request.POST.get("organization", 0))
+        if org.id not in mids:
+            messages.error(request, "Owner or admin rights required.")
+            return redirect("dashboard:org_developer")
+        action = request.POST.get("action")
+        from apps.settings.service import audit_change
+        if action == "create_key":
+            name = (request.POST.get("name") or "").strip() or "API key"
+            key, plaintext = ApiKey.generate(org, name, created_by=request.user)
+            audit_change("developer.api_key_created", actor=request.user,
+                         organization=org, summary=f"API key '{name}' created")
+            messages.success(request,
+                             f"API key '{name}' created. Copy it now — it won't be shown "
+                             f"again: {plaintext}")
+        elif action == "revoke_key":
+            key = get_object_or_404(ApiKey, pk=request.POST.get("key", 0), organization=org)
+            if key.is_active:
+                from django.utils import timezone as _tz
+                key.revoked_at = _tz.now()
+                key.save(update_fields=["revoked_at"])
+                audit_change("developer.api_key_revoked", actor=request.user,
+                             organization=org, summary=f"API key '{key.name}' revoked")
+                messages.success(request, f"Revoked API key '{key.name}'.")
+        elif action == "create_webhook":
+            url = (request.POST.get("url") or "").strip()
+            events = request.POST.getlist("events")
+            if not url.startswith("https://"):
+                messages.error(request, "A webhook needs an https:// URL.")
+            elif any(not is_known(e) for e in events):
+                messages.error(request, "Unknown event selected.")
+            else:
+                secret = Webhook.new_secret()
+                Webhook.objects.create(organization=org, url=url, events=events,
+                                       secret=secret, created_by=request.user)
+                audit_change("developer.webhook_created", actor=request.user,
+                             organization=org, summary=f"webhook → {url}")
+                messages.success(request,
+                                 f"Webhook created. Signing secret (shown once): {secret}")
+        elif action == "delete_webhook":
+            wh = get_object_or_404(Webhook, pk=request.POST.get("webhook", 0), organization=org)
+            wh.delete()
+            audit_change("developer.webhook_deleted", actor=request.user,
+                         organization=org, summary="webhook deleted")
+            messages.success(request, "Webhook deleted.")
+        return redirect("dashboard:org_developer")
+
+    cards = [{
+        "org": o,
+        "keys": o.api_keys.all(),
+        "webhooks": o.webhooks.all(),
+    } for o in manageable]
+    return render(request, "dashboard/org_developer.html", {
+        "active": "settings",
+        "cards": cards,
+        "events": [{"key": k, "description": v} for k, v in EVENTS.items()],
+        "has_manageable": bool(manageable),
+    })
+
+
+@login_required
+def org_integrations(request):
+    """Integrations (spec §23): the connectors the platform supports and whether
+    each is configured. Honest — 'configured' reflects a real credential, never a
+    fabricated connection. Connector credentials are operator (environment)
+    configuration, so this is read-only."""
+    from apps.tools.connectors import connector_status
+
+    return render(request, "dashboard/org_integrations.html", {
+        "active": "settings",
+        "integrations": connector_status(),
+    })
+
+
+@login_required
 def settings_page(request):
     """Settings hub: plan & billing, usage summary, preferences, and projects."""
     from decimal import Decimal
