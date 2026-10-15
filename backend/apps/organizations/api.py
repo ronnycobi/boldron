@@ -73,19 +73,57 @@ class OrganizationDetailView(APIView):
         return Response(OrganizationSerializer(org, context={"request": request}).data)
 
     def patch(self, request, pk):
+        from apps.organizations.permissions import has_perm
+
         org = _get_org(request.user, pk)
-        denied = _require_manage(org, request.user)
-        if denied:
-            return denied
-        name = (request.data.get("name") or "").strip()
-        if not name:
+        if not has_perm(request.user, org, "org.manage"):
             return Response(
-                {"name": ["An organization name is required."]},
-                status=status.HTTP_400_BAD_REQUEST,
+                {"detail": "You don't have permission to edit this organization."},
+                status=status.HTTP_403_FORBIDDEN,
             )
-        org.name = name
-        org.save(update_fields=["name"])
+        updates = []
+        if "name" in request.data:
+            name = (request.data.get("name") or "").strip()
+            if not name:
+                return Response(
+                    {"name": ["An organization name is required."]},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            org.name = name
+            updates.append("name")
+        if "description" in request.data:
+            org.description = (request.data.get("description") or "").strip()[:2000]
+            updates.append("description")
+        if updates:
+            org.save(update_fields=updates + ["updated_at"])
+            from apps.settings.service import audit_change
+            audit_change("organization.updated", actor=request.user,
+                         organization=org, summary=f"updated {', '.join(updates)}")
         return Response(OrganizationSerializer(org, context={"request": request}).data)
+
+
+class OrganizationRolesView(APIView):
+    """The organization's role → permission matrix (an honest reference of what
+    each built-in role can do) plus the caller's own permissions."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        from apps.organizations.permissions import (
+            PERMISSIONS,
+            permissions_for_member,
+            role_matrix,
+        )
+
+        org = _get_org(request.user, pk)
+        return Response({
+            "roles": [
+                {"key": r.value, "label": r.label} for r in Role
+            ],
+            "permissions": PERMISSIONS,
+            "matrix": role_matrix(),
+            "my_permissions": permissions_for_member(request.user, org),
+        })
 
 
 class MemberListView(APIView):

@@ -1,0 +1,53 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}Roles & permissions · {{ app_name }}{% endblock %}
+{% block crumb %}Settings · Roles & permissions{% endblock %}
+{% block content %}
+<style>
+  .rl-tbl{width:100%;border-collapse:collapse;margin-top:8px}
+  .rl-tbl th,.rl-tbl td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}
+  .rl-tbl th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+  .rl-tbl td.c{text-align:center}
+  .rl-yes{color:#4ad295;font-weight:700}
+  .rl-no{color:var(--muted)}
+  .rl-perm .lbl{font-weight:600;color:var(--ink)}
+  .rl-perm .d{color:var(--muted);font-size:12px}
+</style>
+
+<h1>Roles &amp; permissions</h1>
+<p class="sub">The three built-in roles and exactly what each can do. Assign roles to people on the <a href="{% url 'dashboard:people' %}">Members</a> page.</p>
+
+<div class="card" style="overflow-x:auto">
+  <table class="rl-tbl">
+    <thead>
+      <tr>
+        <th>Permission</th>
+        {% for r in roles %}<th class="c" style="text-transform:capitalize">{{ r.label }}</th>{% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td class="rl-perm"><span class="lbl">{{ row.label }}</span><br><span class="d">{{ row.description }}</span></td>
+        {% for cell in row.cells %}
+          <td class="c">{% if cell %}<span class="rl-yes">✓</span>{% else %}<span class="rl-no">—</span>{% endif %}</td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="muted" style="font-size:12px;margin:12px 0 0">Everyone can use the product (build, deploy, view). The permissions above are the management capabilities on top of that. Custom roles aren't available — these three cover every current capability.</p>
+</div>
+
+<h2 style="margin-top:26px">Your roles</h2>
+<div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+  {% for m in my_orgs %}
+  <div class="card">
+    <div style="font-weight:700">{{ m.org.name }}</div>
+    <div class="muted" style="font-size:12.5px;text-transform:capitalize">{{ m.role }}</div>
+    <div style="margin-top:8px;font-size:12px;color:var(--ink2)">
+      {% if m.permissions %}{{ m.permissions|length }} management permission{{ m.permissions|length|pluralize }}{% else %}Use &amp; view only{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

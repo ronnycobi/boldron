@@ -17,10 +17,14 @@ class OrganizationSerializer(serializers.ModelSerializer):
     role = serializers.SerializerMethodField()
     member_count = serializers.SerializerMethodField()
     can_manage = serializers.SerializerMethodField()
+    my_permissions = serializers.SerializerMethodField()
 
     class Meta:
         model = Organization
-        fields = ["id", "name", "slug", "role", "member_count", "can_manage", "created_at"]
+        fields = [
+            "id", "name", "slug", "description", "role", "member_count",
+            "can_manage", "my_permissions", "created_at",
+        ]
         read_only_fields = fields
 
     def _my_membership(self, obj):
@@ -40,6 +44,11 @@ class OrganizationSerializer(serializers.ModelSerializer):
     def get_can_manage(self, obj):
         m = self._my_membership(obj)
         return bool(m and m.role in {Role.OWNER, Role.ADMIN})
+
+    def get_my_permissions(self, obj):
+        from apps.organizations.permissions import permissions_for_role
+        m = self._my_membership(obj)
+        return sorted(permissions_for_role(m.role)) if m else []
 
 
 class MembershipSerializer(serializers.ModelSerializer):

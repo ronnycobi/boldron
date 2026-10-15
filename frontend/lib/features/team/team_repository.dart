@@ -78,6 +78,24 @@ class TeamRepository {
 
   Future<void> changeRole(int orgId, int userId, String role) =>
       _api.patch('organizations/$orgId/members/$userId/', body: {'role': role});
+
+  /// Organization general details (incl. description + the caller's permissions).
+  Future<Map<String, dynamic>> organization(int orgId) async {
+    final data = await _api.get('organizations/$orgId/');
+    return (data as Map).cast<String, dynamic>();
+  }
+
+  Future<Map<String, dynamic>> updateOrganization(
+      int orgId, Map<String, dynamic> fields) async {
+    final data = await _api.patch('organizations/$orgId/', body: fields);
+    return (data as Map).cast<String, dynamic>();
+  }
+
+  /// The role → permission matrix (reference) plus the caller's permissions.
+  Future<Map<String, dynamic>> roles(int orgId) async {
+    final data = await _api.get('organizations/$orgId/roles/');
+    return (data as Map).cast<String, dynamic>();
+  }
 }
 
 final teamRepositoryProvider = Provider<TeamRepository>(
@@ -92,4 +110,14 @@ final membersProvider =
 final invitationsProvider =
     FutureProvider.family<List<Invitation>, int>((ref, orgId) {
   return ref.watch(teamRepositoryProvider).invitations(orgId);
+});
+
+final organizationProvider =
+    FutureProvider.family<Map<String, dynamic>, int>((ref, orgId) {
+  return ref.watch(teamRepositoryProvider).organization(orgId);
+});
+
+final orgRolesProvider =
+    FutureProvider.family<Map<String, dynamic>, int>((ref, orgId) {
+  return ref.watch(teamRepositoryProvider).roles(orgId);
 });

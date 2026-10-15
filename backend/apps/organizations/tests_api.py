@@ -172,3 +172,75 @@ class InvitationApiTests(TestCase):
             reverse("organizations:invitations", args=[self.org.id]), **auth(member)
         )
         self.assertEqual(resp.status_code, 403)
+
+
+class OrgSettingsAndRolesApiTests(TestCase):
+    """P2: org general settings (name+description) + the RBAC matrix endpoint."""
+
+    def setUp(self):
+        self.owner = User.objects.create_user(email="o2@x.com", password="pw12345!")
+        self.admin = User.objects.create_user(email="a2@x.com", password="pw12345!")
+        self.member = User.objects.create_user(email="m2@x.com", password="pw12345!")
+        self.org = Organization.objects.create(name="Beta")
+        self.org.add_member(self.owner, role=Role.OWNER)
+        self.org.add_member(self.admin, role=Role.ADMIN)
+        self.org.add_member(self.member, role=Role.MEMBER)
+
+    def test_admin_can_edit_description(self):
+        resp = self.client.patch(
+            reverse("organizations:detail", args=[self.org.id]),
+            data={"description": "We build things."},
+            content_type="application/json",
+            **auth(self.admin),
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()["description"], "We build things.")
+        self.org.refresh_from_db()
+        self.assertEqual(self.org.description, "We build things.")
+
+    def test_member_cannot_edit_description(self):
+        resp = self.client.patch(
+            reverse("organizations:detail", args=[self.org.id]),
+            data={"description": "nope"},
+            content_type="application/json",
+            **auth(self.member),
+        )
+        self.assertEqual(resp.status_code, 403)
+        self.org.refresh_from_db()
+        self.assertEqual(self.org.description, "")
+
+    def test_detail_exposes_my_permissions(self):
+        owner = self.client.get(
+            reverse("organizations:detail", args=[self.org.id]), **auth(self.owner)
+        ).json()
+        member = self.client.get(
+            reverse("organizations:detail", args=[self.org.id]), **auth(self.member)
+        ).json()
+        self.assertIn("ownership.manage", owner["my_permissions"])
+        self.assertIn("org.manage", owner["my_permissions"])
+        self.assertEqual(member["my_permissions"], [])
+
+    def test_roles_matrix_endpoint(self):
+        resp = self.client.get(
+            reverse("organizations:roles", args=[self.org.id]), **auth(self.admin)
+        )
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertEqual(len(body["roles"]), 3)
+        keys = {row["key"] for row in body["matrix"]}
+        self.assertIn("org.manage", keys)
+        # Admin holds management perms but not ownership.manage.
+        self.assertIn("members.manage", body["my_permissions"])
+        self.assertNotIn("ownership.manage", body["my_permissions"])
+        # The matrix reflects the real role→permission mapping.
+        ownership = next(r for r in body["matrix"] if r["key"] == "ownership.manage")
+        self.assertTrue(ownership["roles"]["owner"])
+        self.assertFalse(ownership["roles"]["admin"])
+        self.assertFalse(ownership["roles"]["member"])
+
+    def test_roles_requires_membership(self):
+        outsider = User.objects.create_user(email="x2@x.com", password="pw12345!")
+        resp = self.client.get(
+            reverse("organizations:roles", args=[self.org.id]), **auth(outsider)
+        )
+        self.assertEqual(resp.status_code, 404)

@@ -1805,6 +1805,74 @@ def settings_center(request):
 
 
 @login_required
+def org_settings(request):
+    """Organization general settings (spec §15): name + description per org.
+    Editing is gated by the real RBAC permission; members see it read-only."""
+    from apps.organizations.permissions import has_perm, permissions_for_member
+
+    orgs = list(organizations_for(request.user).order_by("name"))
+
+    if request.method == "POST":
+        org = get_object_or_404(Organization, pk=request.POST.get("organization", 0),
+                                memberships__user=request.user)
+        if not has_perm(request.user, org, "org.manage"):
+            messages.error(request, "You don't have permission to edit this organization.")
+            return redirect("dashboard:org_settings")
+        name = (request.POST.get("name") or "").strip()
+        if not name:
+            messages.error(request, "Organization name can't be blank.")
+        else:
+            org.name = name
+            org.description = (request.POST.get("description") or "").strip()[:2000]
+            org.save(update_fields=["name", "description", "updated_at"])
+            from apps.settings.service import audit_change
+            audit_change("organization.updated", actor=request.user, organization=org,
+                         summary="updated general settings")
+            messages.success(request, "Organization settings saved.")
+        return redirect("dashboard:org_settings")
+
+    cards = [{
+        "org": o,
+        "can_manage": has_perm(request.user, o, "org.manage"),
+        "role": o.memberships.get(user=request.user).role,
+        "members": o.memberships.count(),
+        "projects": o.projects.count() if hasattr(o, "projects") else 0,
+    } for o in orgs]
+    return render(request, "dashboard/org_settings.html",
+                  {"active": "settings", "cards": cards})
+
+
+@login_required
+def org_roles(request):
+    """Roles & permissions (spec §16): an honest reference of what each built-in
+    role can do, plus the caller's own role per organization. Role assignment
+    lives on the Members page."""
+    from apps.organizations.permissions import permissions_for_member, role_matrix
+
+    roles = list(Role)
+    # Flatten the matrix into cells aligned to the role column order (templates
+    # can't index a dict by a loop variable).
+    rows = [{
+        "label": row["label"],
+        "description": row["description"],
+        "cells": [row["roles"][r.value] for r in roles],
+    } for row in role_matrix()]
+
+    orgs = list(organizations_for(request.user).order_by("name"))
+    my_orgs = [{
+        "org": o,
+        "role": o.memberships.get(user=request.user).role,
+        "permissions": permissions_for_member(request.user, o),
+    } for o in orgs]
+    return render(request, "dashboard/org_roles.html", {
+        "active": "settings",
+        "rows": rows,
+        "roles": roles,
+        "my_orgs": my_orgs,
+    })
+
+
+@login_required
 def settings_page(request):
     """Settings hub: plan & billing, usage summary, preferences, and projects."""
     from decimal import Decimal

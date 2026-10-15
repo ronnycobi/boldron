@@ -23,6 +23,10 @@ class SettingsScreen extends ConsumerWidget {
         return '/settings/security';
       case 'account.appearance': // preferences (language/timezone) live here
         return '/settings/preferences';
+      case 'organization.general':
+        return orgId == null ? null : '/orgs/$orgId/settings';
+      case 'organization.roles':
+        return orgId == null ? null : '/orgs/$orgId/roles';
       case 'organization.members':
         return orgId == null ? null : '/orgs/$orgId/team';
       case 'organization.billing':

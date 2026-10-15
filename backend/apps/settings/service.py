@@ -34,9 +34,9 @@ def _account_sections() -> list[dict]:
 
 def _org_sections() -> list[dict]:
     return [
-        {"key": "general", "label": "General", "available": False},
+        {"key": "general", "label": "General", "available": True, "route": "dashboard:org_settings"},
         {"key": "members", "label": "Members", "available": True, "route": "dashboard:people"},
-        {"key": "roles", "label": "Roles & permissions", "available": False},
+        {"key": "roles", "label": "Roles & permissions", "available": True, "route": "dashboard:org_roles"},
         {"key": "billing", "label": "Billing & plan", "available": True, "route": "dashboard:settings"},
         {"key": "usage", "label": "Usage", "available": True, "route": "dashboard:usage"},
         {"key": "ai", "label": "AI", "available": False},

@@ -155,6 +155,54 @@ class ProfilePrefsWebTests(TestCase):
         self.assertNotIn("zoom:", html)
 
 
+class OrgSettingsWebTests(TestCase):
+    """P2 web: organization general settings + roles reference pages."""
+
+    def setUp(self):
+        self.owner = User.objects.create_user(email="ow@x.com", password="pw12345678")
+        self.member = User.objects.create_user(email="mm@x.com", password="pw12345678")
+        self.org = Organization.objects.create(name="Gamma")
+        self.org.add_member(self.owner, role=Role.OWNER)
+        self.org.add_member(self.member, role=Role.MEMBER)
+
+    def test_owner_sees_editable_general_form(self):
+        self.client.force_login(self.owner)
+        html = self.client.get(reverse("dashboard:org_settings")).content.decode()
+        self.assertIn("Gamma", html)
+        self.assertIn('name="description"', html)  # editable
+
+    def test_member_sees_read_only_general(self):
+        self.client.force_login(self.member)
+        html = self.client.get(reverse("dashboard:org_settings")).content.decode()
+        self.assertIn("view-only", html)
+        self.assertNotIn('name="description"', html)
+
+    def test_owner_can_save_general(self):
+        self.client.force_login(self.owner)
+        self.client.post(reverse("dashboard:org_settings"), {
+            "organization": self.org.id,
+            "name": "Gamma Corp",
+            "description": "Our mission.",
+        })
+        self.org.refresh_from_db()
+        self.assertEqual(self.org.name, "Gamma Corp")
+        self.assertEqual(self.org.description, "Our mission.")
+
+    def test_member_cannot_save_general(self):
+        self.client.force_login(self.member)
+        self.client.post(reverse("dashboard:org_settings"), {
+            "organization": self.org.id, "name": "Hacked",
+        })
+        self.org.refresh_from_db()
+        self.assertEqual(self.org.name, "Gamma")
+
+    def test_roles_page_shows_matrix(self):
+        self.client.force_login(self.member)
+        html = self.client.get(reverse("dashboard:org_roles")).content.decode()
+        self.assertIn("Manage owners", html)
+        self.assertIn("Edit organization settings", html)
+
+
 class PasswordResetFlowTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(email="reset@x.com", password="oldpass12345")

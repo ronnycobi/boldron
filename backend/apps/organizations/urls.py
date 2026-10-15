@@ -10,6 +10,7 @@ from apps.organizations.api import (
     MemberListView,
     OrganizationDetailView,
     OrganizationListCreateView,
+    OrganizationRolesView,
 )
 
 app_name = "organizations"
@@ -17,6 +18,7 @@ app_name = "organizations"
 urlpatterns = [
     path("organizations/", OrganizationListCreateView.as_view(), name="list"),
     path("organizations/<int:pk>/", OrganizationDetailView.as_view(), name="detail"),
+    path("organizations/<int:pk>/roles/", OrganizationRolesView.as_view(), name="roles"),
     path("organizations/<int:pk>/members/", MemberListView.as_view(), name="members"),
     path("organizations/<int:pk>/members/<int:user_id>/", MemberDetailView.as_view(), name="member-detail"),
     path("organizations/<int:pk>/leave/", LeaveOrganizationView.as_view(), name="leave"),

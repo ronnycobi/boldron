@@ -212,3 +212,41 @@ class InviteVerifiesEmailTests(TestCase):
         invites.accept_invitation(inv.token, invitee)
         invitee.refresh_from_db()
         self.assertTrue(invitee.email_verified)
+
+
+class PermissionsTests(TestCase):
+    """The RBAC permission catalog and role→permission mapping."""
+
+    def setUp(self):
+        self.owner = User.objects.create_user(email="po@x.com", password="pw12345!")
+        self.admin = User.objects.create_user(email="pa@x.com", password="pw12345!")
+        self.member = User.objects.create_user(email="pm@x.com", password="pw12345!")
+        self.org = Organization.objects.create(name="Perms")
+        self.org.add_member(self.owner, role=Role.OWNER)
+        self.org.add_member(self.admin, role=Role.ADMIN)
+        self.org.add_member(self.member, role=Role.MEMBER)
+
+    def test_has_perm_per_role(self):
+        from apps.organizations import permissions as perms
+
+        self.assertTrue(perms.has_perm(self.owner, self.org, "org.manage"))
+        self.assertTrue(perms.has_perm(self.admin, self.org, "org.manage"))
+        self.assertFalse(perms.has_perm(self.member, self.org, "org.manage"))
+        # Ownership management is owner-only.
+        self.assertTrue(perms.has_perm(self.owner, self.org, "ownership.manage"))
+        self.assertFalse(perms.has_perm(self.admin, self.org, "ownership.manage"))
+
+    def test_outsider_has_no_permissions(self):
+        from apps.organizations import permissions as perms
+
+        outsider = User.objects.create_user(email="px@x.com", password="pw12345!")
+        self.assertFalse(perms.has_perm(outsider, self.org, "org.manage"))
+        self.assertEqual(perms.permissions_for_member(outsider, self.org), [])
+
+    def test_matrix_covers_every_permission(self):
+        from apps.organizations import permissions as perms
+
+        rows = perms.role_matrix()
+        self.assertEqual({r["key"] for r in rows}, set(perms.PERMISSION_KEYS))
+        for row in rows:
+            self.assertEqual(set(row["roles"].keys()), {"owner", "admin", "member"})

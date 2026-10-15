@@ -25,6 +25,7 @@ class Role(models.TextChoices):
 class Organization(models.Model):
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, unique=True)
+    description = models.TextField(max_length=2000, blank=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

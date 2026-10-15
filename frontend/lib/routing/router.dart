@@ -30,6 +30,8 @@ import '../features/settings/security_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/shell/app_shell.dart';
 import '../features/support/support_screen.dart';
+import '../features/team/org_general_screen.dart';
+import '../features/team/org_roles_screen.dart';
 import '../features/team/team_screen.dart';
 import '../features/website/analytics_screen.dart';
 import '../features/website/monitoring_screen.dart';
@@ -202,6 +204,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/orgs/:id/team',
         builder: (_, s) => TeamScreen(orgId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/orgs/:id/settings',
+        builder: (_, s) => OrgGeneralScreen(orgId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/orgs/:id/roles',
+        builder: (_, s) => OrgRolesScreen(orgId: _idParam(s, 'id')),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
