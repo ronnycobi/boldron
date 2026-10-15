@@ -1,0 +1,22 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}Notifications · {{ app_name }}{% endblock %}
+{% block crumb %}Settings · Notifications{% endblock %}
+{% block content %}
+<h1>Notifications</h1>
+<p class="sub">Choose which optional emails you receive. Security and account-critical emails (sign-in verification, password resets, invitations) are always sent.</p>
+
+<div class="card" style="max-width:560px">
+  <form method="post">{% csrf_token %}
+    {% for c in rows %}
+    <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);text-transform:none;letter-spacing:0;font-weight:500">
+      <input type="checkbox" name="{{ c.key }}" style="width:auto;margin:3px 0 0"{% if c.on %} checked{% endif %}>
+      <span>
+        <strong>{{ c.label }}</strong>
+        <div class="muted" style="font-size:12.5px">{{ c.description }}</div>
+      </span>
+    </label>
+    {% endfor %}
+    <div style="margin-top:14px"><button class="btn" type="submit">Save preferences</button></div>
+  </form>
+</div>
+{% endblock %}

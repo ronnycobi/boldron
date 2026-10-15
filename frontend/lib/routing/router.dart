@@ -31,9 +31,12 @@ import '../features/settings/security_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/shell/app_shell.dart';
 import '../features/support/support_screen.dart';
+import '../features/settings/data_screen.dart';
 import '../features/settings/integrations_screen.dart';
+import '../features/settings/notifications_screen.dart';
 import '../features/team/developer_screen.dart';
 import '../features/team/org_ai_screen.dart';
+import '../features/team/org_audit_screen.dart';
 import '../features/team/org_general_screen.dart';
 import '../features/team/org_roles_screen.dart';
 import '../features/team/team_screen.dart';
@@ -236,8 +239,23 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
+        path: '/orgs/:id/audit',
+        builder: (_, s) => OrgAuditScreen(orgId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
         path: '/settings/integrations',
         builder: (_, __) => const IntegrationsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/settings/notifications',
+        builder: (_, __) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/settings/data',
+        builder: (_, __) => const DataScreen(),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,

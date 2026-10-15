@@ -273,6 +273,35 @@ class OrgSettingsWebTests(TestCase):
         })
         self.assertFalse(EnvVar.objects.filter(project=proj).exists())
 
+    def test_notifications_page_saves(self):
+        self.client.force_login(self.member)
+        self.client.post(reverse("dashboard:notifications_settings"), {})  # all off
+        from apps.notifications.preferences import wants
+        self.assertFalse(wants(self.member, "support_updates"))
+
+    def test_audit_page_manager_only(self):
+        self.client.force_login(self.member)
+        html = self.client.get(reverse("dashboard:org_audit")).content.decode()
+        self.assertIn("owner or admin rights", html)
+        self.client.logout()
+        self.client.force_login(self.owner)
+        ok = self.client.get(reverse("dashboard:org_audit"))
+        self.assertEqual(ok.status_code, 200)
+
+    def test_account_data_export_downloads_json(self):
+        self.client.force_login(self.member)
+        resp = self.client.get(reverse("dashboard:export_account_data"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("attachment", resp["Content-Disposition"])
+        self.assertEqual(resp.json()["account"]["email"], self.member.email)
+
+    def test_org_data_export_requires_manager(self):
+        self.client.force_login(self.member)
+        resp = self.client.get(
+            reverse("dashboard:export_org_data", args=[self.org.id]), follow=True)
+        # Redirected back without a JSON download.
+        self.assertNotIn("application/json", resp.get("Content-Type", ""))
+
 
 class PasswordResetFlowTests(TestCase):
     def setUp(self):

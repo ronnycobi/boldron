@@ -29,10 +29,12 @@ def create_ticket(*, organization, user, subject, body, category="question",
         TicketMessage.objects.create(ticket=ticket, author=user, body=body.strip())
     audit("support.ticket", actor=user, organization=organization,
           target=f"ticket:{ticket.id}", summary=ticket.subject)
-    _email(getattr(user, "email", ""),
-           f"[{ticket.number}] We received your request",
-           f"Thanks — your support request \"{ticket.subject}\" is logged as "
-           f"{ticket.number}. We'll reply here and by email.")
+    from apps.notifications.preferences import wants
+    if wants(user, "support_updates"):
+        _email(getattr(user, "email", ""),
+               f"[{ticket.number}] We received your request",
+               f"Thanks — your support request \"{ticket.subject}\" is logged as "
+               f"{ticket.number}. We'll reply here and by email.")
     # Notify the support inbox (the configured support address; legacy override kept).
     inbox = getattr(settings, "APP_SUPPORT_EMAIL", "") or getattr(settings, "BOLDRON_SUPPORT_EMAIL", "")
     if inbox:
@@ -58,10 +60,13 @@ def add_message(ticket: SupportTicket, *, author, body, internal=False, from_sta
     ticket.save(update_fields=fields)
     audit("support.reply", actor=author, organization=ticket.organization,
           target=f"ticket:{ticket.id}", summary="internal" if internal else "reply")
-    # A public staff reply emails the customer; internal notes never leave the desk.
+    # A public staff reply emails the customer; internal notes never leave the
+    # desk. Respect the customer's support-updates notification preference.
     if from_staff and not internal and ticket.created_by and ticket.created_by.email:
-        _email(ticket.created_by.email, f"[{ticket.number}] Reply to your request",
-               f"{body}\n\n— Support")
+        from apps.notifications.preferences import wants
+        if wants(ticket.created_by, "support_updates"):
+            _email(ticket.created_by.email, f"[{ticket.number}] Reply to your request",
+                   f"{body}\n\n— Support")
     return msg
 
 

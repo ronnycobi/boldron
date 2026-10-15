@@ -49,6 +49,29 @@ class SettingsRepository {
     return ((data as Map)['recovery_codes'] as List).cast<String>();
   }
 
+  /// Per-user notification preferences (categories + current values).
+  Future<Map<String, dynamic>> notificationPrefs() async {
+    final data = await _api.get('account/notifications/');
+    return (data as Map).cast<String, dynamic>();
+  }
+
+  Future<Map<String, dynamic>> updateNotificationPrefs(
+      Map<String, bool> values) async {
+    final data = await _api.patch('account/notifications/', body: values);
+    return ((data as Map)['preferences'] as Map).cast<String, dynamic>();
+  }
+
+  /// The signed-in user's own exported data (JSON).
+  Future<Map<String, dynamic>> accountExport() async {
+    final data = await _api.get('account/export/');
+    return (data as Map).cast<String, dynamic>();
+  }
+
+  Future<Map<String, dynamic>> orgExport(int orgId) async {
+    final data = await _api.get('organizations/$orgId/export/');
+    return (data as Map).cast<String, dynamic>();
+  }
+
   Future<List<Map<String, dynamic>>> integrations() async {
     final data = await _api.get('integrations/');
     return ((data as Map)['integrations'] as List)
@@ -71,4 +94,8 @@ final settingsOverviewProvider = FutureProvider<Map<String, dynamic>>(
 
 final securityProvider = FutureProvider<Map<String, dynamic>>(
   (ref) => ref.watch(settingsRepositoryProvider).security(),
+);
+
+final notificationPrefsProvider = FutureProvider<Map<String, dynamic>>(
+  (ref) => ref.watch(settingsRepositoryProvider).notificationPrefs(),
 );

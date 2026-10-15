@@ -1,0 +1,38 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}Audit log · {{ app_name }}{% endblock %}
+{% block crumb %}Settings · Audit log{% endblock %}
+{% block content %}
+<style>
+  .au{display:grid;grid-template-columns:150px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .au:last-child{border-bottom:none}
+  .au .when{color:var(--muted);font-size:12px}
+  .au .act{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--ink2)}
+</style>
+
+<h1>Audit log</h1>
+<p class="sub">A record of security-relevant actions in your organization — approvals, deploys, membership and settings changes.</p>
+
+{% if orgs|length > 1 %}
+<form method="get" style="margin-bottom:14px">
+  <select name="org" onchange="this.form.submit()">
+    {% for o in orgs %}<option value="{{ o.id }}"{% if o.id == selected.id %} selected{% endif %}>{{ o.name }}</option>{% endfor %}
+  </select>
+</form>
+{% endif %}
+
+<div class="card">
+  {% for e in events %}
+  <div class="au">
+    <div class="when">{{ e.created_at|slice:":19" }}</div>
+    <div>
+      <span class="act">{{ e.action }}</span>
+      {% if e.summary %}· {{ e.summary }}{% endif %}
+      <div class="muted" style="font-size:12px">{{ e.actor|default:"system" }}{% if e.target %} · {{ e.target }}{% endif %}</div>
+    </div>
+  </div>
+  {% empty %}
+    <p class="muted">No audit events recorded yet{% if selected %} for {{ selected.name }}{% endif %}.</p>
+  {% endfor %}
+</div>
+{% if not orgs %}<p class="muted" style="font-size:12px;margin-top:10px">You need owner or admin rights to view an organization's audit log.</p>{% endif %}
+{% endblock %}

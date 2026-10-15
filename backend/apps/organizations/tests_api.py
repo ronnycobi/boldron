@@ -297,3 +297,51 @@ class OrgAiApiTests(TestCase):
             **auth(self.owner),
         )
         self.assertEqual(resp.status_code, 400)
+
+
+class AuditAndExportApiTests(TestCase):
+    """Org audit log (read-only) + org/account data export."""
+
+    def setUp(self):
+        self.owner = User.objects.create_user(email="ax@x.com", password="pw12345!")
+        self.member = User.objects.create_user(email="mx@x.com", password="pw12345!")
+        self.org = Organization.objects.create(name="Audited")
+        self.org.add_member(self.owner, role=Role.OWNER)
+        self.org.add_member(self.member, role=Role.MEMBER)
+
+    def test_audit_log_manager_only(self):
+        from apps.audit.service import record
+
+        record("settings.test", actor=self.owner, organization=self.org, summary="hi")
+        denied = self.client.get(
+            reverse("organizations:audit", args=[self.org.id]), **auth(self.member)
+        )
+        self.assertEqual(denied.status_code, 403)
+        ok = self.client.get(
+            reverse("organizations:audit", args=[self.org.id]), **auth(self.owner)
+        )
+        self.assertEqual(ok.status_code, 200)
+        self.assertTrue(any(e["action"] == "settings.test" for e in ok.json()["events"]))
+
+    def test_org_export_manager_only_and_no_secrets(self):
+        from apps.developer.models import ApiKey
+
+        ApiKey.generate(self.org, "CI", created_by=self.owner)
+        denied = self.client.get(
+            reverse("organizations:export", args=[self.org.id]), **auth(self.member)
+        )
+        self.assertEqual(denied.status_code, 403)
+        body = self.client.get(
+            reverse("organizations:export", args=[self.org.id]), **auth(self.owner)
+        ).json()
+        self.assertEqual(body["organization"]["name"], "Audited")
+        # API keys appear masked, never with a usable secret.
+        self.assertTrue(body["api_keys"][0]["masked"].startswith("bk_"))
+        self.assertNotIn("secret", body["api_keys"][0])
+
+    def test_account_export(self):
+        body = self.client.get(
+            reverse("accounts:account-export"), **auth(self.member)
+        ).json()
+        self.assertEqual(body["account"]["email"], "mx@x.com")
+        self.assertTrue(any(o["name"] == "Audited" for o in body["organizations"]))

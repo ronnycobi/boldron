@@ -324,6 +324,36 @@ class AccountView(APIView):
         return Response(UserSerializer(request.user).data)
 
 
+class NotificationPreferencesView(APIView):
+    """The signed-in user's notification preferences (opt-out, per category)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from apps.notifications import preferences
+
+        return Response({
+            "categories": preferences.CATEGORIES,
+            "preferences": preferences.as_dict(request.user),
+        })
+
+    def patch(self, request):
+        from apps.notifications import preferences
+
+        return Response({"preferences": preferences.update(request.user, request.data)})
+
+
+class AccountExportView(APIView):
+    """Download the signed-in user's own account data as JSON (no secrets)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from apps.settings.data_export import export_account
+
+        return Response(export_account(request.user))
+
+
 class ChangePasswordView(APIView):
     """Change the password (old + new). On success, other devices are signed out
     (their refresh tokens are revoked) and the caller gets a fresh token pair so

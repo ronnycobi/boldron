@@ -22,7 +22,10 @@ class SettingsScreen extends ConsumerWidget {
       case 'account.sessions':
         return '/settings/security';
       case 'account.appearance': // preferences (language/timezone) live here
+      case 'account.accessibility':
         return '/settings/preferences';
+      case 'account.notifications':
+        return '/settings/notifications';
       case 'organization.general':
         return orgId == null ? null : '/orgs/$orgId/settings';
       case 'organization.roles':
@@ -31,8 +34,12 @@ class SettingsScreen extends ConsumerWidget {
         return orgId == null ? null : '/orgs/$orgId/ai';
       case 'organization.developer':
         return orgId == null ? null : '/orgs/$orgId/developer';
+      case 'organization.audit':
+        return orgId == null ? null : '/orgs/$orgId/audit';
       case 'organization.integrations':
         return '/settings/integrations';
+      case 'organization.data':
+        return '/settings/data';
       case 'organization.members':
         return orgId == null ? null : '/orgs/$orgId/team';
       case 'organization.billing':

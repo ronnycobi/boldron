@@ -1,0 +1,25 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}Data · {{ app_name }}{% endblock %}
+{% block crumb %}Settings · Data{% endblock %}
+{% block content %}
+<h1>Your data</h1>
+<p class="sub">Download a copy of your data as JSON. Secrets are never included — API-key secrets are masked and secret environment variables export their key only.</p>
+
+<div class="card" style="margin-bottom:16px">
+  <h2 style="margin-top:0">Account data</h2>
+  <p class="muted" style="font-size:13px">Your profile and the organizations you belong to.</p>
+  <a class="btn" href="{% url 'dashboard:export_account_data' %}">Download account data (JSON)</a>
+</div>
+
+{% for org in manageable %}
+<div class="card" style="margin-bottom:12px">
+  <h2 style="margin-top:0">{{ org.name }} — organization data</h2>
+  <p class="muted" style="font-size:13px">Members, projects, API keys (masked) and webhooks.</p>
+  <a class="btn ghost" href="{% url 'dashboard:export_org_data' org.id %}">Download {{ org.name }} data (JSON)</a>
+</div>
+{% endfor %}
+
+{% if not manageable %}
+<p class="muted" style="font-size:12px">Organization-wide export needs owner or admin rights.</p>
+{% endif %}
+{% endblock %}

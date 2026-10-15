@@ -107,6 +107,14 @@ class TeamRepository {
           {String provider = '', String model = ''}) =>
       _api.patch('organizations/$orgId/ai/',
           body: {'preferred_provider': provider, 'preferred_model': model});
+
+  /// Read-only audit log for the organization (manager-gated server-side).
+  Future<List<Map<String, dynamic>>> audit(int orgId) async {
+    final data = await _api.get('organizations/$orgId/audit/');
+    return ((data as Map)['events'] as List)
+        .map((e) => (e as Map).cast<String, dynamic>())
+        .toList();
+  }
 }
 
 final teamRepositoryProvider = Provider<TeamRepository>(
@@ -136,4 +144,9 @@ final orgRolesProvider =
 final orgAiProvider =
     FutureProvider.family<Map<String, dynamic>, int>((ref, orgId) {
   return ref.watch(teamRepositoryProvider).aiSettings(orgId);
+});
+
+final orgAuditProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, int>((ref, orgId) {
+  return ref.watch(teamRepositoryProvider).audit(orgId);
 });

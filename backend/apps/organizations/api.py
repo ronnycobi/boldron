@@ -102,6 +102,38 @@ class OrganizationDetailView(APIView):
         return Response(OrganizationSerializer(org, context={"request": request}).data)
 
 
+class OrganizationAuditView(APIView):
+    """Read-only audit log for the organization. Sensitive, so manager-gated."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        from apps.audit.service import event_dict, events_for
+        from apps.organizations.permissions import has_perm
+
+        org = _get_org(request.user, pk)
+        if not has_perm(request.user, org, "org.manage"):
+            return Response({"detail": "Owner or admin rights required."},
+                            status=status.HTTP_403_FORBIDDEN)
+        return Response({"events": [event_dict(e) for e in events_for(org)]})
+
+
+class OrganizationExportView(APIView):
+    """Export the organization's own data as JSON (no secret values). Manager-gated."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        from apps.organizations.permissions import has_perm
+        from apps.settings.data_export import export_organization
+
+        org = _get_org(request.user, pk)
+        if not has_perm(request.user, org, "org.manage"):
+            return Response({"detail": "Owner or admin rights required."},
+                            status=status.HTTP_403_FORBIDDEN)
+        return Response(export_organization(org))
+
+
 class OrganizationRolesView(APIView):
     """The organization's role → permission matrix (an honest reference of what
     each built-in role can do) plus the caller's own permissions."""

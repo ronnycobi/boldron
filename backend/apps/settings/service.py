@@ -27,7 +27,7 @@ def _account_sections() -> list[dict]:
         {"key": "sessions", "label": "Sessions", "available": True, "route": "dashboard:security_center"},
         {"key": "appearance", "label": "Appearance", "available": True, "route": "dashboard:settings"},
         {"key": "accessibility", "label": "Accessibility", "available": True, "route": "dashboard:settings"},
-        {"key": "notifications", "label": "Notifications", "available": False},
+        {"key": "notifications", "label": "Notifications", "available": True, "route": "dashboard:notifications_settings"},
         {"key": "connected", "label": "Connected accounts", "available": False},
     ]
 
@@ -47,8 +47,8 @@ def _org_sections() -> list[dict]:
         {"key": "commerce", "label": "Commerce", "available": False},
         {"key": "notifications", "label": "Notifications", "available": False},
         {"key": "privacy", "label": "Privacy", "available": False},
-        {"key": "data", "label": "Data", "available": False},
-        {"key": "audit", "label": "Audit log", "available": False},
+        {"key": "data", "label": "Data", "available": True, "route": "dashboard:org_data"},
+        {"key": "audit", "label": "Audit log", "available": True, "route": "dashboard:org_audit"},
     ]
 
 

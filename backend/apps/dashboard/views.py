@@ -1957,6 +1957,88 @@ def project_environment(request, pk):
 
 
 @login_required
+def notifications_settings(request):
+    """Per-user notification preferences (spec §24). Opt-out; only categories
+    wired to a real email are shown."""
+    from apps.notifications import preferences
+
+    if request.method == "POST":
+        # Unchecked checkboxes aren't submitted, so build the full set explicitly.
+        values = {c["key"]: (request.POST.get(c["key"]) == "on")
+                  for c in preferences.CATEGORIES}
+        preferences.update(request.user, values)
+        messages.success(request, "Notification preferences saved.")
+        return redirect("dashboard:notifications_settings")
+
+    prefs = preferences.as_dict(request.user)
+    rows = [{**c, "on": prefs.get(c["key"], True)} for c in preferences.CATEGORIES]
+    return render(request, "dashboard/notifications.html", {
+        "active": "settings",
+        "rows": rows,
+    })
+
+
+@login_required
+def org_audit(request):
+    """Read-only organization audit log (spec §27). Sensitive — managers only."""
+    from apps.audit.service import event_dict, events_for
+    from apps.organizations.permissions import has_perm
+
+    orgs = [o for o in organizations_for(request.user).order_by("name")
+            if has_perm(request.user, o, "org.manage")]
+    selected_id = request.GET.get("org")
+    selected = None
+    if orgs:
+        selected = next((o for o in orgs if str(o.id) == str(selected_id)), orgs[0])
+    events = [event_dict(e) for e in events_for(selected)] if selected else []
+    return render(request, "dashboard/org_audit.html", {
+        "active": "settings",
+        "orgs": orgs,
+        "selected": selected,
+        "events": events,
+    })
+
+
+@login_required
+def org_data(request):
+    """Data export (spec §25): download the account's data, or (for managers) the
+    organization's data, as JSON. No secret values are included."""
+    from apps.organizations.permissions import has_perm
+
+    orgs = list(organizations_for(request.user).order_by("name"))
+    manageable = [o for o in orgs if has_perm(request.user, o, "org.manage")]
+    return render(request, "dashboard/org_data.html", {
+        "active": "settings",
+        "manageable": manageable,
+    })
+
+
+@login_required
+def export_account_data(request):
+    from django.http import JsonResponse
+    from apps.settings.data_export import export_account
+
+    resp = JsonResponse(export_account(request.user), json_dumps_params={"indent": 2})
+    resp["Content-Disposition"] = 'attachment; filename="account-data.json"'
+    return resp
+
+
+@login_required
+def export_org_data(request, pk):
+    from django.http import JsonResponse
+    from apps.organizations.permissions import has_perm
+    from apps.settings.data_export import export_organization
+
+    org = get_object_or_404(Organization, pk=pk, memberships__user=request.user)
+    if not has_perm(request.user, org, "org.manage"):
+        messages.error(request, "Owner or admin rights required.")
+        return redirect("dashboard:org_data")
+    resp = JsonResponse(export_organization(org), json_dumps_params={"indent": 2})
+    resp["Content-Disposition"] = f'attachment; filename="{org.slug}-data.json"'
+    return resp
+
+
+@login_required
 def org_developer(request):
     """Developer settings (spec §21/§22): programmatic API keys + outbound
     webhooks, per organization. Managing requires org rights. Secrets (a key's
