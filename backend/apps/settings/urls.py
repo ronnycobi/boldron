@@ -1,6 +1,10 @@
 from django.urls import path
 
 from apps.settings.api import (
+    MfaConfirmView,
+    MfaDisableView,
+    MfaEnrollView,
+    MfaRecoveryCodesView,
     SecurityView,
     SessionRevokeView,
     SettingsOverviewView,
@@ -13,4 +17,9 @@ urlpatterns = [
     path("settings/security/", SecurityView.as_view(), name="security"),
     path("settings/sessions/<int:session_id>/revoke/",
          SessionRevokeView.as_view(), name="session-revoke"),
+    path("settings/mfa/enroll/", MfaEnrollView.as_view(), name="mfa-enroll"),
+    path("settings/mfa/confirm/", MfaConfirmView.as_view(), name="mfa-confirm"),
+    path("settings/mfa/disable/", MfaDisableView.as_view(), name="mfa-disable"),
+    path("settings/mfa/recovery-codes/",
+         MfaRecoveryCodesView.as_view(), name="mfa-recovery-codes"),
 ]

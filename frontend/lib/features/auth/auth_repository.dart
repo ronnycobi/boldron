@@ -2,6 +2,15 @@ import '../../core/api_client.dart';
 import '../../core/token_storage.dart';
 import 'auth_models.dart';
 
+/// Result of the password step: either authenticated, or MFA still required.
+class LoginOutcome {
+  final AuthUser? user;
+  final String? mfaToken;
+  const LoginOutcome.authenticated(this.user) : mfaToken = null;
+  const LoginOutcome.mfa(this.mfaToken) : user = null;
+  bool get mfaRequired => mfaToken != null;
+}
+
 /// Talks to the auth endpoints and persists tokens. The controller uses this;
 /// widgets never touch the API client directly (spec §32/§33).
 class AuthRepository {
@@ -10,12 +19,28 @@ class AuthRepository {
 
   AuthRepository(this._api, this._tokens);
 
-  Future<AuthUser> login(String email, String password) async {
+  /// Password step. Returns either a fully authenticated user, or — when the
+  /// account has MFA enabled — a challenge token to exchange at [verifyMfa].
+  Future<LoginOutcome> login(String email, String password) async {
     final data = await _api.post('auth/token/', body: {
       'email': email.trim(),
       'password': password,
     });
-    return _persistAndParse(data as Map<String, dynamic>);
+    final map = (data as Map).cast<String, dynamic>();
+    if (map['mfa_required'] == true) {
+      return LoginOutcome.mfa('${map['mfa_token']}');
+    }
+    return LoginOutcome.authenticated(await _persistAndParse(map));
+  }
+
+  /// Second step: exchange the challenge token + a TOTP or recovery code for
+  /// the real tokens.
+  Future<AuthUser> verifyMfa(String mfaToken, String code) async {
+    final data = await _api.post('auth/mfa/verify/', body: {
+      'mfa_token': mfaToken,
+      'code': code.trim(),
+    });
+    return _persistAndParse((data as Map).cast<String, dynamic>());
   }
 
   Future<AuthUser> register({

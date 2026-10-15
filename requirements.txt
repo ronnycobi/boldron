@@ -30,3 +30,9 @@ google-genai==2.12.1
 
 # Image processing for user avatars (accounts.User.avatar ImageField).
 Pillow==12.2.0
+
+# Multi-factor auth (Security Center): RFC 6238 TOTP verification + QR
+# provisioning. pyotp does the crypto; qrcode renders the enrolment QR as SVG
+# (no extra image deps). Secrets are generated per-user and never hard-coded.
+pyotp==2.10.0
+qrcode==8.2

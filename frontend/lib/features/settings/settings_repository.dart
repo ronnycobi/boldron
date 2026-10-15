@@ -26,6 +26,29 @@ class SettingsRepository {
   Future<void> revokeSession(int sessionId) =>
       _api.post('settings/sessions/$sessionId/revoke/');
 
+  /// Begin MFA enrolment → {secret, otpauth_uri, qr_svg}.
+  Future<Map<String, dynamic>> mfaEnroll() async {
+    final data = await _api.post('settings/mfa/enroll/');
+    return (data as Map).cast<String, dynamic>();
+  }
+
+  /// Confirm enrolment with a live code → the one-time recovery codes.
+  Future<List<String>> mfaConfirm(String code) async {
+    final data = await _api.post('settings/mfa/confirm/', body: {'code': code.trim()});
+    return ((data as Map)['recovery_codes'] as List).cast<String>();
+  }
+
+  /// Disable MFA (re-auth with the current password).
+  Future<void> mfaDisable(String password) =>
+      _api.post('settings/mfa/disable/', body: {'password': password});
+
+  /// Regenerate recovery codes (re-auth) → the new one-time codes.
+  Future<List<String>> mfaRegenerateRecoveryCodes(String password) async {
+    final data = await _api
+        .post('settings/mfa/recovery-codes/', body: {'password': password});
+    return ((data as Map)['recovery_codes'] as List).cast<String>();
+  }
+
   Future<List<Map<String, dynamic>>> integrations() async {
     final data = await _api.get('integrations/');
     return ((data as Map)['integrations'] as List)

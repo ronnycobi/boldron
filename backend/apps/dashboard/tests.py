@@ -41,6 +41,66 @@ class LoginPageTests(TestCase):
         self.assertFalse(self.client.session.get_expire_at_browser_close())  # remembered
 
 
+class MfaWebFlowTests(TestCase):
+    """Web enrolment and the two-step login challenge MFA enforces."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(email="mfaweb@x.com", password="pw12345678")
+
+    def _secret(self):
+        from apps.accounts.models import TotpDevice
+
+        return TotpDevice.objects.get(user=self.user).secret
+
+    def _totp(self):
+        import pyotp
+
+        return pyotp.TOTP(self._secret()).now()
+
+    def test_setup_page_enrols_and_confirm_enables(self):
+        self.client.force_login(self.user)
+        page = self.client.get(reverse("dashboard:mfa_setup"))
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, self._secret())  # manual-entry secret rendered
+        self.assertContains(page, "<svg")          # QR rendered inline
+        r = self.client.post(reverse("dashboard:mfa_setup"), {"code": self._totp()})
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "recovery")  # one-time codes page
+        from apps.accounts import mfa
+        self.assertTrue(mfa.is_enabled(self.user))
+
+    def test_login_with_mfa_diverts_to_challenge_then_completes(self):
+        from apps.accounts import mfa
+
+        mfa.begin_enrollment(self.user)
+        mfa.confirm_enrollment(self.user, self._totp())
+        # Password step alone must NOT log the user in.
+        r = self.client.post(reverse("dashboard:login"),
+                             {"username": "mfaweb@x.com", "password": "pw12345678"})
+        self.assertRedirects(r, reverse("dashboard:mfa_challenge"),
+                             fetch_redirect_response=False)
+        self.assertNotIn("_auth_user_id", self.client.session)
+        # Code step completes the login.
+        r2 = self.client.post(reverse("dashboard:mfa_challenge"), {"code": self._totp()})
+        self.assertRedirects(r2, reverse("dashboard:home"), fetch_redirect_response=False)
+        self.assertIn("_auth_user_id", self.client.session)
+
+    def test_challenge_rejects_bad_code(self):
+        from apps.accounts import mfa
+
+        mfa.begin_enrollment(self.user)
+        mfa.confirm_enrollment(self.user, self._totp())
+        self.client.post(reverse("dashboard:login"),
+                         {"username": "mfaweb@x.com", "password": "pw12345678"})
+        r = self.client.post(reverse("dashboard:mfa_challenge"), {"code": "000000"})
+        self.assertEqual(r.status_code, 200)
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_challenge_without_pending_login_redirects_to_login(self):
+        r = self.client.get(reverse("dashboard:mfa_challenge"))
+        self.assertRedirects(r, reverse("dashboard:login"), fetch_redirect_response=False)
+
+
 class PasswordResetFlowTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(email="reset@x.com", password="oldpass12345")

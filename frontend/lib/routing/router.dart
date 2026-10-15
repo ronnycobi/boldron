@@ -8,6 +8,7 @@ import '../features/activity/activity_screen.dart';
 import '../features/auth/auth_controller.dart';
 import '../features/auth/forgot_password_screen.dart';
 import '../features/auth/login_screen.dart';
+import '../features/auth/mfa_challenge_screen.dart';
 import '../features/auth/register_screen.dart';
 import '../features/auth/welcome_screen.dart';
 import '../features/account/account_security_screen.dart';
@@ -23,6 +24,7 @@ import '../features/projects/projects_screen.dart';
 import '../features/releases/releases_screen.dart';
 import '../features/releases/store_listing_screen.dart';
 import '../features/search/search_screen.dart';
+import '../features/settings/mfa_setup_screen.dart';
 import '../features/settings/preferences_screen.dart';
 import '../features/settings/security_screen.dart';
 import '../features/settings/settings_screen.dart';
@@ -65,6 +67,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       const authRoutes = {
         '/welcome',
         '/login',
+        '/login/mfa',
         '/register',
         '/forgot-password'
       };
@@ -81,6 +84,8 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/welcome', builder: (_, __) => const WelcomeScreen()),
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
+      GoRoute(
+          path: '/login/mfa', builder: (_, __) => const MfaChallengeScreen()),
       GoRoute(
           path: '/forgot-password',
           builder: (_, __) => const ForgotPasswordScreen()),
@@ -232,6 +237,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/settings/security',
         builder: (_, __) => const SecurityScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/settings/security/mfa',
+        builder: (_, __) => const MfaSetupScreen(),
       ),
     ],
   );

@@ -43,7 +43,18 @@
       {% else %}<span class="badge b-waiting_for_approval">Off</span>{% endif %}
     </div>
     <div class="se-sub" style="margin-top:8px">
-      {% if not status.mfa_available %}Coming soon.{% else %}Add a second factor to protect your account.{% endif %}
+      {% if status.mfa_enabled %}
+        {{ status.recovery_codes_left }} recovery code{{ status.recovery_codes_left|pluralize }} left.
+        <form method="post" style="margin-top:8px"
+              onsubmit="this.pw.value=prompt('Enter your current password to disable two-factor auth:')||'';return this.pw.value!==''">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="mfa_disable">
+          <input type="hidden" name="password" value="">
+          <button class="btn ghost" type="submit" style="padding:5px 12px;font-size:12px">Disable</button>
+        </form>
+      {% else %}
+        <a class="btn" href="{% url 'dashboard:mfa_setup' %}" style="padding:5px 12px;font-size:12px;margin-top:4px;display:inline-block">Enable</a>
+      {% endif %}
     </div>
   </div>
   <div class="se-stat">

@@ -71,3 +71,72 @@ class SessionRevokeView(APIView):
                 {"detail": "Session not found."}, status=status.HTTP_404_NOT_FOUND
             )
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class MfaEnrollView(APIView):
+    """Begin MFA enrolment: returns the secret (for manual entry), the otpauth
+    URI, and a QR as inline SVG. Enrolment isn't active until confirmed."""
+
+    def post(self, request):
+        from apps.accounts import mfa
+
+        return Response(mfa.begin_enrollment(request.user))
+
+
+class MfaConfirmView(APIView):
+    """Confirm enrolment with a live code. On success MFA becomes enabled and the
+    one-time recovery codes are returned (the only time they are ever shown)."""
+
+    def post(self, request):
+        from apps.accounts import mfa
+
+        codes = mfa.confirm_enrollment(request.user, request.data.get("code") or "")
+        if codes is None:
+            return Response(
+                {"detail": "That code isn't valid. Try again."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        service.audit_change("mfa.enabled", actor=request.user, summary="MFA enabled")
+        return Response({"enabled": True, "recovery_codes": codes})
+
+
+class MfaDisableView(APIView):
+    """Turn MFA off. High-risk, so the current password must be re-entered."""
+
+    def post(self, request):
+        from apps.accounts import mfa
+
+        if not request.user.check_password(request.data.get("password") or ""):
+            return Response(
+                {"detail": "Your current password is required to disable MFA."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not mfa.disable(request.user):
+            return Response(
+                {"detail": "MFA isn't enabled."}, status=status.HTTP_400_BAD_REQUEST
+            )
+        service.audit_change("mfa.disabled", actor=request.user, summary="MFA disabled")
+        return Response({"enabled": False})
+
+
+class MfaRecoveryCodesView(APIView):
+    """Regenerate recovery codes (invalidates the old set). Re-auth required."""
+
+    def post(self, request):
+        from apps.accounts import mfa
+
+        if not mfa.is_enabled(request.user):
+            return Response(
+                {"detail": "Enable MFA first."}, status=status.HTTP_400_BAD_REQUEST
+            )
+        if not request.user.check_password(request.data.get("password") or ""):
+            return Response(
+                {"detail": "Your current password is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        codes = mfa.generate_recovery_codes(request.user)
+        service.audit_change(
+            "mfa.recovery_regenerated", actor=request.user,
+            summary="Recovery codes regenerated",
+        )
+        return Response({"recovery_codes": codes})

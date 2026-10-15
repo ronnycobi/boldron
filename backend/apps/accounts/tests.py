@@ -457,8 +457,9 @@ class SecurityServiceTests(TestCase):
 
         status = security.security_status(self.user)
         self.assertTrue(status["password_set"])
+        # MFA is now implemented (P1b): available to everyone, off until enrolled.
+        self.assertTrue(status["mfa_available"])
         self.assertFalse(status["mfa_enabled"])
-        self.assertFalse(status["mfa_available"])
 
     def test_session_dict_never_exposes_raw_key(self):
         from apps.accounts import security
@@ -485,3 +486,156 @@ class SecurityServiceTests(TestCase):
 class _DummySession:
     def __init__(self, key):
         self.session_key = key
+
+
+class MfaTests(TestCase):
+    """Real TOTP second factor: enrol, confirm, verify, recovery codes, disable,
+    and the two-step JWT login it enforces."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(email="mfa@x.com", password="pw12345!")
+
+    def _code(self):
+        import pyotp
+
+        from apps.accounts.models import TotpDevice
+
+        return pyotp.TOTP(TotpDevice.objects.get(user=self.user).secret).now()
+
+    def test_enrollment_is_not_enabled_until_confirmed(self):
+        from apps.accounts import mfa
+
+        enroll = mfa.begin_enrollment(self.user)
+        self.assertIn("otpauth://", enroll["otpauth_uri"])
+        self.assertIn("<svg", enroll["qr_svg"])
+        self.assertFalse(mfa.is_enabled(self.user))  # pending, not confirmed
+
+    def test_confirm_with_valid_code_enables_and_returns_recovery_codes(self):
+        from apps.accounts import mfa
+        from apps.accounts.models import LoginEvent
+
+        mfa.begin_enrollment(self.user)
+        codes = mfa.confirm_enrollment(self.user, self._code())
+        self.assertEqual(len(codes), mfa.RECOVERY_CODE_COUNT)
+        self.assertTrue(mfa.is_enabled(self.user))
+        self.assertTrue(
+            LoginEvent.objects.filter(user=self.user, kind=LoginEvent.MFA_ENABLED).exists()
+        )
+
+    def test_confirm_with_bad_code_does_not_enable(self):
+        from apps.accounts import mfa
+
+        mfa.begin_enrollment(self.user)
+        self.assertIsNone(mfa.confirm_enrollment(self.user, "000000"))
+        self.assertFalse(mfa.is_enabled(self.user))
+
+    def test_recovery_code_is_single_use(self):
+        from apps.accounts import mfa
+
+        mfa.begin_enrollment(self.user)
+        codes = mfa.confirm_enrollment(self.user, self._code())
+        one = codes[0]
+        self.assertTrue(mfa.verify_recovery_code(self.user, one))
+        self.assertFalse(mfa.verify_recovery_code(self.user, one))  # already used
+        self.assertEqual(mfa.unused_recovery_code_count(self.user), mfa.RECOVERY_CODE_COUNT - 1)
+
+    def test_verify_any_accepts_totp_and_recovery(self):
+        from apps.accounts import mfa
+
+        mfa.begin_enrollment(self.user)
+        codes = mfa.confirm_enrollment(self.user, self._code())
+        self.assertTrue(mfa.verify_any(self.user, self._code()))
+        self.assertTrue(mfa.verify_any(self.user, codes[1]))
+
+    def test_disable_removes_device_and_codes(self):
+        from apps.accounts import mfa
+        from apps.accounts.models import LoginEvent, RecoveryCode, TotpDevice
+
+        mfa.begin_enrollment(self.user)
+        mfa.confirm_enrollment(self.user, self._code())
+        self.assertTrue(mfa.disable(self.user))
+        self.assertFalse(TotpDevice.objects.filter(user=self.user).exists())
+        self.assertFalse(RecoveryCode.objects.filter(user=self.user).exists())
+        self.assertTrue(
+            LoginEvent.objects.filter(user=self.user, kind=LoginEvent.MFA_DISABLED).exists()
+        )
+
+    def test_challenge_token_roundtrip_and_expiry(self):
+        from apps.accounts import mfa
+
+        token = mfa.issue_challenge(self.user)
+        self.assertEqual(mfa.resolve_challenge(token), self.user)
+        self.assertIsNone(mfa.resolve_challenge("tampered.token.value"))
+
+
+class MfaJwtLoginTests(TestCase):
+    """The JWT login must stop at a challenge when MFA is on, and only hand over
+    tokens after a valid second factor."""
+
+    def setUp(self):
+        from apps.accounts import mfa
+
+        self.user = User.objects.create_user(email="jwtmfa@x.com", password="pw12345!")
+        mfa.begin_enrollment(self.user)
+        import pyotp
+
+        from apps.accounts.models import TotpDevice
+
+        self.secret = TotpDevice.objects.get(user=self.user).secret
+        mfa.confirm_enrollment(self.user, pyotp.TOTP(self.secret).now())
+
+    def _totp(self):
+        import pyotp
+
+        return pyotp.TOTP(self.secret).now()
+
+    def test_token_endpoint_returns_challenge_not_tokens(self):
+        resp = self.client.post(
+            reverse("accounts:token-obtain"),
+            data={"email": "jwtmfa@x.com", "password": "pw12345!"},
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertTrue(body["mfa_required"])
+        self.assertIn("mfa_token", body)
+        self.assertNotIn("access", body)
+
+    def test_verify_exchanges_code_for_tokens(self):
+        challenge = self.client.post(
+            reverse("accounts:token-obtain"),
+            data={"email": "jwtmfa@x.com", "password": "pw12345!"},
+            content_type="application/json",
+        ).json()["mfa_token"]
+        resp = self.client.post(
+            reverse("accounts:mfa-verify"),
+            data={"mfa_token": challenge, "code": self._totp()},
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertIn("access", body)
+        self.assertIn("refresh", body)
+
+    def test_verify_rejects_bad_code(self):
+        challenge = self.client.post(
+            reverse("accounts:token-obtain"),
+            data={"email": "jwtmfa@x.com", "password": "pw12345!"},
+            content_type="application/json",
+        ).json()["mfa_token"]
+        resp = self.client.post(
+            reverse("accounts:mfa-verify"),
+            data={"mfa_token": challenge, "code": "000000"},
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 400)
+
+    def test_user_without_mfa_still_gets_tokens_directly(self):
+        User.objects.create_user(email="plain@x.com", password="pw12345!")
+        resp = self.client.post(
+            reverse("accounts:token-obtain"),
+            data={"email": "plain@x.com", "password": "pw12345!"},
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("access", resp.json())

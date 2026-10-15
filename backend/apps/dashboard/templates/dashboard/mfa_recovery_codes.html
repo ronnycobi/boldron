@@ -1,0 +1,26 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}Recovery codes · {{ app_name }}{% endblock %}
+{% block crumb %}Settings · Security · Recovery codes{% endblock %}
+{% block content %}
+<style>
+  .rc-wrap{max-width:560px}
+  .rc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .rc-grid code{background:var(--panel2);border:1px solid var(--line2);border-radius:8px;
+    padding:9px 12px;text-align:center;letter-spacing:2px;font-size:14px}
+  .rc-note{border:1px solid rgba(245,196,84,.4);background:rgba(245,196,84,.07);
+    border-radius:12px;padding:12px 14px;color:var(--ink2);font-size:13px}
+</style>
+
+<h1>Two-factor is on 🎉</h1>
+<p class="sub">Save these recovery codes somewhere safe. Each one can be used once to sign in if you lose your authenticator.</p>
+
+<div class="rc-wrap">
+  <div class="rc-note"><strong>This is the only time these codes are shown.</strong>
+    We store only a hash — we can't show them again. If you lose them, regenerate a new set from the Security Center.</div>
+  <div class="rc-grid">
+    {% for c in codes %}<code>{{ c }}</code>{% endfor %}
+  </div>
+  <a class="btn" href="{% url 'dashboard:security_center' %}">Done — back to Security</a>
+</div>
+{% endblock %}

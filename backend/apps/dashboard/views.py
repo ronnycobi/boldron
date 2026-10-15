@@ -114,6 +114,17 @@ class BoldronLoginView(auth_views.LoginView):
     def form_valid(self, form):
         from apps.core import throttle
         throttle.login_reset(getattr(self, "_email", ""), getattr(self, "_ip", ""))
+        user = form.get_user()
+        from apps.accounts import mfa
+        if mfa.is_enabled(user):
+            # Password checks out, but a second factor is still required. Hold the
+            # login: stash the pending user + intent in the (still anonymous)
+            # session and divert to the code challenge. No session login happens
+            # until the code is verified.
+            self.request.session["mfa_pending_uid"] = user.pk
+            self.request.session["mfa_remember"] = bool(self.request.POST.get("remember"))
+            self.request.session["mfa_next"] = self.get_success_url()
+            return redirect("dashboard:mfa_challenge")
         # "Keep me signed in": otherwise the session ends when the browser closes.
         if not self.request.POST.get("remember"):
             self.request.session.set_expiry(0)
@@ -142,6 +153,44 @@ class BoldronLogoutView(auth_views.LogoutView):
             if key:
                 UserSession.objects.filter(session_key=key).delete()
         return super().dispatch(request, *args, **kwargs)
+
+
+def mfa_challenge(request):
+    """Second step of web login: verify a TOTP or recovery code for the user whose
+    password already checked out, then complete the session login. Guarded by a
+    pending-uid stashed in the (still anonymous) session; brute-force throttled."""
+    from django.contrib.auth import login as auth_login
+    from apps.accounts import mfa, security
+    from apps.accounts.models import User
+    from apps.core import throttle
+
+    uid = request.session.get("mfa_pending_uid")
+    user = User.objects.filter(pk=uid).first() if uid else None
+    if user is None:
+        return redirect("dashboard:login")
+
+    if request.method == "POST":
+        ip = throttle.client_ip(request)
+        retry = throttle.login_retry_after(user.email, ip)
+        if retry:
+            return render(request, "dashboard/mfa_challenge.html",
+                          {"lockout": throttle.too_many_message(retry)})
+        if mfa.verify_any(user, request.POST.get("code") or ""):
+            throttle.login_reset(user.email, ip)
+            remember = request.session.get("mfa_remember", False)
+            next_url = request.session.get("mfa_next") or reverse("dashboard:home")
+            for key in ("mfa_pending_uid", "mfa_remember", "mfa_next"):
+                request.session.pop(key, None)
+            auth_login(request, user)
+            if not remember:
+                request.session.set_expiry(0)
+            security.record_login(user, request)
+            return redirect(next_url)
+        throttle.login_record_failure(user.email, ip)
+        security.record_failed(user.email, request)
+        messages.error(request, "That code isn't valid.")
+
+    return render(request, "dashboard/mfa_challenge.html", {})
 
 
 class BoldronPasswordResetView(auth_views.PasswordResetView):
@@ -1682,12 +1731,22 @@ _TIMEZONES = ["", "UTC", "Africa/Johannesburg", "Europe/London", "Europe/Berlin"
 def security_center(request):
     """Account Security Center (spec §9): password + MFA status, active sessions
     with device/last-active + revoke, and recent login history."""
-    from apps.accounts import security as sec
+    from apps.accounts import mfa, security as sec
 
-    if request.method == "POST" and request.POST.get("action") == "revoke":
-        sec.revoke_session_by_id(request.user, request.POST.get("session", 0), request=request)
-        messages.success(request, "Signed out of that session.")
-        return redirect("dashboard:security_center")
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "revoke":
+            sec.revoke_session_by_id(request.user, request.POST.get("session", 0), request=request)
+            messages.success(request, "Signed out of that session.")
+            return redirect("dashboard:security_center")
+        if action == "mfa_disable":
+            if not request.user.check_password(request.POST.get("password") or ""):
+                messages.error(request, "Your current password is required to disable two-factor auth.")
+            elif mfa.disable(request.user):
+                from apps.settings import service as _svc
+                _svc.audit_change("mfa.disabled", actor=request.user, summary="MFA disabled")
+                messages.success(request, "Two-factor authentication disabled.")
+            return redirect("dashboard:security_center")
 
     current = request.session.session_key
     return render(request, "dashboard/security_center.html", {
@@ -1696,6 +1755,35 @@ def security_center(request):
         "sessions": [sec.session_dict(s, current_key=current)
                      for s in sec.active_sessions(request.user)],
         "history": [sec.event_dict(e) for e in request.user.login_events.all()[:25]],
+    })
+
+
+@login_required
+def mfa_setup(request):
+    """Enrol a TOTP second factor: GET shows a QR + manual secret and asks for a
+    code; POST confirms the code, enables MFA, and reveals the one-time recovery
+    codes. Already-enabled accounts are sent back to the Security Center."""
+    from apps.accounts import mfa
+
+    if mfa.is_enabled(request.user):
+        messages.info(request, "Two-factor authentication is already enabled.")
+        return redirect("dashboard:security_center")
+
+    if request.method == "POST":
+        codes = mfa.confirm_enrollment(request.user, request.POST.get("code") or "")
+        if codes is None:
+            messages.error(request, "That code isn't valid. Scan the QR and try the latest code.")
+            return redirect("dashboard:mfa_setup")
+        from apps.settings import service as _svc
+        _svc.audit_change("mfa.enabled", actor=request.user, summary="MFA enabled")
+        return render(request, "dashboard/mfa_recovery_codes.html",
+                      {"active": "settings", "codes": codes})
+
+    enroll = mfa.begin_enrollment(request.user)
+    return render(request, "dashboard/mfa_setup.html", {
+        "active": "settings",
+        "secret": enroll["secret"],
+        "qr_svg": enroll["qr_svg"],
     })
 
 

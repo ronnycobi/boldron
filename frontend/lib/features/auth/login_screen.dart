@@ -32,6 +32,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     await ref
         .read(authControllerProvider.notifier)
         .login(_email.text, _password.text);
+    // Password OK but a second factor is required → go to the code challenge.
+    if (mounted && ref.read(authControllerProvider).mfaRequired) {
+      context.push('/login/mfa');
+    }
   }
 
   @override

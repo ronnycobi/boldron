@@ -1,0 +1,16 @@
+{% extends "dashboard/auth_base.html" %}
+{% block title %}Two-factor · {{ app_name }}{% endblock %}
+{% block auth %}
+  <h1 class="title">Two-step verification</h1>
+  <p class="tag">Enter the 6-digit code from your authenticator app. You can also use a recovery code.</p>
+  <form method="post" action="{% url 'dashboard:mfa_challenge' %}">
+    {% csrf_token %}
+    {% if lockout %}<div class="err">{{ lockout }}</div>{% endif %}
+    {% for m in messages %}<div class="err">{{ m }}</div>{% endfor %}
+    <label for="id_code">Verification code</label>
+    <input type="text" name="code" id="id_code" inputmode="text" autocomplete="one-time-code"
+           placeholder="123456" autofocus required>
+    <button type="submit">Verify →</button>
+  </form>
+  <p class="foot"><a href="{% url 'dashboard:login' %}">Back to sign in</a></p>
+{% endblock %}

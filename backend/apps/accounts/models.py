@@ -178,3 +178,45 @@ class UserSession(models.Model):
 
     def __str__(self):
         return f"session {self.session_key[:8]}… for {self.user_id}"
+
+
+class TotpDevice(models.Model):
+    """A user's TOTP second factor (spec §10). The shared secret is created at
+    enrolment; MFA counts as *enabled* only once `confirmed_at` is set (the user
+    proved they can generate a valid code). One device per user — re-enrolling
+    replaces it."""
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="totp_device"
+    )
+    # Base32 secret (RFC 4648). Generated per-user by pyotp; never hard-coded.
+    secret = models.CharField(max_length=64)
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        state = "confirmed" if self.confirmed_at else "pending"
+        return f"TOTP ({state}) for {self.user_id}"
+
+    @property
+    def is_confirmed(self) -> bool:
+        return self.confirmed_at is not None
+
+
+class RecoveryCode(models.Model):
+    """Single-use backup codes (spec §10). Only a hash is stored — the plaintext
+    is shown to the user exactly once, at generation time, and is never
+    recoverable afterwards."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="recovery_codes"
+    )
+    code_hash = models.CharField(max_length=128)
+    used_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"recovery code for {self.user_id} ({'used' if self.used_at else 'unused'})"

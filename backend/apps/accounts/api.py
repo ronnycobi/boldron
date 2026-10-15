@@ -73,9 +73,54 @@ class TokenObtainView(TokenObtainPairView):
         if response.status_code == status.HTTP_200_OK:
             throttle.login_reset(email, ip)
             user = User.objects.filter(email__iexact=email).first()
+            from apps.accounts import mfa
+            if user and mfa.is_enabled(user):
+                # Password is correct but a second factor is still required. Do
+                # NOT hand over tokens or record success yet — return a signed,
+                # short-lived challenge the client exchanges at mfa/verify/.
+                return Response({
+                    "mfa_required": True,
+                    "mfa_token": mfa.issue_challenge(user),
+                }, status=status.HTTP_200_OK)
             if user:  # mobile login has no Django session, so just the event
                 sec.record_event(user, request, LoginEvent.LOGIN_SUCCESS)
         return response
+
+
+class MfaVerifyView(APIView):
+    """Second step of MFA login: exchange a challenge token + a TOTP or recovery
+    code for the real token pair. Brute-force throttled like the password step."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        from apps.accounts import mfa, security as sec
+        from apps.accounts.models import LoginEvent
+
+        user = mfa.resolve_challenge(request.data.get("mfa_token") or "")
+        if user is None:
+            return Response(
+                {"detail": "This sign-in request has expired. Please sign in again."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        ip = throttle.client_ip(request)
+        locked = throttle.login_retry_after(user.email, ip)
+        if locked:
+            return Response(
+                {"detail": throttle.too_many_message(locked)},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+        if not mfa.verify_any(user, request.data.get("code") or ""):
+            throttle.login_record_failure(user.email, ip)
+            sec.record_failed(user.email, request)
+            return Response(
+                {"detail": "That code isn't valid."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        throttle.login_reset(user.email, ip)
+        sec.record_event(user, request, LoginEvent.LOGIN_SUCCESS)
+        return Response(issue_tokens(user))
 
 
 class LogoutView(APIView):

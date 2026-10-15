@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../config/brand.dart';
 import '../../core/api_exception.dart';
@@ -29,6 +31,8 @@ class SecurityScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(16),
               children: [
                 _StatusCard(status),
+                const SizedBox(height: 12),
+                _MfaCard(status, ref),
                 const SizedBox(height: 18),
                 Text('Active sessions',
                     style: Theme.of(context).textTheme.titleMedium),
@@ -115,6 +119,160 @@ class _StatusCard extends StatelessWidget {
                 fontSize: 12.5, color: color, fontWeight: FontWeight.w700)),
       ],
     );
+  }
+}
+
+class _MfaCard extends StatelessWidget {
+  final Map status;
+  final WidgetRef ref;
+  const _MfaCard(this.status, this.ref);
+
+  Future<void> _disable(BuildContext context) async {
+    final password = await _askPassword(context, 'Disable two-factor auth',
+        'Enter your current password to turn off two-factor authentication.');
+    if (password == null) return;
+    try {
+      await ref.read(settingsRepositoryProvider).mfaDisable(password);
+      ref.invalidate(securityProvider);
+      if (!context.mounted) return;
+      _toast(context, 'Two-factor authentication disabled.');
+    } on ApiException catch (e) {
+      if (!context.mounted) return;
+      _toast(context, e.firstFieldError ?? e.message);
+    }
+  }
+
+  Future<void> _regenerate(BuildContext context) async {
+    final password = await _askPassword(context, 'Regenerate recovery codes',
+        'Enter your current password. Your old recovery codes stop working.');
+    if (password == null) return;
+    try {
+      final codes = await ref
+          .read(settingsRepositoryProvider)
+          .mfaRegenerateRecoveryCodes(password);
+      ref.invalidate(securityProvider);
+      if (context.mounted) await _showCodes(context, codes);
+    } on ApiException catch (e) {
+      if (!context.mounted) return;
+      _toast(context, e.firstFieldError ?? e.message);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = (status['mfa_enabled'] ?? false) as bool;
+    final left = status['recovery_codes_left'] ?? 0;
+    return PanelCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text('Two-factor authentication',
+                    style: TextStyle(fontWeight: FontWeight.w700)),
+              ),
+              Text(enabled ? 'On' : 'Off',
+                  style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: enabled
+                          ? const Color(0xFF4AD295)
+                          : const Color(0xFFF5C454))),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            enabled
+                ? 'A code from your authenticator app is required at sign-in. '
+                    '$left recovery code${left == 1 ? '' : 's'} left.'
+                : 'Add a time-based code from an authenticator app as a second factor.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 10),
+          if (enabled)
+            Row(
+              children: [
+                OutlinedButton(
+                  onPressed: () => _regenerate(context),
+                  child: const Text('New recovery codes'),
+                ),
+                const SizedBox(width: 8),
+                TextButton(
+                  onPressed: () => _disable(context),
+                  child: const Text('Disable'),
+                ),
+              ],
+            )
+          else
+            FilledButton(
+              onPressed: () => context.push('/settings/security/mfa'),
+              child: const Text('Enable'),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+Future<String?> _askPassword(
+    BuildContext context, String title, String body) {
+  final controller = TextEditingController();
+  return showDialog<String>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(title),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(body, style: Theme.of(ctx).textTheme.bodySmall),
+          const SizedBox(height: 10),
+          TextField(
+            controller: controller,
+            obscureText: true,
+            autofocus: true,
+            decoration: const InputDecoration(labelText: 'Current password'),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+        FilledButton(
+            onPressed: () => Navigator.pop(ctx, controller.text),
+            child: const Text('Continue')),
+      ],
+    ),
+  );
+}
+
+Future<void> _showCodes(BuildContext context, List<String> codes) {
+  return showDialog<void>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('New recovery codes'),
+      content: SingleChildScrollView(
+        child: SelectableText(
+          codes.join('\n'),
+          style: const TextStyle(fontFamily: 'monospace', height: 1.6),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Clipboard.setData(ClipboardData(text: codes.join('\n')));
+            Navigator.pop(ctx);
+          },
+          child: const Text('Copy & close'),
+        ),
+      ],
+    ),
+  );
+}
+
+void _toast(BuildContext context, String message) {
+  if (context.mounted) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 }
 

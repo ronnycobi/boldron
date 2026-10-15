@@ -1,0 +1,38 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}Set up two-factor · {{ app_name }}{% endblock %}
+{% block crumb %}Settings · Security · Two-factor{% endblock %}
+{% block content %}
+<style>
+  .mfa-wrap{max-width:560px}
+  .mfa-qr{background:#fff;border-radius:12px;padding:14px;width:200px;height:200px;display:flex;
+    align-items:center;justify-content:center;margin:8px 0 16px}
+  .mfa-qr svg{width:170px;height:170px}
+  .mfa-secret{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:2px;
+    background:var(--panel2);border:1px solid var(--line2);border-radius:8px;padding:9px 12px;
+    display:inline-block;word-break:break-all}
+  .mfa-step{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin:18px 0 6px}
+</style>
+
+<h1>Set up two-factor authentication</h1>
+<p class="sub">Add a time-based code from an authenticator app (Google Authenticator, 1Password, Authy…) as a second factor.</p>
+
+<div class="mfa-wrap">
+  <div class="mfa-step">Step 1 — Scan this QR code</div>
+  <div class="mfa-qr">{{ qr_svg|safe }}</div>
+  <p class="sub">Can't scan? Enter this key manually:</p>
+  <div class="mfa-secret">{{ secret }}</div>
+
+  <div class="mfa-step">Step 2 — Enter the 6-digit code</div>
+  <form method="post" action="{% url 'dashboard:mfa_setup' %}" style="margin-top:4px">
+    {% csrf_token %}
+    {% for m in messages %}<div style="color:#f2686b;font-size:13px;margin-bottom:8px">{{ m }}</div>{% endfor %}
+    <input type="text" name="code" inputmode="numeric" autocomplete="one-time-code"
+           placeholder="123456" autofocus required
+           style="font-size:16px;letter-spacing:3px;max-width:160px">
+    <div style="margin-top:12px">
+      <button class="btn" type="submit">Verify &amp; enable</button>
+      <a class="btn ghost" href="{% url 'dashboard:security_center' %}" style="margin-left:8px">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

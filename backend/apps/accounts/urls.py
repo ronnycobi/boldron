@@ -7,6 +7,7 @@ from apps.accounts.api import (
     ChangePasswordView,
     LogoutAllView,
     LogoutView,
+    MfaVerifyView,
     PasswordResetConfirmView,
     PasswordResetRequestView,
     RegisterView,
@@ -28,6 +29,7 @@ urlpatterns = [
     # JWT auth for the mobile/API client (the web app uses session login).
     path("auth/register/", RegisterView.as_view(), name="register"),
     path("auth/token/", TokenObtainView.as_view(), name="token-obtain"),
+    path("auth/mfa/verify/", MfaVerifyView.as_view(), name="mfa-verify"),
     path("auth/token/refresh/", TokenRefreshView.as_view(), name="token-refresh"),
     path("auth/token/verify/", TokenVerifyView.as_view(), name="token-verify"),
     path("auth/logout/", LogoutView.as_view(), name="logout"),

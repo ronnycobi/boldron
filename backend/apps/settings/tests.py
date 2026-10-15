@@ -138,7 +138,7 @@ class SecurityApiTests(TestCase):
         body = resp.json()
         self.assertIn("status", body)
         self.assertFalse(body["status"]["mfa_enabled"])
-        self.assertFalse(body["status"]["mfa_available"])
+        self.assertTrue(body["status"]["mfa_available"])
         self.assertIsInstance(body["sessions"], list)
         self.assertTrue(any(e["kind"] == "login_success" for e in body["history"]))
         # No raw session key is ever exposed.
@@ -210,3 +210,94 @@ class _FakeRequest:
     """Minimal request stand-in for recording events without a full HTTP cycle."""
 
     META = {"HTTP_USER_AGENT": "Mozilla/5.0 (Macintosh) Chrome/120", "REMOTE_ADDR": "1.2.3.4"}
+
+
+class MfaApiTests(TestCase):
+    """The MFA management endpoints the Security Center (web + mobile) calls."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(email="mfaapi@x.com", password="pw12345!")
+
+    def _totp_now(self):
+        import pyotp
+
+        from apps.accounts.models import TotpDevice
+
+        return pyotp.TOTP(TotpDevice.objects.get(user=self.user).secret).now()
+
+    def test_enroll_returns_secret_uri_and_qr(self):
+        resp = self.client.post(reverse("settings_api:mfa-enroll"), **auth(self.user))
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertIn("secret", body)
+        self.assertIn("otpauth://", body["otpauth_uri"])
+        self.assertIn("<svg", body["qr_svg"])
+
+    def test_confirm_enables_and_returns_recovery_codes(self):
+        self.client.post(reverse("settings_api:mfa-enroll"), **auth(self.user))
+        resp = self.client.post(
+            reverse("settings_api:mfa-confirm"),
+            data={"code": self._totp_now()},
+            content_type="application/json",
+            **auth(self.user),
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.json()["recovery_codes"]), 10)
+
+    def test_confirm_with_bad_code_is_400(self):
+        self.client.post(reverse("settings_api:mfa-enroll"), **auth(self.user))
+        resp = self.client.post(
+            reverse("settings_api:mfa-confirm"),
+            data={"code": "000000"},
+            content_type="application/json",
+            **auth(self.user),
+        )
+        self.assertEqual(resp.status_code, 400)
+
+    def test_disable_requires_correct_password(self):
+        from apps.accounts import mfa
+
+        mfa.begin_enrollment(self.user)
+        mfa.confirm_enrollment(self.user, self._totp_now())
+        bad = self.client.post(
+            reverse("settings_api:mfa-disable"),
+            data={"password": "wrong"},
+            content_type="application/json",
+            **auth(self.user),
+        )
+        self.assertEqual(bad.status_code, 400)
+        self.assertTrue(mfa.is_enabled(self.user))
+        ok = self.client.post(
+            reverse("settings_api:mfa-disable"),
+            data={"password": "pw12345!"},
+            content_type="application/json",
+            **auth(self.user),
+        )
+        self.assertEqual(ok.status_code, 200)
+        self.assertFalse(mfa.is_enabled(self.user))
+
+    def test_regenerate_recovery_codes_requires_password_and_mfa(self):
+        from apps.accounts import mfa
+
+        # Not enabled yet -> 400.
+        early = self.client.post(
+            reverse("settings_api:mfa-recovery-codes"),
+            data={"password": "pw12345!"},
+            content_type="application/json",
+            **auth(self.user),
+        )
+        self.assertEqual(early.status_code, 400)
+        mfa.begin_enrollment(self.user)
+        mfa.confirm_enrollment(self.user, self._totp_now())
+        resp = self.client.post(
+            reverse("settings_api:mfa-recovery-codes"),
+            data={"password": "pw12345!"},
+            content_type="application/json",
+            **auth(self.user),
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.json()["recovery_codes"]), 10)
+
+    def test_enroll_requires_auth(self):
+        resp = self.client.post(reverse("settings_api:mfa-enroll"))
+        self.assertEqual(resp.status_code, 401)

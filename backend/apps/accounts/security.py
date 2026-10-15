@@ -122,12 +122,14 @@ def _revoke(user, s, request) -> bool:
 
 
 def security_status(user) -> dict:
-    """Account security summary (real state). MFA fields are honest placeholders
-    until Phase 1b implements MFA."""
+    """Account security summary (real state)."""
+    from apps.accounts import mfa
+
     return {
         "password_set": user.has_usable_password(),
-        "mfa_enabled": False,
-        "mfa_available": False,
+        "mfa_enabled": mfa.is_enabled(user),
+        "mfa_available": True,
+        "recovery_codes_left": mfa.unused_recovery_code_count(user),
         "active_sessions": len(active_sessions(user)),
         "email_verified": user.email_verified,
     }
