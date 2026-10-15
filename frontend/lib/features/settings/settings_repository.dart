@@ -16,6 +16,16 @@ class SettingsRepository {
     return (data as Map).cast<String, dynamic>();
   }
 
+  /// Account Security Center: status + active sessions + login history.
+  Future<Map<String, dynamic>> security() async {
+    final data = await _api.get('settings/security/');
+    return (data as Map).cast<String, dynamic>();
+  }
+
+  /// Revoke one of the user's own web sessions by its id.
+  Future<void> revokeSession(int sessionId) =>
+      _api.post('settings/sessions/$sessionId/revoke/');
+
   Future<List<Map<String, dynamic>>> integrations() async {
     final data = await _api.get('integrations/');
     return ((data as Map)['integrations'] as List)
@@ -34,4 +44,8 @@ final integrationsProvider = FutureProvider<List<Map<String, dynamic>>>(
 
 final settingsOverviewProvider = FutureProvider<Map<String, dynamic>>(
   (ref) => ref.watch(settingsRepositoryProvider).overview(),
+);
+
+final securityProvider = FutureProvider<Map<String, dynamic>>(
+  (ref) => ref.watch(settingsRepositoryProvider).security(),
 );

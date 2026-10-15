@@ -17,9 +17,10 @@ class SettingsScreen extends ConsumerWidget {
     final orgId = ref.read(activeOrgProvider);
     switch ('$scope.$key') {
       case 'account.profile':
+        return '/account/security';
       case 'account.security':
       case 'account.sessions':
-        return '/account/security';
+        return '/settings/security';
       case 'account.appearance': // preferences (language/timezone) live here
         return '/settings/preferences';
       case 'organization.members':

@@ -24,6 +24,7 @@ import '../features/releases/releases_screen.dart';
 import '../features/releases/store_listing_screen.dart';
 import '../features/search/search_screen.dart';
 import '../features/settings/preferences_screen.dart';
+import '../features/settings/security_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/shell/app_shell.dart';
 import '../features/support/support_screen.dart';
@@ -226,6 +227,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/account/security',
         builder: (_, __) => const AccountSecurityScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/settings/security',
+        builder: (_, __) => const SecurityScreen(),
       ),
     ],
   );

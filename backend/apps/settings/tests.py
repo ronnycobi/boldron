@@ -117,3 +117,96 @@ class SettingsCenterPageTests(TestCase):
         self.client.force_login(self.user)
         r = self.client.get(reverse("dashboard:settings"))
         self.assertEqual(r.status_code, 200)
+
+
+class SecurityApiTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(email="sec@x.com", password="pw12345!")
+
+    def test_security_requires_auth(self):
+        resp = self.client.get(reverse("settings_api:security"))
+        self.assertEqual(resp.status_code, 401)
+
+    def test_security_returns_status_sessions_history(self):
+        from apps.accounts import security
+
+        security.record_event(
+            self.user, _FakeRequest(), security.LoginEvent.LOGIN_SUCCESS
+        )
+        resp = self.client.get(reverse("settings_api:security"), **auth(self.user))
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertIn("status", body)
+        self.assertFalse(body["status"]["mfa_enabled"])
+        self.assertFalse(body["status"]["mfa_available"])
+        self.assertIsInstance(body["sessions"], list)
+        self.assertTrue(any(e["kind"] == "login_success" for e in body["history"]))
+        # No raw session key is ever exposed.
+        for s in body["sessions"]:
+            self.assertNotIn("session_key", s)
+
+    def test_revoke_unknown_session_is_404(self):
+        resp = self.client.post(
+            reverse("settings_api:session-revoke", args=[999999]), **auth(self.user)
+        )
+        self.assertEqual(resp.status_code, 404)
+
+    def test_revoke_own_session_succeeds(self):
+        from apps.accounts.models import UserSession
+
+        s = UserSession.objects.create(
+            user=self.user, session_key="abc123", ip="1.2.3.4"
+        )
+        resp = self.client.post(
+            reverse("settings_api:session-revoke", args=[s.id]), **auth(self.user)
+        )
+        self.assertEqual(resp.status_code, 204)
+        self.assertFalse(UserSession.objects.filter(id=s.id).exists())
+
+    def test_cannot_revoke_another_users_session(self):
+        from apps.accounts.models import UserSession
+
+        other = User.objects.create_user(email="other@x.com", password="pw12345!")
+        s = UserSession.objects.create(
+            user=other, session_key="other-key", ip="9.9.9.9"
+        )
+        resp = self.client.post(
+            reverse("settings_api:session-revoke", args=[s.id]), **auth(self.user)
+        )
+        self.assertEqual(resp.status_code, 404)
+        self.assertTrue(UserSession.objects.filter(id=s.id).exists())
+
+
+class SecurityCenterPageTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email="secweb@x.com", password="pw12345!", full_name="Sec Web"
+        )
+
+    def test_security_center_renders(self):
+        self.client.force_login(self.user)
+        r = self.client.get(reverse("dashboard:security_center"))
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "Active sessions")
+        self.assertContains(r, "Recent activity")
+
+    def test_revoke_via_page_post(self):
+        from apps.accounts.models import UserSession
+
+        self.client.force_login(self.user)
+        s = UserSession.objects.create(
+            user=self.user, session_key="page-key", ip="1.1.1.1"
+        )
+        r = self.client.post(
+            reverse("dashboard:security_center"),
+            {"action": "revoke", "session": s.id},
+            follow=True,
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertFalse(UserSession.objects.filter(id=s.id).exists())
+
+
+class _FakeRequest:
+    """Minimal request stand-in for recording events without a full HTTP cycle."""
+
+    META = {"HTTP_USER_AGENT": "Mozilla/5.0 (Macintosh) Chrome/120", "REMOTE_ADDR": "1.2.3.4"}

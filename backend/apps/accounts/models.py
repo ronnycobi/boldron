@@ -4,6 +4,7 @@ Email is the identity — there is no username. A custom user model is introduce
 here, before any other app references it, because swapping AUTH_USER_MODEL later
 is extremely costly. Organization membership lives in apps.organizations.
 """
+from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
 from django.utils import timezone
@@ -116,3 +117,64 @@ class User(AbstractBaseUser, PermissionsMixin):
                 return (parts[0][0] + parts[-1][0]).upper()
             return parts[0][:2].upper()
         return (self.email or "?")[:2].upper()
+
+
+class LoginEvent(models.Model):
+    """A security-relevant account event (spec §13). Append-only history shown in
+    the Security Center. `user` may be null for a failed attempt on an unknown
+    address; the attempted email is always recorded."""
+
+    LOGIN_SUCCESS = "login_success"
+    LOGIN_FAILED = "login_failed"
+    LOGOUT = "logout"
+    PASSWORD_CHANGED = "password_changed"
+    MFA_ENABLED = "mfa_enabled"
+    MFA_DISABLED = "mfa_disabled"
+    SESSION_REVOKED = "session_revoked"
+    KINDS = [
+        (LOGIN_SUCCESS, "Signed in"),
+        (LOGIN_FAILED, "Failed sign-in"),
+        (LOGOUT, "Signed out"),
+        (PASSWORD_CHANGED, "Password changed"),
+        (MFA_ENABLED, "MFA enabled"),
+        (MFA_DISABLED, "MFA disabled"),
+        (SESSION_REVOKED, "Session revoked"),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="login_events", null=True, blank=True,
+    )
+    email = models.CharField(max_length=255, blank=True)
+    kind = models.CharField(max_length=24, choices=KINDS)
+    ip = models.CharField(max_length=64, blank=True)
+    user_agent = models.CharField(max_length=400, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["user", "-created_at"])]
+
+    def __str__(self):
+        return f"{self.get_kind_display()} · {self.email or self.user_id}"
+
+
+class UserSession(models.Model):
+    """Metadata for an active web session (spec §12), keyed to the Django session.
+    Lets the Security Center list devices and revoke them. No precise location is
+    stored — only what the request headers provide."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="sessions"
+    )
+    session_key = models.CharField(max_length=40, unique=True, db_index=True)
+    ip = models.CharField(max_length=64, blank=True)
+    user_agent = models.CharField(max_length=400, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    last_active = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-last_active"]
+
+    def __str__(self):
+        return f"session {self.session_key[:8]}… for {self.user_id}"

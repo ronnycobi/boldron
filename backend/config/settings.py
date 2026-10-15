@@ -196,6 +196,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     # Apply each signed-in user's language/timezone preference.
     "apps.core.middleware.UserLocaleMiddleware",
+    # Track last-active for the Security Center (throttled, best-effort).
+    "apps.accounts.middleware.SessionActivityMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     # Strip implementation/technology fingerprint headers from every response.

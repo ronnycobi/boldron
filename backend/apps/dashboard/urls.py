@@ -37,6 +37,7 @@ urlpatterns = [
     path("repository/", views.repository, name="repository"),
     path("templates/", views.templates_page, name="templates"),
     path("settings/", views.settings_center, name="settings_center"),
+    path("settings/security/", views.security_center, name="security_center"),
     path("settings/preferences/", views.settings_page, name="settings"),
     path("account/", views.account, name="account"),
     path("verify-email/<str:token>/", views.verify_email, name="verify_email"),
@@ -44,7 +45,7 @@ urlpatterns = [
     path("ops/<slug:area>/", views.operations, name="ops"),
     path("soon/<slug:slug>/", views.soon, name="soon"),
     path("login/", views.BoldronLoginView.as_view(), name="login"),
-    path("logout/", auth_views.LogoutView.as_view(), name="logout"),
+    path("logout/", views.BoldronLogoutView.as_view(), name="logout"),
     # Forgot-password flow (request → email → set new → done).
     path("password-reset/", views.BoldronPasswordResetView.as_view(), name="password_reset"),
     path(

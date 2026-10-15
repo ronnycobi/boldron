@@ -400,3 +400,88 @@ class PasswordResetApiTests(TestCase):
             content_type="application/json",
         )
         self.assertEqual(resp.status_code, 400)
+
+
+class SecurityServiceTests(TestCase):
+    """Login-history + active-session tracking that powers the Security Center."""
+
+    def setUp(self):
+        from django.test import RequestFactory
+
+        self.user = User.objects.create_user(email="sec@x.com", password="pw12345!")
+        self.rf = RequestFactory()
+
+    def _request(self, ua="Mozilla/5.0 (Macintosh) Chrome/120"):
+        req = self.rf.get("/", HTTP_USER_AGENT=ua, REMOTE_ADDR="5.6.7.8")
+        return req
+
+    def test_parse_user_agent_is_coarse(self):
+        from apps.accounts import security
+
+        self.assertEqual(
+            security.parse_user_agent("Mozilla/5.0 (Macintosh) Chrome/120"),
+            {"browser": "Chrome", "os": "macOS"},
+        )
+        self.assertEqual(
+            security.parse_user_agent("Dart/3 (dart:io) flutter")["browser"],
+            "Mobile app",
+        )
+
+    def test_record_login_creates_event_and_session(self):
+        from apps.accounts import security
+        from apps.accounts.models import LoginEvent, UserSession
+
+        req = self._request()
+        req.session = _DummySession("key-1")
+        security.record_login(self.user, req)
+        self.assertTrue(
+            LoginEvent.objects.filter(
+                user=self.user, kind=LoginEvent.LOGIN_SUCCESS
+            ).exists()
+        )
+        self.assertTrue(
+            UserSession.objects.filter(user=self.user, session_key="key-1").exists()
+        )
+
+    def test_record_failed_stores_email_without_user(self):
+        from apps.accounts import security
+        from apps.accounts.models import LoginEvent
+
+        security.record_failed("ghost@x.com", self._request())
+        e = LoginEvent.objects.get(kind=LoginEvent.LOGIN_FAILED)
+        self.assertIsNone(e.user)
+        self.assertEqual(e.email, "ghost@x.com")
+
+    def test_security_status_reports_honest_mfa(self):
+        from apps.accounts import security
+
+        status = security.security_status(self.user)
+        self.assertTrue(status["password_set"])
+        self.assertFalse(status["mfa_enabled"])
+        self.assertFalse(status["mfa_available"])
+
+    def test_session_dict_never_exposes_raw_key(self):
+        from apps.accounts import security
+        from apps.accounts.models import UserSession
+
+        s = UserSession.objects.create(
+            user=self.user, session_key="secret-key", ip="1.2.3.4"
+        )
+        d = security.session_dict(s, current_key="secret-key")
+        self.assertNotIn("session_key", d)
+        self.assertTrue(d["current"])
+
+    def test_revoke_by_id_deletes_session(self):
+        from apps.accounts import security
+        from apps.accounts.models import UserSession
+
+        s = UserSession.objects.create(user=self.user, session_key="k2", ip="1.1.1.1")
+        self.assertTrue(
+            security.revoke_session_by_id(self.user, s.id, request=self._request())
+        )
+        self.assertFalse(UserSession.objects.filter(id=s.id).exists())
+
+
+class _DummySession:
+    def __init__(self, key):
+        self.session_key = key

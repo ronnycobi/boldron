@@ -23,8 +23,8 @@ from decimal import Decimal
 def _account_sections() -> list[dict]:
     return [
         {"key": "profile", "label": "Profile", "available": True, "route": "dashboard:account"},
-        {"key": "security", "label": "Security", "available": True, "route": "dashboard:account"},
-        {"key": "sessions", "label": "Sessions", "available": True, "route": "dashboard:account"},
+        {"key": "security", "label": "Security", "available": True, "route": "dashboard:security_center"},
+        {"key": "sessions", "label": "Sessions", "available": True, "route": "dashboard:security_center"},
         {"key": "appearance", "label": "Appearance", "available": False},
         {"key": "accessibility", "label": "Accessibility", "available": False},
         {"key": "notifications", "label": "Notifications", "available": False},

@@ -59,15 +59,22 @@ class TokenObtainView(TokenObtainPairView):
                 {"detail": throttle.too_many_message(locked)},
                 status=status.HTTP_429_TOO_MANY_REQUESTS,
             )
+        from apps.accounts import security as sec
+        from apps.accounts.models import LoginEvent, User
+
         try:
             response = super().post(request, *args, **kwargs)
         except Exception:
             # Bad credentials (AuthenticationFailed) or a malformed request both
             # count as a failed attempt; re-raise so DRF renders the clean 4xx.
             throttle.login_record_failure(email, ip)
+            sec.record_failed(email, request)
             raise
         if response.status_code == status.HTTP_200_OK:
             throttle.login_reset(email, ip)
+            user = User.objects.filter(email__iexact=email).first()
+            if user:  # mobile login has no Django session, so just the event
+                sec.record_event(user, request, LoginEvent.LOGIN_SUCCESS)
         return response
 
 
@@ -294,6 +301,9 @@ class ChangePasswordView(APIView):
             return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
         form.save()
         revoke_all_tokens(request.user)
+        from apps.accounts import security as sec
+        from apps.accounts.models import LoginEvent
+        sec.record_event(request.user, request, LoginEvent.PASSWORD_CHANGED)
         return Response(issue_tokens(request.user))
 
 

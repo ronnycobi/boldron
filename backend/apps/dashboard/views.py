@@ -117,12 +117,31 @@ class BoldronLoginView(auth_views.LoginView):
         # "Keep me signed in": otherwise the session ends when the browser closes.
         if not self.request.POST.get("remember"):
             self.request.session.set_expiry(0)
-        return super().form_valid(form)
+        response = super().form_valid(form)  # logs in + establishes the session
+        from apps.accounts import security
+        security.record_login(self.request.user, self.request)
+        return response
 
     def form_invalid(self, form):
         from apps.core import throttle
+        from apps.accounts import security
         throttle.login_record_failure(getattr(self, "_email", ""), getattr(self, "_ip", ""))
+        security.record_failed(getattr(self, "_email", ""), self.request)
         return super().form_invalid(form)
+
+
+class BoldronLogoutView(auth_views.LogoutView):
+    """Record the logout and drop this session's UserSession before signing out."""
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            from apps.accounts import security
+            from apps.accounts.models import LoginEvent, UserSession
+            security.record_event(request.user, request, LoginEvent.LOGOUT)
+            key = request.session.session_key
+            if key:
+                UserSession.objects.filter(session_key=key).delete()
+        return super().dispatch(request, *args, **kwargs)
 
 
 class BoldronPasswordResetView(auth_views.PasswordResetView):
@@ -1597,6 +1616,9 @@ def account(request):
                 pwd_form.save()
                 # Keep THIS session; the password change invalidates the others.
                 update_session_auth_hash(request, user)
+                from apps.accounts import security as _sec
+                from apps.accounts.models import LoginEvent as _LE
+                _sec.record_event(user, request, _LE.PASSWORD_CHANGED)
                 messages.success(request, "Password changed — other sessions were signed out.")
                 return redirect("dashboard:account")
             messages.error(request, "Please fix the errors below.")
@@ -1654,6 +1676,27 @@ _LANGUAGES = [("", "English (default)"), ("en-us", "English (US)"), ("en-gb", "E
 _TIMEZONES = ["", "UTC", "Africa/Johannesburg", "Europe/London", "Europe/Berlin",
               "America/New_York", "America/Chicago", "America/Los_Angeles",
               "Asia/Dubai", "Asia/Kolkata", "Asia/Singapore", "Australia/Sydney"]
+
+
+@login_required
+def security_center(request):
+    """Account Security Center (spec §9): password + MFA status, active sessions
+    with device/last-active + revoke, and recent login history."""
+    from apps.accounts import security as sec
+
+    if request.method == "POST" and request.POST.get("action") == "revoke":
+        sec.revoke_session_by_id(request.user, request.POST.get("session", 0), request=request)
+        messages.success(request, "Signed out of that session.")
+        return redirect("dashboard:security_center")
+
+    current = request.session.session_key
+    return render(request, "dashboard/security_center.html", {
+        "active": "settings",
+        "status": sec.security_status(request.user),
+        "sessions": [sec.session_dict(s, current_key=current)
+                     for s in sec.active_sessions(request.user)],
+        "history": [sec.event_dict(e) for e in request.user.login_events.all()[:25]],
+    })
 
 
 @login_required

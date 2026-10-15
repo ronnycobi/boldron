@@ -1,0 +1,114 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}Security · {{ app_name }}{% endblock %}
+{% block crumb %}Settings · Security{% endblock %}
+{% block content %}
+<style>
+  .se-status{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:6px 0 22px}
+  .se-stat{border:1px solid var(--line);border-radius:12px;padding:14px 16px;
+    background:linear-gradient(180deg,var(--panel),var(--panel2))}
+  .se-stat .k{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+  .se-stat .v{font-weight:700;margin-top:6px;font-size:15px;display:flex;align-items:center;gap:8px}
+  .se-tbl{width:100%;border-collapse:collapse;margin-top:6px}
+  .se-tbl th{text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase;
+    letter-spacing:.5px;font-weight:700;padding:8px 10px;border-bottom:1px solid var(--line2)}
+  .se-tbl td{padding:10px;border-bottom:1px solid var(--line);font-size:13px;color:var(--ink2)}
+  .se-tbl tr:last-child td{border-bottom:none}
+  .se-sub{color:var(--muted);font-size:12px}
+  .se-hist{list-style:none;padding:0;margin:6px 0 0}
+  .se-hist li{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--line);font-size:13px}
+  .se-hist li:last-child{border-bottom:none}
+  .se-hist .when{color:var(--muted);font-size:12px;margin-left:auto;white-space:nowrap}
+  .se-dot{width:7px;height:7px;border-radius:99px;background:var(--muted);flex:none}
+  .se-dot.ok{background:#4ad295}.se-dot.bad{background:#f2686b}
+</style>
+
+<h1>Security</h1>
+<p class="sub">Your password, sign-in protection, active sessions and recent activity.</p>
+
+<div class="se-status">
+  <div class="se-stat">
+    <div class="k">Password</div>
+    <div class="v">
+      {% if status.password_set %}<span class="badge b-completed">Protected</span>
+      {% else %}<span class="badge b-failed">Not set</span>{% endif %}
+    </div>
+    <div class="se-sub" style="margin-top:8px">
+      <a href="{% url 'dashboard:account' %}">Change password →</a>
+    </div>
+  </div>
+  <div class="se-stat">
+    <div class="k">Two-factor auth</div>
+    <div class="v">
+      {% if status.mfa_enabled %}<span class="badge b-completed">On</span>
+      {% else %}<span class="badge b-waiting_for_approval">Off</span>{% endif %}
+    </div>
+    <div class="se-sub" style="margin-top:8px">
+      {% if not status.mfa_available %}Coming soon.{% else %}Add a second factor to protect your account.{% endif %}
+    </div>
+  </div>
+  <div class="se-stat">
+    <div class="k">Email</div>
+    <div class="v">
+      {% if status.email_verified %}<span class="badge b-completed">Verified</span>
+      {% else %}<span class="badge b-waiting_for_approval">Unverified</span>{% endif %}
+    </div>
+  </div>
+  <div class="se-stat">
+    <div class="k">Active sessions</div>
+    <div class="v">{{ status.active_sessions }}</div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:18px">
+  <h2 style="margin-top:0">Active sessions</h2>
+  <p class="se-sub">Devices currently signed in to your account. Revoke any you don't recognise.</p>
+  {% if sessions %}
+  <div style="overflow-x:auto">
+    <table class="se-tbl">
+      <thead><tr><th>Device</th><th>IP</th><th>Last active</th><th></th></tr></thead>
+      <tbody>
+      {% for s in sessions %}
+        <tr>
+          <td>{{ s.browser }} · {{ s.os }}
+            {% if s.current %}<span class="badge b-completed" style="margin-left:6px">This device</span>{% endif %}
+          </td>
+          <td>{{ s.ip|default:"—" }}</td>
+          <td class="se-sub">{{ s.last_active|slice:":19" }}</td>
+          <td style="text-align:right">
+            {% if not s.current %}
+            <form method="post" style="margin:0" onsubmit="return confirm('Sign out of this session?')">{% csrf_token %}
+              <input type="hidden" name="action" value="revoke">
+              <input type="hidden" name="session" value="{{ s.id }}">
+              <button class="btn ghost" type="submit" style="padding:5px 12px;font-size:12px">Revoke</button>
+            </form>
+            {% else %}<span class="se-sub">—</span>{% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="se-sub">No other active sessions.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">Recent activity</h2>
+  <p class="se-sub">Your latest sign-ins and security events.</p>
+  {% if history %}
+  <ul class="se-hist">
+    {% for e in history %}
+    <li>
+      <span class="se-dot {% if e.kind == 'login_success' %}ok{% elif e.kind == 'login_failed' %}bad{% endif %}"></span>
+      <span>{{ e.kind_display }}</span>
+      <span class="se-sub">· {{ e.browser }} · {{ e.os }}{% if e.ip %} · {{ e.ip }}{% endif %}</span>
+      <span class="when">{{ e.created_at|slice:":19" }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="se-sub">No activity recorded yet.</p>
+  {% endif %}
+</div>
+{% endblock %}
