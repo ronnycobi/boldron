@@ -9,8 +9,15 @@ import 'settings_repository.dart';
 /// Settings control center (P0): the same scoped overview the web shows —
 /// real alerts + account/org status + the section map. Built sections navigate
 /// to their screen; unbuilt ones are honestly marked "soon".
-class SettingsScreen extends ConsumerWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  String _query = '';
 
   // Map a section key → an in-app route, when one exists today.
   String? _route(WidgetRef ref, String scope, String key) {
@@ -50,8 +57,14 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 
+  bool _matches(Map s, String scope) {
+    if (_query.isEmpty) return true;
+    final q = _query.toLowerCase();
+    return '${s['label']} ${s['key']} $scope'.toLowerCase().contains(q);
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final overview = ref.watch(settingsOverviewProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -63,21 +76,41 @@ class SettingsScreen extends ConsumerWidget {
           final account = (o['account'] as Map?) ?? {};
           final orgs = (o['organizations'] as List?) ?? [];
           final sections = (o['sections'] as Map?) ?? {};
+          final account_ = ((sections['account'] as List?) ?? [])
+              .where((s) => _matches(s as Map, 'account')).toList();
+          final org_ = ((sections['organization'] as List?) ?? [])
+              .where((s) => _matches(s as Map, 'organization')).toList();
+          final project_ = ((sections['project'] as List?) ?? [])
+              .where((s) => _matches(s as Map, 'project')).toList();
+          final nothing = account_.isEmpty && org_.isEmpty && project_.isEmpty;
           return RefreshIndicator(
             onRefresh: () async =>
                 ref.refresh(settingsOverviewProvider.future),
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                for (final a in alerts) _AlertCard(a as Map),
-                _StatusCard(account: account, orgs: orgs),
+                TextField(
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.search),
+                    hintText: 'Search settings…',
+                    isDense: true,
+                  ),
+                  onChanged: (v) => setState(() => _query = v),
+                ),
                 const SizedBox(height: 8),
-                _group(context, ref, 'Your account', 'account',
-                    (sections['account'] as List?) ?? []),
-                _group(context, ref, 'Organization', 'organization',
-                    (sections['organization'] as List?) ?? []),
-                _group(context, ref, 'Project', 'project',
-                    (sections['project'] as List?) ?? []),
+                if (_query.isEmpty) ...[
+                  for (final a in alerts) _AlertCard(a as Map),
+                  _StatusCard(account: account, orgs: orgs),
+                  const SizedBox(height: 8),
+                ],
+                if (nothing)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(child: Text('No settings match that search.')),
+                  ),
+                _group(context, ref, 'Your account', 'account', account_),
+                _group(context, ref, 'Organization', 'organization', org_),
+                _group(context, ref, 'Project', 'project', project_),
                 const SizedBox(height: 24),
               ],
             ),

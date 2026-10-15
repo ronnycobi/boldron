@@ -23,6 +23,11 @@
 <h1>Settings</h1>
 <p class="sub">Your control center — account, organization and project settings in one place.</p>
 
+<input id="sc-search" type="search" placeholder="Search settings…" autocomplete="off"
+  oninput="scFilter(this.value)"
+  style="width:100%;max-width:420px;margin:2px 0 6px;padding:10px 13px;border:1px solid var(--line2);border-radius:10px;background:var(--panel2);color:var(--ink)">
+<p id="sc-empty" class="muted" style="display:none;font-size:13px">No settings match that search.</p>
+
 {% if overview.alerts %}
   <div style="margin:4px 0 18px">
     {% for a in overview.alerts %}
@@ -57,36 +62,60 @@
   {% endfor %}
 </div>
 
-<div class="sc-scope">Your account</div>
+<div class="sc-scope sc-head">Your account</div>
 <div class="sc-grid">
   {% for s in overview.sections.account %}
     {% if s.available %}
-      <a class="sc-sec" href="{% url s.route %}">{{ s.label }} <span>→</span></a>
+      <a class="sc-sec" data-sc="{{ s.label|lower }} {{ s.key }}" href="{% url s.route %}">{{ s.label }} <span>→</span></a>
     {% else %}
-      <div class="sc-sec soon">{{ s.label }} <span class="soon-tag">soon</span></div>
+      <div class="sc-sec soon" data-sc="{{ s.label|lower }} {{ s.key }}">{{ s.label }} <span class="soon-tag">soon</span></div>
     {% endif %}
   {% endfor %}
 </div>
 
-<div class="sc-scope">Organization</div>
+<div class="sc-scope sc-head">Organization</div>
 <div class="sc-grid">
   {% for s in overview.sections.organization %}
     {% if s.available %}
-      <a class="sc-sec" href="{% url s.route %}">{{ s.label }} <span>→</span></a>
+      <a class="sc-sec" data-sc="{{ s.label|lower }} {{ s.key }}" href="{% url s.route %}">{{ s.label }} <span>→</span></a>
     {% else %}
-      <div class="sc-sec soon">{{ s.label }} <span class="soon-tag">soon</span></div>
+      <div class="sc-sec soon" data-sc="{{ s.label|lower }} {{ s.key }}">{{ s.label }} <span class="soon-tag">soon</span></div>
     {% endif %}
   {% endfor %}
 </div>
 
-<div class="sc-scope">Project <span style="text-transform:none;letter-spacing:0;font-weight:400">· open a project to manage its settings</span></div>
+<div class="sc-scope sc-head">Project <span style="text-transform:none;letter-spacing:0;font-weight:400">· open a project to manage its settings</span></div>
 <div class="sc-grid">
   {% for s in overview.sections.project %}
     {% if s.available %}
-      <a class="sc-sec" href="{% url 'dashboard:projects' %}">{{ s.label }} <span>→</span></a>
+      <a class="sc-sec" data-sc="{{ s.label|lower }} {{ s.key }}" href="{% url 'dashboard:projects' %}">{{ s.label }} <span>→</span></a>
     {% else %}
-      <div class="sc-sec soon">{{ s.label }} <span class="soon-tag">soon</span></div>
+      <div class="sc-sec soon" data-sc="{{ s.label|lower }} {{ s.key }}">{{ s.label }} <span class="soon-tag">soon</span></div>
     {% endif %}
   {% endfor %}
 </div>
+
+<script>
+  // Live client-side filter over the section tiles (keys + labels). The same
+  // search is also available server-side at /api/v1/settings/search/.
+  function scFilter(q){
+    q = (q || '').trim().toLowerCase();
+    var anyGlobal = false;
+    document.querySelectorAll('.sc-grid').forEach(function(grid){
+      var head = grid.previousElementSibling;
+      var any = false;
+      grid.querySelectorAll('.sc-sec').forEach(function(tile){
+        var hay = tile.getAttribute('data-sc') || tile.textContent.toLowerCase();
+        var show = !q || hay.indexOf(q) !== -1;
+        tile.style.display = show ? '' : 'none';
+        if(show) any = true;
+      });
+      grid.style.display = any ? '' : 'none';
+      if(head && head.classList.contains('sc-head')) head.style.display = any ? '' : 'none';
+      if(any) anyGlobal = true;
+    });
+    var empty = document.getElementById('sc-empty');
+    if(empty) empty.style.display = anyGlobal ? 'none' : '';
+  }
+</script>
 {% endblock %}

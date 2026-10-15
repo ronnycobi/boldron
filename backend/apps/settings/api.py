@@ -41,6 +41,19 @@ class SettingsOverviewView(APIView):
         })
 
 
+class SettingsSearchView(APIView):
+    """Search settings sections across all scopes (?q=). Web route names are
+    stripped — mobile navigates by scope+key."""
+
+    def get(self, request):
+        q = request.query_params.get("q", "")
+        results = [
+            {k: v for k, v in r.items() if k != "route"}
+            for r in service.search(q)
+        ]
+        return Response({"query": q, "results": results})
+
+
 class SecurityView(APIView):
     """Account Security Center (spec §9/§12/§13): status + active sessions +
     recent login history. Read-only; sensitive values are never returned."""

@@ -308,3 +308,70 @@ class MfaApiTests(TestCase):
     def test_enroll_requires_auth(self):
         resp = self.client.post(reverse("settings_api:mfa-enroll"))
         self.assertEqual(resp.status_code, 401)
+
+
+class SettingsSearchTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(email="search@x.com", password="pw12345!")
+
+    def test_service_search_matches_label_key_scope(self):
+        from apps.settings import service
+
+        self.assertTrue(any(r["key"] == "security"
+                            for r in service.search("security")))
+        self.assertTrue(any(r["scope"] == "organization"
+                            for r in service.search("organization")))
+        # Blank query returns the whole catalog.
+        self.assertEqual(len(service.search("")),
+                         sum(len(v) for v in service.sections_catalog().values()))
+
+    def test_search_api_filters_and_strips_routes(self):
+        resp = self.client.get(reverse("settings_api:search"), {"q": "audit"},
+                               **auth(self.user))
+        self.assertEqual(resp.status_code, 200)
+        results = resp.json()["results"]
+        self.assertTrue(results)
+        self.assertTrue(all("audit" in (r["label"] + r["key"]).lower() for r in results))
+        for r in results:
+            self.assertNotIn("route", r)
+
+    def test_search_requires_auth(self):
+        self.assertEqual(
+            self.client.get(reverse("settings_api:search")).status_code, 401
+        )
+
+
+class SettingsCatalogAcceptanceTests(TestCase):
+    """Acceptance sweep: the catalog and its wiring must stay internally
+    consistent, so no section is advertised as available without a real
+    destination."""
+
+    def test_every_available_account_and_org_section_has_a_resolvable_route(self):
+        from django.urls import reverse as url_reverse
+
+        from apps.settings import service
+
+        catalog = service.sections_catalog()
+        for scope in ("account", "organization"):
+            for s in catalog[scope]:
+                if s.get("available"):
+                    self.assertIn("route", s,
+                                  f"{scope}.{s['key']} is available but has no route")
+                    url_reverse(s["route"])  # raises NoReverseMatch if broken
+
+    def test_available_project_sections_declare_their_scope(self):
+        from apps.settings import service
+
+        for s in service.sections_catalog()["project"]:
+            if s.get("available"):
+                # Project sections live in the project workspace: they carry a
+                # scope_note (or an explicit route) rather than a global url.
+                self.assertTrue(s.get("scope_note") or s.get("route"),
+                                f"project.{s['key']} is available but unscoped")
+
+    def test_overview_api_never_leaks_web_routes(self):
+        user = User.objects.create_user(email="acc@x.com", password="pw12345!")
+        body = self.client.get(reverse("settings_api:overview"), **auth(user)).json()
+        for sections in body["sections"].values():
+            for s in sections:
+                self.assertNotIn("route", s)

@@ -76,6 +76,36 @@ def sections_catalog() -> dict:
     }
 
 
+_SCOPE_LABELS = {"account": "Account", "organization": "Organization", "project": "Project"}
+
+
+def search(query: str) -> list[dict]:
+    """Find settings sections matching a free-text query, across all scopes.
+
+    Matches on the section label, key, or scope name (case-insensitive). Returns
+    every section when the query is blank, so the same call backs both a live
+    filter and a search box. Each result carries its scope and availability; the
+    web route (when any) is included for server-rendered callers and stripped by
+    the API layer."""
+    q = (query or "").strip().lower()
+    results: list[dict] = []
+    for scope, sections in sections_catalog().items():
+        scope_label = _SCOPE_LABELS.get(scope, scope)
+        for s in sections:
+            haystack = f"{s['label']} {s['key']} {scope_label}".lower()
+            if not q or q in haystack:
+                results.append({
+                    "scope": scope,
+                    "scope_label": scope_label,
+                    "key": s["key"],
+                    "label": s["label"],
+                    "available": s.get("available", False),
+                    "route": s.get("route"),
+                    "scope_note": s.get("scope_note"),
+                })
+    return results
+
+
 # --- live status + alerts (REAL data only) ----------------------------------
 
 def alerts_for(user) -> list[dict]:
