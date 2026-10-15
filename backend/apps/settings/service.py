@@ -28,7 +28,7 @@ def _account_sections() -> list[dict]:
         {"key": "appearance", "label": "Appearance", "available": True, "route": "dashboard:settings"},
         {"key": "accessibility", "label": "Accessibility", "available": True, "route": "dashboard:settings"},
         {"key": "notifications", "label": "Notifications", "available": True, "route": "dashboard:notifications_settings"},
-        {"key": "connected", "label": "Connected accounts", "available": False},
+        {"key": "connected", "label": "Connected accounts", "available": True, "route": "dashboard:connected_accounts"},
     ]
 
 
@@ -42,11 +42,11 @@ def _org_sections() -> list[dict]:
         {"key": "ai", "label": "AI", "available": True, "route": "dashboard:org_ai"},
         {"key": "integrations", "label": "Integrations", "available": True, "route": "dashboard:org_integrations"},
         {"key": "developer", "label": "Developer & API", "available": True, "route": "dashboard:org_developer"},
-        {"key": "domains", "label": "Domains", "available": False},
-        {"key": "documents", "label": "Documents", "available": False},
-        {"key": "commerce", "label": "Commerce", "available": False},
-        {"key": "notifications", "label": "Notifications", "available": False},
-        {"key": "privacy", "label": "Privacy", "available": False},
+        {"key": "domains", "label": "Domains", "available": True, "route": "dashboard:org_domains"},
+        {"key": "documents", "label": "Documents", "available": True, "route": "dashboard:org_documents"},
+        {"key": "commerce", "label": "Commerce", "available": True, "route": "dashboard:org_commerce"},
+        {"key": "notifications", "label": "Notifications", "available": True, "route": "dashboard:notifications_settings"},
+        {"key": "privacy", "label": "Privacy", "available": True, "route": "dashboard:org_privacy"},
         {"key": "data", "label": "Data", "available": True, "route": "dashboard:org_data"},
         {"key": "audit", "label": "Audit log", "available": True, "route": "dashboard:org_audit"},
     ]
@@ -60,9 +60,9 @@ def _project_sections() -> list[dict]:
         {"key": "build", "label": "Build", "available": True, "scope_note": "per project"},
         {"key": "deployment", "label": "Deployment", "available": True, "scope_note": "per project"},
         {"key": "domains", "label": "Domains", "available": True, "scope_note": "per project"},
-        {"key": "ai", "label": "AI", "available": False},
+        {"key": "ai", "label": "AI", "available": True, "scope_note": "per project"},
         {"key": "environment", "label": "Environment & secrets", "available": True, "scope_note": "per project"},
-        {"key": "repository", "label": "Repository", "available": False},
+        {"key": "repository", "label": "Repository", "available": True, "scope_note": "per project"},
         {"key": "analytics", "label": "Analytics", "available": True, "scope_note": "per project"},
         {"key": "security", "label": "Security", "available": True, "scope_note": "per project"},
     ]

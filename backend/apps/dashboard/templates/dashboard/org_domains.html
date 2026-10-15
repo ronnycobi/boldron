@@ -1,0 +1,22 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}Domains · {{ app_name }}{% endblock %}
+{% block crumb %}Settings · Domains{% endblock %}
+{% block content %}
+<h1>Domains</h1>
+<p class="sub">Custom domains across your organization's projects. Verification reflects a real DNS check — a domain shows as verified only once its records resolve.</p>
+
+<div class="card">
+  {% for r in rows %}
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)">
+    <div>
+      <span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace">{{ r.hostname }}</span>
+      <div class="muted" style="font-size:12px"><a href="{% url 'dashboard:project' r.project.id %}">{{ r.project.name }}</a></div>
+    </div>
+    {% if r.verified %}<span class="badge b-completed">Verified</span>
+    {% else %}<span class="badge b-waiting_for_approval">{{ r.status|title }}</span>{% endif %}
+  </div>
+  {% empty %}
+    <p class="muted">No custom domains yet. Add one from a project's publishing settings; it will appear here with its verification status.</p>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}Privacy · {{ app_name }}{% endblock %}
+{% block crumb %}Settings · Privacy{% endblock %}
+{% block content %}
+<h1>Privacy &amp; data</h1>
+<p class="sub">What we store, how to get a copy, and how to request deletion.</p>
+
+<div class="card" style="margin-bottom:16px">
+  <h2 style="margin-top:0">What's stored</h2>
+  <p style="font-size:13.5px;color:var(--ink2)">Your account profile, the organizations and projects you belong to, build and deployment history, and audit events. Secrets are never stored in readable form — API-key secrets are hashed and provider credentials stay in the environment.</p>
+</div>
+
+<div class="card" style="margin-bottom:16px">
+  <h2 style="margin-top:0">Get a copy of your data</h2>
+  <p class="muted" style="font-size:13px">Download your account and organization data as JSON — no secret values included.</p>
+  <a class="btn" href="{% url 'dashboard:org_data' %}">Go to data export →</a>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">Request data deletion</h2>
+  <p class="muted" style="font-size:13px">Deletion is handled by our team so it can be confirmed first — this files a request, it does not wipe anything instantly.</p>
+  {% for org in orgs %}
+  <form method="post" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)"
+        onsubmit="return confirm('Submit a data deletion request for {{ org.name }}?')">{% csrf_token %}
+    <input type="hidden" name="action" value="request_deletion">
+    <input type="hidden" name="organization" value="{{ org.id }}">
+    <span style="flex:1">{{ org.name }}</span>
+    <button class="btn ghost" type="submit" style="padding:5px 12px;font-size:12px">Request deletion</button>
+  </form>
+  {% endfor %}
+</div>
+{% endblock %}

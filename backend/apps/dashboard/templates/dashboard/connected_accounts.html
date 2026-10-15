@@ -1,0 +1,20 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}Connected accounts · {{ app_name }}{% endblock %}
+{% block crumb %}Settings · Connected accounts{% endblock %}
+{% block content %}
+<h1>Connected accounts</h1>
+<p class="sub">Sign in with an external identity provider (single sign-on). SSO is enabled by your operator per deployment — a provider appears as available only when its credentials are configured.</p>
+
+<div class="card">
+  {% for p in providers %}
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)">
+    <strong>{{ p.name }}</strong>
+    {% if p.configured %}<span class="badge b-completed">Available</span>
+    {% else %}<span class="badge b-waiting_for_approval">Not configured</span>{% endif %}
+  </div>
+  {% endfor %}
+  {% if not any_configured %}
+  <p class="muted" style="font-size:12.5px;margin:12px 0 0">No single sign-on provider is configured on this deployment, so there's nothing to connect yet. You sign in with your email and password; two-factor authentication is available under <a href="{% url 'dashboard:security_center' %}">Security</a>.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}AI · {{ project.name }} · {{ app_name }}{% endblock %}
+{% block crumb %}<a href="{% url 'dashboard:project' project.id %}">{{ project.name }}</a> · AI{% endblock %}
+{% block content %}
+<h1>Project AI settings</h1>
+<p class="sub">Prefer a specific AI provider/model for this project's builds. This overrides your organization's default. Soft — if unavailable, builds fall back automatically.</p>
+
+<div class="card" style="max-width:560px">
+  {% if not options %}
+    <p class="muted">No AI providers are configured on this deployment. Provider keys are set via the environment.</p>
+  {% else %}
+  <p class="muted" style="font-size:12.5px;margin-top:0">Leave blank to inherit the organization default
+    {% if effective.preferred_provider %}(currently <strong>{{ effective.preferred_provider|title }}</strong>{% if effective.preferred_model %} · {{ effective.preferred_model }}{% endif %}){% else %}(currently automatic){% endif %}.</p>
+  {% if can_manage %}
+  <form method="post">{% csrf_token %}
+    <label>Preferred provider</label>
+    <select name="preferred_provider" onchange="syncModels(this)" data-pid="{{ project.id }}">
+      <option value="">Inherit organization default</option>
+      {% for o in options %}
+        <option value="{{ o.provider }}"{% if o.provider == own.preferred_provider %} selected{% endif %}>{{ o.provider|title }}{% if not o.available %} (not connected){% endif %}</option>
+      {% endfor %}
+    </select>
+    <label>Preferred model <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">(optional)</span></label>
+    <select name="preferred_model" id="pmodel-{{ project.id }}">
+      <option value="">Best available for the provider</option>
+      {% for o in options %}{% for m in o.models %}
+        <option value="{{ m.model }}" data-provider="{{ o.provider }}"{% if m.model == own.preferred_model %} selected{% endif %}>{{ m.label }}</option>
+      {% endfor %}{% endfor %}
+    </select>
+    <div style="margin-top:12px"><button class="btn" type="submit">Save AI settings</button></div>
+  </form>
+  {% else %}
+    <p class="muted" style="font-size:12px">You need owner or admin rights to change AI settings.</p>
+  {% endif %}
+  {% endif %}
+</div>
+
+<script>
+  function syncModels(sel){
+    var pid = sel.getAttribute('data-pid'), provider = sel.value;
+    var model = document.getElementById('pmodel-' + pid);
+    if(!model) return;
+    for(var i=0;i<model.options.length;i++){
+      var opt = model.options[i];
+      if(!opt.value){ opt.hidden = false; continue; }
+      var match = opt.getAttribute('data-provider') === provider;
+      opt.hidden = !provider || !match;
+      if(opt.selected && opt.hidden){ model.value = ''; }
+    }
+  }
+  document.querySelectorAll('select[name="preferred_provider"]').forEach(syncModels);
+</script>
+{% endblock %}

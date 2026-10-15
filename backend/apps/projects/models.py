@@ -92,6 +92,23 @@ class Project(models.Model):
         )
 
 
+class ProjectAiPreference(models.Model):
+    """A project's AI routing preference (spec §18). Same soft semantics as the
+    org preference, but scoped to one project and taking precedence over it — the
+    Model Router only honours a choice that is actually available, and falls back
+    otherwise, so a preference never breaks a build. No API keys are stored here."""
+
+    project = models.OneToOneField(
+        "projects.Project", on_delete=models.CASCADE, related_name="ai_preference"
+    )
+    preferred_provider = models.CharField(max_length=32, blank=True)
+    preferred_model = models.CharField(max_length=64, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"AI prefs for project {self.project_id}"
+
+
 class EnvVar(models.Model):
     """A project's environment variable (spec §20).
 

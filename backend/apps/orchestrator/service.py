@@ -143,10 +143,9 @@ class Orchestrator:
         # available (see ModelRouter._with_preferences).
         if hasattr(agent, "router"):
             from apps.model_router.router import ModelRouter
-            from apps.organizations.ai_settings import preferences_for
-            agent.router = ModelRouter(
-                preferences=preferences_for(task.project.organization)
-            )
+            from apps.projects.ai_settings import preferences_for
+            # Project preference takes precedence over the org's; both are soft.
+            agent.router = ModelRouter(preferences=preferences_for(task.project))
 
         context = AgentContext(
             input=task.input,

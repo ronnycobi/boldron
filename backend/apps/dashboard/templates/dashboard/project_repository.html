@@ -1,0 +1,35 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}Repository · {{ project.name }} · {{ app_name }}{% endblock %}
+{% block crumb %}<a href="{% url 'dashboard:project' project.id %}">{{ project.name }}</a> · Repository{% endblock %}
+{% block content %}
+<h1>Repository</h1>
+<p class="sub">The source repository for <strong>{{ project.name }}</strong>. Generated code is version-controlled here as the build progresses.</p>
+
+<div class="card" style="margin-bottom:16px">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px">
+    <div>
+      <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.5px">Status</div>
+      <div style="font-weight:700;margin-top:4px">
+        {% if info.initialized %}<span class="badge b-completed">Initialized</span>{% else %}<span class="badge b-waiting_for_approval">Not built yet</span>{% endif %}
+      </div>
+    </div>
+    <div>
+      <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.5px">Branch</div>
+      <div style="font-weight:700;margin-top:4px;font-family:ui-monospace,monospace">{{ info.branch|default:"—" }}</div>
+    </div>
+    <div>
+      <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.5px">Tracked files</div>
+      <div style="font-weight:700;margin-top:4px">{{ info.files }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">Connect an external remote</h2>
+  {% if remote_configured %}
+    <p class="muted" style="font-size:13px">A git remote integration is configured on this deployment.</p>
+  {% else %}
+    <p class="muted" style="font-size:13px">Pushing to an external host (GitHub, GitLab) needs a git integration configured by your operator. Until then, the repository lives inside the platform and your code is available via <a href="{% url 'dashboard:org_documents' %}">Documents → export</a>. Nothing here is faked as connected.</p>
+  {% endif %}
+</div>
+{% endblock %}

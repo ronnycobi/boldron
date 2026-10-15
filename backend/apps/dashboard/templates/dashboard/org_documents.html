@@ -1,0 +1,21 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}Documents · {{ app_name }}{% endblock %}
+{% block crumb %}Settings · Documents{% endblock %}
+{% block content %}
+<h1>Documents</h1>
+<p class="sub">Export a project's documentation — a real archive with a README, API spec, data model and the generated source — built on demand.</p>
+
+<div class="card">
+  {% for p in projects %}
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)">
+    <div>
+      <strong>{{ p.name }}</strong>
+      <div class="muted" style="font-size:12px">{{ p.organization.name }}</div>
+    </div>
+    <a class="btn ghost" href="{% url 'dashboard:project_documents_download' p.id %}" style="padding:6px 12px;font-size:12px">Download docs (.zip)</a>
+  </div>
+  {% empty %}
+    <p class="muted">No projects yet.</p>
+  {% endfor %}
+</div>
+{% endblock %}

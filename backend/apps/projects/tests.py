@@ -338,3 +338,38 @@ class EnvVarInjectionTests(TestCase):
         child = PreviewRunner._child_env({"command": []}, 8000, self.project)
         self.assertEqual(child["MY_FLAG"], "on")
         self.assertEqual(child["PORT"], "8000")
+
+
+class ProjectAiPreferenceTests(TestCase):
+    """Per-project AI preference overrides the org's; both are soft."""
+
+    def setUp(self):
+        self.org = Organization.objects.create(name="AiProjOrg")
+        self.project = Project.objects.create(organization=self.org, name="App")
+
+    def test_inherits_org_when_unset(self):
+        from apps.organizations import ai_settings as oai
+        from apps.projects import ai_settings as pai
+
+        provider = oai.available_options()[0]["provider"]
+        oai.set_preferences(self.org, preferred_provider=provider)
+        self.assertEqual(
+            pai.preferences_for(self.project)["preferred_provider"], provider)
+
+    def test_project_overrides_org(self):
+        from apps.organizations import ai_settings as oai
+        from apps.projects import ai_settings as pai
+
+        opts = oai.available_options()
+        org_p = opts[0]["provider"]
+        proj_p = opts[-1]["provider"]
+        oai.set_preferences(self.org, preferred_provider=org_p)
+        pai.set_preferences(self.project, preferred_provider=proj_p)
+        self.assertEqual(
+            pai.preferences_for(self.project)["preferred_provider"], proj_p)
+
+    def test_unknown_provider_rejected(self):
+        from apps.projects import ai_settings as pai
+
+        with self.assertRaises(ValueError):
+            pai.set_preferences(self.project, preferred_provider="nope")

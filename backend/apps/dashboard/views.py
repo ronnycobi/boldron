@@ -10,6 +10,7 @@ honest "coming soon" shell rather than fabricated metrics.
 """
 from __future__ import annotations
 
+import os
 from datetime import date
 from decimal import Decimal
 
@@ -2036,6 +2037,167 @@ def export_org_data(request, pk):
     resp = JsonResponse(export_organization(org), json_dumps_params={"indent": 2})
     resp["Content-Disposition"] = f'attachment; filename="{org.slug}-data.json"'
     return resp
+
+
+@login_required
+def connected_accounts(request):
+    """Connected accounts / single sign-on (spec §8). SSO is an operator
+    integration: it only appears when an identity provider is configured in the
+    environment. Honest — nothing is shown as linked unless it genuinely is."""
+    providers = []
+    for key, env in (("Google", "GOOGLE_OAUTH_CLIENT_ID"),
+                     ("GitHub", "GITHUB_OAUTH_CLIENT_ID"),
+                     ("Microsoft", "MICROSOFT_OAUTH_CLIENT_ID")):
+        providers.append({"name": key, "configured": bool(os.environ.get(env))})
+    return render(request, "dashboard/connected_accounts.html", {
+        "active": "settings", "providers": providers,
+        "any_configured": any(p["configured"] for p in providers),
+    })
+
+
+@login_required
+def org_domains(request):
+    """Custom domains across the organization's projects (spec §17). Reads the
+    real publishing CustomDomain records; verification reflects a real DNS check."""
+    from apps.publishing.models import CustomDomain
+
+    orgs = list(organizations_for(request.user).order_by("name"))
+    domains = (
+        CustomDomain.objects
+        .filter(website__project__organization__in=orgs)
+        .select_related("website__project", "website__project__organization")
+        .order_by("website__project__organization__name", "hostname")
+    )
+    rows = [{
+        "hostname": d.hostname,
+        "status": d.verification_status,
+        "verified": d.is_verified,
+        "project": d.website.project,
+    } for d in domains]
+    return render(request, "dashboard/org_domains.html",
+                  {"active": "settings", "rows": rows})
+
+
+@login_required
+def org_commerce(request):
+    """Commerce overview across the organization's stores (spec §32). The store
+    itself is configured per project (publishing); this is a real read-only
+    rollup of products and orders."""
+    from apps.publishing.models import Order, Product, Website
+
+    orgs = list(organizations_for(request.user))
+    stores = []
+    for site in (Website.objects
+                 .filter(project__organization__in=orgs)
+                 .select_related("project")):
+        products = Product.objects.filter(website=site).count()
+        if not products:
+            continue
+        orders = Order.objects.filter(website=site).count()
+        stores.append({"project": site.project, "products": products, "orders": orders})
+    return render(request, "dashboard/org_commerce.html",
+                  {"active": "settings", "stores": stores})
+
+
+@login_required
+def org_documents(request):
+    """Project export documents (spec §28). Each project can export a real
+    archive (README, API spec, data model, generated source) built on demand."""
+    projects = (Project.objects
+                .filter(organization__in=organizations_for(request.user))
+                .select_related("organization").order_by("organization__name", "name"))
+    return render(request, "dashboard/org_documents.html",
+                  {"active": "settings", "projects": projects})
+
+
+@login_required
+def project_documents_download(request, pk):
+    from django.http import HttpResponse
+    from apps.exporter.service import build_export
+
+    proj = get_object_or_404(
+        Project.objects.filter(organization__in=organizations_for(request.user)), pk=pk)
+    filename, data = build_export(proj)
+    resp = HttpResponse(data, content_type="application/zip")
+    resp["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return resp
+
+
+@login_required
+def org_privacy(request):
+    """Privacy & data handling (spec §26): what the platform stores, links to the
+    real data export, and a genuine data-deletion request (filed as a support
+    ticket for a human to action — never an instant irreversible wipe)."""
+    orgs = list(organizations_for(request.user).order_by("name"))
+    if request.method == "POST" and request.POST.get("action") == "request_deletion":
+        org = get_object_or_404(Organization, pk=request.POST.get("organization", 0),
+                                memberships__user=request.user)
+        from apps.support.service import create_ticket
+        t = create_ticket(
+            organization=org, user=request.user, category="account", priority="high",
+            subject=f"Data deletion request — {org.name}",
+            body=f"{request.user.email} requested deletion of data for “{org.name}”.",
+        )
+        messages.success(request, f"Deletion request submitted ({t.number}). Our team "
+                                  "will confirm before anything is removed.")
+        return redirect("dashboard:org_privacy")
+    return render(request, "dashboard/org_privacy.html",
+                  {"active": "settings", "orgs": orgs})
+
+
+@login_required
+def project_ai(request, pk):
+    """Per-project AI preference (spec §18). Overrides the org default for this
+    project's builds; soft (falls back when unavailable). Managers only."""
+    from apps.ai_providers.registry import generation_status
+    from apps.projects import ai_settings as pai
+
+    proj = get_object_or_404(
+        Project.objects.filter(organization__in=organizations_for(request.user)), pk=pk)
+    can_manage = proj.organization_id in _manageable_ids(request.user)
+
+    if request.method == "POST":
+        if not can_manage:
+            messages.error(request, "Owner or admin rights required.")
+            return redirect("dashboard:project_ai", pk=pk)
+        try:
+            pai.set_preferences(
+                proj, preferred_provider=request.POST.get("preferred_provider", ""),
+                preferred_model=request.POST.get("preferred_model", ""), actor=request.user)
+            messages.success(request, "Project AI settings saved.")
+        except ValueError as exc:
+            messages.error(request, str(exc))
+        return redirect("dashboard:project_ai", pk=pk)
+
+    return render(request, "dashboard/project_ai.html", {
+        "active": "projects", "project": proj, "can_manage": can_manage,
+        "own": pai.own_preferences(proj), "effective": pai.preferences_for(proj),
+        "options": pai.available_options(), "generation": generation_status(),
+    })
+
+
+@login_required
+def project_repository(request, pk):
+    """The project's source repository (spec §22). Shows the real local git repo
+    state. Connecting an external remote (GitHub/GitLab) needs an operator
+    integration and is reported honestly as unavailable until configured."""
+    from apps.repositories.service import GitError, repo_for_project
+
+    proj = get_object_or_404(
+        Project.objects.filter(organization__in=organizations_for(request.user)), pk=pk)
+    repo = repo_for_project(proj)
+    info = {"initialized": repo.is_initialized, "files": 0, "branch": None}
+    if repo.is_initialized:
+        try:
+            info["files"] = len(repo.list_files())
+            info["branch"] = repo.current_branch()
+        except GitError:
+            pass
+    remote_configured = bool(os.environ.get("GIT_REMOTE_TOKEN"))
+    return render(request, "dashboard/project_repository.html", {
+        "active": "projects", "project": proj, "info": info,
+        "remote_configured": remote_configured,
+    })
 
 
 @login_required

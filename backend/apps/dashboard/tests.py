@@ -1022,3 +1022,90 @@ class StubBuildWarningTests(TestCase):
         self._task("gemini-flash-latest")
         r = self.client.get(reverse("dashboard:project", args=[self.project.id]))
         self.assertNotContains(r, "offline demo mode")
+
+
+class RemainingSettingsSectionsTests(TestCase):
+    """Every previously-'soon' section now resolves to a real, working page."""
+
+    def setUp(self):
+        self.owner = User.objects.create_user(email="rs@x.com", password="pw12345678")
+        self.member = User.objects.create_user(email="rsm@x.com", password="pw12345678")
+        self.org = Organization.objects.create(name="RSOrg")
+        self.org.add_member(self.owner, role=Role.OWNER)
+        self.org.add_member(self.member, role=Role.MEMBER)
+        self.project = Project.objects.create(organization=self.org, name="App")
+
+    def _pages(self):
+        return [
+            reverse("dashboard:connected_accounts"),
+            reverse("dashboard:org_domains"),
+            reverse("dashboard:org_commerce"),
+            reverse("dashboard:org_documents"),
+            reverse("dashboard:org_privacy"),
+            reverse("dashboard:project_ai", args=[self.project.id]),
+            reverse("dashboard:project_repository", args=[self.project.id]),
+        ]
+
+    def test_all_pages_render(self):
+        self.client.force_login(self.owner)
+        for url in self._pages():
+            self.assertEqual(self.client.get(url).status_code, 200, url)
+
+    def test_connected_accounts_reports_no_sso_honestly(self):
+        self.client.force_login(self.owner)
+        html = self.client.get(reverse("dashboard:connected_accounts")).content.decode()
+        self.assertIn("No single sign-on provider is configured", html)
+
+    def test_project_documents_download_is_a_real_zip(self):
+        import tempfile
+        from django.test import override_settings
+        self.client.force_login(self.owner)
+        with tempfile.TemporaryDirectory() as tmp, \
+                override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
+            resp = self.client.get(
+                reverse("dashboard:project_documents_download", args=[self.project.id]))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp["Content-Type"], "application/zip")
+        self.assertTrue(resp.content[:2] == b"PK")  # real zip magic bytes
+
+    def test_project_ai_manager_can_set(self):
+        from apps.organizations import ai_settings as oai
+        from apps.projects import ai_settings as pai
+        provider = oai.available_options()[0]["provider"]
+        self.client.force_login(self.owner)
+        self.client.post(reverse("dashboard:project_ai", args=[self.project.id]),
+                         {"preferred_provider": provider})
+        self.assertEqual(
+            pai.own_preferences(self.project)["preferred_provider"], provider)
+
+    def test_project_ai_member_cannot_set(self):
+        from apps.projects import ai_settings as pai
+        self.client.force_login(self.member)
+        self.client.post(reverse("dashboard:project_ai", args=[self.project.id]),
+                         {"preferred_provider": "anthropic"})
+        self.assertEqual(pai.own_preferences(self.project)["preferred_provider"], "")
+
+    def test_privacy_deletion_request_files_a_ticket(self):
+        from apps.support.models import SupportTicket
+        self.client.force_login(self.owner)
+        self.client.post(reverse("dashboard:org_privacy"), {
+            "action": "request_deletion", "organization": self.org.id,
+        })
+        self.assertTrue(SupportTicket.objects.filter(
+            organization=self.org, subject__icontains="deletion").exists())
+
+    def test_repository_shows_real_git_state(self):
+        import tempfile
+        from django.test import override_settings
+        from apps.repositories.service import repo_for_project
+        self.client.force_login(self.owner)
+        with tempfile.TemporaryDirectory() as tmp, \
+                override_settings(BOLDRON_WORKSPACES_ROOT=tmp):
+            repo = repo_for_project(self.project)
+            repo.init()
+            repo.write_files({"README.md": "# hi"})
+            repo.commit("init")
+            html = self.client.get(
+                reverse("dashboard:project_repository", args=[self.project.id])).content.decode()
+        self.assertIn("Initialized", html)
+        self.assertIn("main", html)

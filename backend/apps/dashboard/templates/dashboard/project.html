@@ -10,6 +10,8 @@
       <a class="btn ghost" href="{% url 'dashboard:release_center' project.id %}">Mobile release →</a>
       <a class="btn ghost" href="{% url 'dashboard:preview' project.id %}">Open preview →</a>
       <a class="btn ghost" href="{% url 'dashboard:environment' project.id %}">Environment →</a>
+      <a class="btn ghost" href="{% url 'dashboard:project_ai' project.id %}">AI →</a>
+      <a class="btn ghost" href="{% url 'dashboard:project_repository' project.id %}">Repository →</a>
     </div>
   </div>
   <p class="sub">{{ project.organization.name }} · {{ project.get_mode_display }}

@@ -1,0 +1,21 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}Commerce · {{ app_name }}{% endblock %}
+{% block crumb %}Settings · Commerce{% endblock %}
+{% block content %}
+<h1>Commerce</h1>
+<p class="sub">Your organization's online stores. Each store lives in a project; open a project to manage its products, orders and payment settings.</p>
+
+<div class="card">
+  {% for s in stores %}
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)">
+    <div>
+      <strong><a href="{% url 'dashboard:project' s.project.id %}" style="color:var(--ink)">{{ s.project.name }}</a></strong>
+      <div class="muted" style="font-size:12px">{{ s.products }} product{{ s.products|pluralize }} · {{ s.orders }} order{{ s.orders|pluralize }}</div>
+    </div>
+    <a class="btn ghost" href="{% url 'dashboard:store' s.project.id %}" style="padding:6px 12px;font-size:12px">Manage store →</a>
+  </div>
+  {% empty %}
+    <p class="muted">No stores yet. Build a project with a store (e.g. an online shop) and it will appear here.</p>
+  {% endfor %}
+</div>
+{% endblock %}

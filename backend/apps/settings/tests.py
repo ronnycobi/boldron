@@ -35,11 +35,13 @@ class SettingsServiceTests(TestCase):
         # Appearance & accessibility are wired (P1c); connected accounts are not.
         self.assertTrue(account["appearance"]["available"])
         self.assertTrue(account["accessibility"]["available"])
-        self.assertFalse(account["connected"]["available"])
+        self.assertTrue(account["connected"]["available"])  # SSO status page (honest)
         # Org developer + integrations are wired (P4).
         org = {s["key"]: s for s in data["sections"]["organization"]}
         self.assertTrue(org["developer"]["available"])
         self.assertTrue(org["integrations"]["available"])
+        # Every organization section is now wired — none left "soon".
+        self.assertTrue(all(s["available"] for s in data["sections"]["organization"]))
 
     def test_unverified_email_raises_an_alert(self):
         from apps.settings import service
