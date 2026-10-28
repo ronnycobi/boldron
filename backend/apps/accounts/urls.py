@@ -6,6 +6,7 @@ from apps.accounts.api import (
     AvatarView,
     ChangePasswordView,
     AccountExportView,
+    ConnectedAccountsView,
     LogoutAllView,
     LogoutView,
     MfaVerifyView,
@@ -30,6 +31,7 @@ urlpatterns = [
     path("account/avatar/", AvatarView.as_view(), name="account-avatar"),
     path("account/notifications/", NotificationPreferencesView.as_view(), name="account-notifications"),
     path("account/export/", AccountExportView.as_view(), name="account-export"),
+    path("account/connected/", ConnectedAccountsView.as_view(), name="account-connected"),
     # JWT auth for the mobile/API client (the web app uses session login).
     path("auth/register/", RegisterView.as_view(), name="register"),
     path("auth/token/", TokenObtainView.as_view(), name="token-obtain"),

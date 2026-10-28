@@ -31,12 +31,19 @@ import '../features/settings/security_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/shell/app_shell.dart';
 import '../features/support/support_screen.dart';
+import '../features/projects/project_ai_screen.dart';
+import '../features/projects/project_repository_screen.dart';
+import '../features/settings/connected_accounts_screen.dart';
 import '../features/settings/data_screen.dart';
 import '../features/settings/integrations_screen.dart';
 import '../features/settings/notifications_screen.dart';
 import '../features/team/developer_screen.dart';
 import '../features/team/org_ai_screen.dart';
 import '../features/team/org_audit_screen.dart';
+import '../features/team/org_commerce_screen.dart';
+import '../features/team/org_documents_screen.dart';
+import '../features/team/org_domains_screen.dart';
+import '../features/team/org_privacy_screen.dart';
 import '../features/team/org_general_screen.dart';
 import '../features/team/org_roles_screen.dart';
 import '../features/team/team_screen.dart';
@@ -190,6 +197,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
+        path: '/projects/:id/ai',
+        builder: (_, s) => ProjectAiScreen(projectId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/projects/:id/repository',
+        builder: (_, s) => ProjectRepositoryScreen(projectId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
         path: '/projects/:id/releases',
         builder: (_, s) => ReleasesScreen(projectId: _idParam(s, 'id')),
       ),
@@ -244,6 +261,21 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
+        path: '/orgs/:id/domains',
+        builder: (_, s) => OrgDomainsScreen(orgId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/orgs/:id/commerce',
+        builder: (_, s) => OrgCommerceScreen(orgId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/orgs/:id/privacy',
+        builder: (_, s) => OrgPrivacyScreen(orgId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
         path: '/settings/integrations',
         builder: (_, __) => const IntegrationsScreen(),
       ),
@@ -256,6 +288,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/settings/data',
         builder: (_, __) => const DataScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/settings/connected',
+        builder: (_, __) => const ConnectedAccountsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/settings/documents',
+        builder: (_, __) => const OrgDocumentsScreen(),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,

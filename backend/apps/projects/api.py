@@ -184,6 +184,62 @@ class EnvVarListCreateView(APIView):
         return Response(public_dict(var), status=status.HTTP_201_CREATED)
 
 
+class ProjectAiView(APIView):
+    """Per-project AI preference (overrides the org's for this project's builds).
+    Read open to members; change requires org management rights."""
+
+    def get(self, request, pk):
+        from apps.ai_providers.registry import generation_status
+        from apps.projects import ai_settings as pai
+        from apps.projects.access import project_for_read
+
+        project = project_for_read(request.user, pk)
+        return Response({
+            "own": pai.own_preferences(project),
+            "effective": pai.preferences_for(project),
+            "options": pai.available_options(),
+            "generation": generation_status(),
+        })
+
+    def patch(self, request, pk):
+        from apps.projects import ai_settings as pai
+        from apps.projects.access import require_manageable_project
+
+        project = require_manageable_project(request.user, pk)
+        try:
+            pai.set_preferences(
+                project,
+                preferred_provider=request.data.get("preferred_provider", "") or "",
+                preferred_model=request.data.get("preferred_model", "") or "",
+                actor=request.user,
+            )
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"own": pai.own_preferences(project)})
+
+
+class ProjectRepositoryView(APIView):
+    """Real local git state for the project (read-only)."""
+
+    def get(self, request, pk):
+        import os
+
+        from apps.projects.access import project_for_read
+        from apps.repositories.service import GitError, repo_for_project
+
+        project = project_for_read(request.user, pk)
+        repo = repo_for_project(project)
+        info = {"initialized": repo.is_initialized, "files": 0, "branch": None,
+                "remote_configured": bool(os.environ.get("GIT_REMOTE_TOKEN"))}
+        if repo.is_initialized:
+            try:
+                info["files"] = len(repo.list_files())
+                info["branch"] = repo.current_branch()
+            except GitError:
+                pass
+        return Response(info)
+
+
 class EnvVarDetailView(APIView):
     """Delete one environment variable (managers)."""
 

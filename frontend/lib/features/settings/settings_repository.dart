@@ -72,6 +72,12 @@ class SettingsRepository {
     return (data as Map).cast<String, dynamic>();
   }
 
+  /// Single sign-on status (providers appear only when configured).
+  Future<Map<String, dynamic>> connectedAccounts() async {
+    final data = await _api.get('account/connected/');
+    return (data as Map).cast<String, dynamic>();
+  }
+
   Future<List<Map<String, dynamic>>> integrations() async {
     final data = await _api.get('integrations/');
     return ((data as Map)['integrations'] as List)
@@ -98,4 +104,8 @@ final securityProvider = FutureProvider<Map<String, dynamic>>(
 
 final notificationPrefsProvider = FutureProvider<Map<String, dynamic>>(
   (ref) => ref.watch(settingsRepositoryProvider).notificationPrefs(),
+);
+
+final connectedAccountsProvider = FutureProvider<Map<String, dynamic>>(
+  (ref) => ref.watch(settingsRepositoryProvider).connectedAccounts(),
 );

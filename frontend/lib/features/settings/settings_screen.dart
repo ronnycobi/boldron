@@ -33,6 +33,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         return '/settings/preferences';
       case 'account.notifications':
         return '/settings/notifications';
+      case 'account.connected':
+        return '/settings/connected';
       case 'organization.general':
         return orgId == null ? null : '/orgs/$orgId/settings';
       case 'organization.roles':
@@ -47,6 +49,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         return '/settings/integrations';
       case 'organization.data':
         return '/settings/data';
+      case 'organization.domains':
+        return orgId == null ? null : '/orgs/$orgId/domains';
+      case 'organization.commerce':
+        return orgId == null ? null : '/orgs/$orgId/commerce';
+      case 'organization.privacy':
+        return orgId == null ? null : '/orgs/$orgId/privacy';
+      case 'organization.documents':
+        return '/settings/documents';
+      case 'organization.notifications':
+        return '/settings/notifications';
       case 'organization.members':
         return orgId == null ? null : '/orgs/$orgId/team';
       case 'organization.billing':

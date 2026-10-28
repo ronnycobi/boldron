@@ -345,3 +345,87 @@ class AuditAndExportApiTests(TestCase):
         ).json()
         self.assertEqual(body["account"]["email"], "mx@x.com")
         self.assertTrue(any(o["name"] == "Audited" for o in body["organizations"]))
+
+
+class DomainsCommerceDeletionApiTests(TestCase):
+    """Org read-only rollups + deletion request used by the mobile screens."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(email="dc@x.com", password="pw12345!")
+        self.org = Organization.objects.create(name="DCOrg")
+        self.org.add_member(self.user, role=Role.OWNER)
+
+    def test_domains_and_commerce_empty_ok(self):
+        d = self.client.get(reverse("organizations:domains", args=[self.org.id]), **auth(self.user))
+        self.assertEqual(d.status_code, 200)
+        self.assertEqual(d.json()["domains"], [])
+        c = self.client.get(reverse("organizations:commerce", args=[self.org.id]), **auth(self.user))
+        self.assertEqual(c.status_code, 200)
+        self.assertEqual(c.json()["stores"], [])
+
+    def test_deletion_request_files_ticket(self):
+        from apps.support.models import SupportTicket
+
+        resp = self.client.post(
+            reverse("organizations:deletion-request", args=[self.org.id]), **auth(self.user))
+        self.assertEqual(resp.status_code, 201)
+        self.assertTrue(SupportTicket.objects.filter(
+            organization=self.org, subject__icontains="deletion").exists())
+
+    def test_foreign_org_invisible(self):
+        other = User.objects.create_user(email="dcx@x.com", password="pw12345!")
+        resp = self.client.get(
+            reverse("organizations:domains", args=[self.org.id]), **auth(other))
+        self.assertEqual(resp.status_code, 404)
+
+
+class ConnectedAccountsApiTests(TestCase):
+    def test_reports_sso_status(self):
+        user = User.objects.create_user(email="ca@x.com", password="pw12345!")
+        resp = self.client.get(reverse("accounts:account-connected"), **auth(user))
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertIn("providers", body)
+        self.assertIn("any_configured", body)
+
+
+class ProjectAiApiTests(TestCase):
+    def setUp(self):
+        from apps.projects.models import Project
+
+        self.owner = User.objects.create_user(email="pao@x.com", password="pw12345!")
+        self.member = User.objects.create_user(email="pam@x.com", password="pw12345!")
+        self.org = Organization.objects.create(name="PAOrg")
+        self.org.add_member(self.owner, role=Role.OWNER)
+        self.org.add_member(self.member, role=Role.MEMBER)
+        self.project = Project.objects.create(organization=self.org, name="App")
+
+    def test_get_returns_own_effective_options(self):
+        resp = self.client.get(reverse("projects:ai", args=[self.project.id]), **auth(self.member))
+        self.assertEqual(resp.status_code, 200)
+        for k in ("own", "effective", "options", "generation"):
+            self.assertIn(k, resp.json())
+
+    def test_member_cannot_set(self):
+        resp = self.client.patch(
+            reverse("projects:ai", args=[self.project.id]),
+            data={"preferred_provider": "anthropic"},
+            content_type="application/json", **auth(self.member))
+        self.assertEqual(resp.status_code, 403)
+
+    def test_owner_sets(self):
+        from apps.organizations import ai_settings as oai
+        from apps.projects import ai_settings as pai
+
+        provider = oai.available_options()[0]["provider"]
+        resp = self.client.patch(
+            reverse("projects:ai", args=[self.project.id]),
+            data={"preferred_provider": provider},
+            content_type="application/json", **auth(self.owner))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(pai.own_preferences(self.project)["preferred_provider"], provider)
+
+    def test_repository_status(self):
+        resp = self.client.get(reverse("projects:repository", args=[self.project.id]), **auth(self.member))
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("initialized", resp.json())

@@ -5,6 +5,8 @@ from apps.projects.api import (
     BuildView,
     EnvVarDetailView,
     EnvVarListCreateView,
+    ProjectAiView,
+    ProjectRepositoryView,
     ProjectDetailView,
     ProjectListCreateView,
 )
@@ -16,6 +18,8 @@ urlpatterns = [
     path("projects/", ProjectListCreateView.as_view(), name="list"),
     path("projects/<int:pk>/", ProjectDetailView.as_view(), name="detail"),
     path("projects/<int:pk>/build-status/", BuildStatusView.as_view(), name="build-status"),
+    path("projects/<int:pk>/ai/", ProjectAiView.as_view(), name="ai"),
+    path("projects/<int:pk>/repository/", ProjectRepositoryView.as_view(), name="repository"),
     path("projects/<int:pk>/env/", EnvVarListCreateView.as_view(), name="env-list"),
     path("projects/<int:pk>/env/<int:var_id>/", EnvVarDetailView.as_view(), name="env-detail"),
     path("build/", BuildView.as_view(), name="build"),

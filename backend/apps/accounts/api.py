@@ -343,6 +343,27 @@ class NotificationPreferencesView(APIView):
         return Response({"preferences": preferences.update(request.user, request.data)})
 
 
+class ConnectedAccountsView(APIView):
+    """Single sign-on status. A provider appears only when configured in the
+    environment — nothing is shown as linked unless it genuinely is."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        import os
+
+        providers = [
+            {"name": name, "configured": bool(os.environ.get(env))}
+            for name, env in (("Google", "GOOGLE_OAUTH_CLIENT_ID"),
+                              ("GitHub", "GITHUB_OAUTH_CLIENT_ID"),
+                              ("Microsoft", "MICROSOFT_OAUTH_CLIENT_ID"))
+        ]
+        return Response({
+            "providers": providers,
+            "any_configured": any(p["configured"] for p in providers),
+        })
+
+
 class AccountExportView(APIView):
     """Download the signed-in user's own account data as JSON (no secrets)."""
 

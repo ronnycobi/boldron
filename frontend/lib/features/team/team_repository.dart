@@ -115,6 +115,23 @@ class TeamRepository {
         .map((e) => (e as Map).cast<String, dynamic>())
         .toList();
   }
+
+  Future<List<Map<String, dynamic>>> domains(int orgId) async {
+    final data = await _api.get('organizations/$orgId/domains/');
+    return ((data as Map)['domains'] as List)
+        .map((e) => (e as Map).cast<String, dynamic>()).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> commerce(int orgId) async {
+    final data = await _api.get('organizations/$orgId/commerce/');
+    return ((data as Map)['stores'] as List)
+        .map((e) => (e as Map).cast<String, dynamic>()).toList();
+  }
+
+  Future<String> requestDeletion(int orgId) async {
+    final data = await _api.post('organizations/$orgId/deletion-request/');
+    return '${(data as Map)['ticket']}';
+  }
 }
 
 final teamRepositoryProvider = Provider<TeamRepository>(
@@ -149,4 +166,14 @@ final orgAiProvider =
 final orgAuditProvider =
     FutureProvider.family<List<Map<String, dynamic>>, int>((ref, orgId) {
   return ref.watch(teamRepositoryProvider).audit(orgId);
+});
+
+final orgDomainsProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, int>((ref, orgId) {
+  return ref.watch(teamRepositoryProvider).domains(orgId);
+});
+
+final orgCommerceProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, int>((ref, orgId) {
+  return ref.watch(teamRepositoryProvider).commerce(orgId);
 });

@@ -102,6 +102,65 @@ class OrganizationDetailView(APIView):
         return Response(OrganizationSerializer(org, context={"request": request}).data)
 
 
+class OrganizationDomainsView(APIView):
+    """Custom domains across the org's projects (real CustomDomain records)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        from apps.publishing.models import CustomDomain
+
+        org = _get_org(request.user, pk)
+        domains = (CustomDomain.objects
+                   .filter(website__project__organization=org)
+                   .select_related("website__project").order_by("hostname"))
+        return Response({"domains": [{
+            "hostname": d.hostname,
+            "status": d.verification_status,
+            "verified": d.is_verified,
+            "project": d.website.project.name,
+        } for d in domains]})
+
+
+class OrganizationCommerceView(APIView):
+    """Rollup of the org's stores — products + order counts (real data)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        from apps.publishing.models import Order, Product, Website
+
+        org = _get_org(request.user, pk)
+        stores = []
+        for site in Website.objects.filter(project__organization=org).select_related("project"):
+            products = Product.objects.filter(website=site).count()
+            if products:
+                stores.append({
+                    "project_id": site.project_id,
+                    "project": site.project.name,
+                    "products": products,
+                    "orders": Order.objects.filter(website=site).count(),
+                })
+        return Response({"stores": stores})
+
+
+class OrganizationDeletionRequestView(APIView):
+    """File a data-deletion request (as a support ticket for human confirmation)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        from apps.support.service import create_ticket
+
+        org = _get_org(request.user, pk)
+        t = create_ticket(
+            organization=org, user=request.user, category="account", priority="high",
+            subject=f"Data deletion request — {org.name}",
+            body=f"{request.user.email} requested deletion of data for “{org.name}”.",
+        )
+        return Response({"ticket": t.number}, status=status.HTTP_201_CREATED)
+
+
 class OrganizationAuditView(APIView):
     """Read-only audit log for the organization. Sensitive, so manager-gated."""
 

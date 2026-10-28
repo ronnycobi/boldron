@@ -47,6 +47,21 @@ class ProjectsRepository {
 
   Future<void> deleteEnvVar(int projectId, int varId) =>
       _api.delete('projects/$projectId/env/$varId/');
+
+  Future<Map<String, dynamic>> projectAi(int projectId) async {
+    final data = await _api.get('projects/$projectId/ai/');
+    return (data as Map).cast<String, dynamic>();
+  }
+
+  Future<void> setProjectAi(int projectId,
+          {String provider = '', String model = ''}) =>
+      _api.patch('projects/$projectId/ai/',
+          body: {'preferred_provider': provider, 'preferred_model': model});
+
+  Future<Map<String, dynamic>> projectRepository(int projectId) async {
+    final data = await _api.get('projects/$projectId/repository/');
+    return (data as Map).cast<String, dynamic>();
+  }
 }
 
 final projectsRepositoryProvider = Provider<ProjectsRepository>(
@@ -74,4 +89,17 @@ final buildStatusProvider = FutureProvider.family<BuildStatus, int>(
 final envVarsProvider =
     FutureProvider.family<List<Map<String, dynamic>>, int>(
   (ref, projectId) => ref.watch(projectsRepositoryProvider).envVars(projectId),
+);
+
+/// A project's AI preference (own + effective + options).
+final projectAiProvider =
+    FutureProvider.family<Map<String, dynamic>, int>(
+  (ref, projectId) => ref.watch(projectsRepositoryProvider).projectAi(projectId),
+);
+
+/// A project's local git repository status.
+final projectRepositoryStatusProvider =
+    FutureProvider.family<Map<String, dynamic>, int>(
+  (ref, projectId) =>
+      ref.watch(projectsRepositoryProvider).projectRepository(projectId),
 );
