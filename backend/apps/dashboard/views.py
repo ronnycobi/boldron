@@ -2075,7 +2075,7 @@ def org_domains(request):
         "project": d.website.project,
     } for d in domains]
     return render(request, "dashboard/org_domains.html",
-                  {"active": "settings", "rows": rows})
+                  {"active": "domains", "rows": rows})
 
 
 @login_required
@@ -2201,6 +2201,85 @@ def project_repository(request, pk):
 
 
 @login_required
+def releases(request):
+    """Global Mobile Releases hub: the user's projects, each linking to its
+    release center (reuses the per-project release workflow — no new backend)."""
+    projects = (Project.objects
+                .filter(organization__in=organizations_for(request.user))
+                .select_related("organization").order_by("-updated_at"))
+    return render(request, "dashboard/releases.html",
+                  {"active": "releases", "projects": projects})
+
+
+# A static index of navigable destinations for the command palette. Each entry
+# resolves to a real route — search only surfaces things that actually exist.
+_SEARCH_PAGES = [
+    ("Home", "dashboard:home", None, "overview start"),
+    ("Projects", "dashboard:projects", None, "apps builds"),
+    ("Deployments", "dashboard:deployments", None, "deploy ship release"),
+    ("Domains", "dashboard:org_domains", None, "dns custom domain"),
+    ("Analytics", "dashboard:usage", None, "usage cost credits metrics"),
+    ("Activity", "dashboard:tasks", None, "feed events history"),
+    ("Environments", "dashboard:ops", "environments", "env deploy targets"),
+    ("Integrations", "dashboard:org_integrations", None, "connectors github slack"),
+    ("API keys", "dashboard:org_developer", None, "developer token programmatic"),
+    ("Webhooks", "dashboard:org_developer", None, "events callbacks"),
+    ("Monitoring", "dashboard:ops", "monitoring", "uptime logs incidents"),
+    ("Security", "dashboard:security", None, "mfa sessions audit"),
+    ("Mobile Releases", "dashboard:releases", None, "app store play ios android"),
+    ("AI Engineering", "dashboard:agents", None, "agents pipeline build"),
+    ("Settings", "dashboard:settings_center", None, "preferences configuration"),
+    ("Notifications", "dashboard:notifications_settings", None, "email alerts"),
+    ("Privacy & data", "dashboard:org_data", None, "export deletion gdpr"),
+    ("Audit log", "dashboard:org_audit", None, "events history security"),
+    ("Billing & plan", "dashboard:settings", None, "credits upgrade payment"),
+    ("Team", "dashboard:people", None, "members invites roles"),
+    ("Help & Support", "support:mine", None, "tickets contact"),
+    ("Account & security", "dashboard:account", None, "profile password mfa"),
+]
+
+
+@login_required
+def search(request):
+    """Grouped global search for the command palette (projects + pages).
+
+    Returns JSON only; every result is a real, permission-scoped destination."""
+    from django.http import JsonResponse
+
+    q = (request.GET.get("q") or "").strip().lower()
+    groups = []
+
+    # Projects the user can see (tenant-scoped), matched by name.
+    proj_qs = Project.objects.filter(organization__in=organizations_for(request.user))
+    if q:
+        proj_qs = proj_qs.filter(name__icontains=q)
+    proj_items = [{
+        "title": p.name,
+        "url": reverse("dashboard:project", args=[p.id]),
+        "meta": p.organization.name,
+        "icon": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>',
+    } for p in proj_qs.select_related("organization").order_by("-updated_at")[:6]]
+    if proj_items:
+        groups.append({"label": "Projects", "items": proj_items})
+
+    # Navigable pages (static index); include all when the query is blank.
+    page_icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16"><path d="M5 3h9l5 5v13H5z"/><path d="M14 3v5h5"/></svg>'
+    page_items = []
+    for title, route, arg, kw in _SEARCH_PAGES:
+        if q and q not in title.lower() and q not in kw:
+            continue
+        try:
+            url = reverse(route, args=[arg]) if arg else reverse(route)
+        except Exception:
+            continue
+        page_items.append({"title": title, "url": url, "meta": "", "icon": page_icon})
+    if page_items:
+        groups.append({"label": "Pages", "items": page_items[:12]})
+
+    return JsonResponse({"groups": groups})
+
+
+@login_required
 def org_developer(request):
     """Developer settings (spec §21/§22): programmatic API keys + outbound
     webhooks, per organization. Managing requires org rights. Secrets (a key's
@@ -2266,7 +2345,7 @@ def org_developer(request):
         "webhooks": o.webhooks.all(),
     } for o in manageable]
     return render(request, "dashboard/org_developer.html", {
-        "active": "settings",
+        "active": "developer",
         "cards": cards,
         "events": [{"key": k, "description": v} for k, v in EVENTS.items()],
         "has_manageable": bool(manageable),
@@ -2282,7 +2361,7 @@ def org_integrations(request):
     from apps.tools.connectors import connector_status
 
     return render(request, "dashboard/org_integrations.html", {
-        "active": "settings",
+        "active": "integrations",
         "integrations": connector_status(),
     })
 

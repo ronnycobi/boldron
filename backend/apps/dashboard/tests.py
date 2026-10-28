@@ -1109,3 +1109,52 @@ class RemainingSettingsSectionsTests(TestCase):
                 reverse("dashboard:project_repository", args=[self.project.id])).content.decode()
         self.assertIn("Initialized", html)
         self.assertIn("main", html)
+
+
+class NavSearchAndReleasesTests(TestCase):
+    """The redesigned dashboard's command-palette search + Mobile Releases hub."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(email="nav@x.com", password="pw12345678")
+        self.org = Organization.objects.create(name="NavOrg")
+        self.org.add_member(self.user, role=Role.OWNER)
+        self.project = Project.objects.create(organization=self.org, name="Marketplace")
+        self.client.force_login(self.user)
+
+    def test_search_requires_auth(self):
+        self.client.logout()
+        r = self.client.get(reverse("dashboard:search"))
+        self.assertIn(r.status_code, (302, 401))
+
+    def test_search_blank_returns_pages(self):
+        body = self.client.get(reverse("dashboard:search")).json()
+        labels = {g["label"] for g in body["groups"]}
+        self.assertIn("Pages", labels)
+        titles = [i["title"] for g in body["groups"] for i in g["items"]]
+        self.assertIn("Security", titles)
+
+    def test_search_finds_project_by_name(self):
+        body = self.client.get(reverse("dashboard:search"), {"q": "marketp"}).json()
+        proj = next((g for g in body["groups"] if g["label"] == "Projects"), None)
+        self.assertIsNotNone(proj)
+        self.assertEqual(proj["items"][0]["title"], "Marketplace")
+
+    def test_search_only_shows_own_projects(self):
+        other = User.objects.create_user(email="navx@x.com", password="pw12345678")
+        self.client.force_login(other)
+        body = self.client.get(reverse("dashboard:search"), {"q": "marketp"}).json()
+        titles = [i["title"] for g in body["groups"] for i in g["items"]]
+        self.assertNotIn("Marketplace", titles)
+
+    def test_releases_hub_lists_projects(self):
+        html = self.client.get(reverse("dashboard:releases")).content.decode()
+        self.assertEqual(self.client.get(reverse("dashboard:releases")).status_code, 200)
+        self.assertIn("Marketplace", html)
+        self.assertIn("Mobile Releases", html)
+
+    def test_home_renders_with_new_shell(self):
+        html = self.client.get(reverse("dashboard:home")).content.decode()
+        # Advanced section is present and the search button is in the shell.
+        self.assertIn("Advanced", html)
+        self.assertIn("Search anything", html)
+        self.assertIn("Mobile Releases", html)

@@ -1,0 +1,26 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}Mobile Releases · {{ app_name }}{% endblock %}
+{% block crumb %}Mobile Releases{% endblock %}
+{% block content %}
+<h1>Mobile Releases</h1>
+<p class="sub">Prepare and track app-store releases for your projects. Open a project to manage its store listings and submissions.</p>
+
+<div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">
+  {% for p in projects %}
+  <a class="card" href="{% url 'dashboard:release_center' p.id %}" style="display:block;color:var(--ink)">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="width:34px;height:34px;border-radius:9px;background:var(--brandsoft);display:flex;align-items:center;justify-content:center;flex:none">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.8"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2" stroke-linecap="round"/></svg>
+      </span>
+      <div style="min-width:0">
+        <div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.name }}</div>
+        <div class="muted" style="font-size:12px">{{ p.organization.name }}</div>
+      </div>
+    </div>
+    <div class="muted" style="font-size:12.5px;margin-top:12px">Manage mobile release →</div>
+  </a>
+  {% empty %}
+  <p class="empty">No projects yet. Build an app first, then prepare its mobile release here.</p>
+  {% endfor %}
+</div>
+{% endblock %}

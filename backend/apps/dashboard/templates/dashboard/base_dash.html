@@ -7,88 +7,148 @@
   <link rel="icon" href="{% if app_favicon_url %}{{ app_favicon_url }}{% else %}{% static 'img/boldron-mark.svg' %}{% endif %}">
   <style>
     :root{
-      --bg:#080c18; --bg2:#0b1124; --sidebar:#080b16; --panel:#111a30;
-      --panel2:#0e1526; --line:#1d2743; --line2:#26324f;
-      --ink:#e8edfb; --ink2:#c3cbe0; --muted:#7f8aa8;
-      --brand:#4f7cff; --brand2:#9b6bff; --grad:linear-gradient(135deg,#4f7cff,#9b6bff);
+      --bg:#0a0e1a; --bg2:#0b1124; --sidebar:#0c1120; --sidebar2:#0e1426;
+      --panel:#121a2e; --panel2:#0f1626; --line:#1c2640; --line2:#283552;
+      --ink:#eaeefb; --ink2:#b9c2db; --muted:#78839f; --muted2:#5a6480;
+      --brand:#5b84ff; --brand2:#9b6bff; --grad:linear-gradient(135deg,#5b84ff,#9b6bff);
+      --brandsoft:rgba(91,132,255,.14); --brandline:rgba(91,132,255,.35);
       --ok:#34d399; --okbg:rgba(52,211,153,.14); --fail:#f87171; --failbg:rgba(248,113,113,.14);
       --run:#60a5fa; --runbg:rgba(96,165,250,.14); --wait:#fbbf24; --waitbg:rgba(251,191,36,.14);
       --idle:#8a93ad; --idlebg:rgba(138,147,173,.12);
+      --sb:248px; --radius:14px;
     }
     *{box-sizing:border-box}
     html,body{margin:0}
-    body{background:
-        radial-gradient(1100px 500px at 80% -10%, rgba(155,107,255,.10), transparent 60%),
-        radial-gradient(900px 500px at -10% 0%, rgba(79,124,255,.10), transparent 55%),
-        var(--bg);
-      color:var(--ink);
-      font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;
-      -webkit-font-smoothing:antialiased}
+    body{background:var(--bg);color:var(--ink);
+      font:14px/1.6 ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;
+      -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
     a{color:var(--brand);text-decoration:none}
     .layout{display:flex;min-height:100vh}
 
-    /* Sidebar */
-    .side{width:250px;flex:none;background:var(--sidebar);border-right:1px solid var(--line);
-      padding:18px 14px;position:sticky;top:0;height:100vh;overflow-y:auto}
-    .logo{display:flex;align-items:center;gap:9px;padding:6px 8px 16px;font-weight:800;font-size:18px;letter-spacing:.2px}
-    .logo .mark{height:24px;display:inline-flex;flex:none;filter:drop-shadow(0 0 10px rgba(79,124,255,.4))}
+    /* ---------- Sidebar ---------- */
+    .side{width:var(--sb);flex:none;background:var(--sidebar);border-right:1px solid var(--line);
+      position:sticky;top:0;height:100vh;display:flex;flex-direction:column;z-index:30;
+      transition:width .18s ease}
+    body.sb-collapsed .side{--sb:66px}
+    .side-top{display:flex;align-items:center;gap:10px;padding:16px 16px 12px}
+    .logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:17px;letter-spacing:.2px;min-width:0}
+    .logo .mark{height:22px;display:inline-flex;flex:none}
     .logo .mark img{height:100%;width:auto;display:block}
-    .logo b{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
-    .navgroup{margin-top:14px}
-    .navgroup .lbl{font-size:10.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);padding:0 8px 6px;font-weight:700}
-    .nav a{display:flex;align-items:center;justify-content:space-between;gap:8px;
-      padding:7px 10px;border-radius:9px;color:var(--ink2);font-size:13.5px;margin:1px 0;
-      border-left:2px solid transparent}
+    .logo b{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;
+      white-space:nowrap;overflow:hidden}
+    .sb-toggle{margin-left:auto;background:transparent;border:1px solid var(--line2);color:var(--muted);
+      width:28px;height:28px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;flex:none}
+    .sb-toggle:hover{color:var(--ink);border-color:var(--line2);background:var(--panel2)}
+    body.sb-collapsed .logo b{display:none}
+    body.sb-collapsed .side-top{flex-direction:column;gap:10px;padding:16px 0 10px}
+    body.sb-collapsed .sb-toggle{margin:0}
+    body.sb-collapsed .sb-toggle svg{transform:rotate(180deg)}
+
+    .navwrap{flex:1;overflow-y:auto;overflow-x:hidden;padding:4px 12px 16px;scrollbar-width:thin}
+    .navwrap::-webkit-scrollbar{width:7px}
+    .navwrap::-webkit-scrollbar-thumb{background:var(--line2);border-radius:99px}
+    .navgroup{margin-top:16px}
+    .navgroup:first-child{margin-top:4px}
+    .grouphead{display:flex;align-items:center;gap:6px;width:100%;background:none;border:0;cursor:default;
+      font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);
+      padding:4px 10px 7px;font-weight:700}
+    button.grouphead{cursor:pointer}
+    button.grouphead:hover{color:var(--ink2)}
+    .grouphead .chev{margin-left:auto;transition:transform .15s;opacity:.7}
+    .navgroup.collapsed .grouphead .chev{transform:rotate(-90deg)}
+    .navgroup.collapsed .nav{display:none}
+    body.sb-collapsed .grouphead{justify-content:center;padding:4px 0 7px;font-size:0}
+    body.sb-collapsed .grouphead .chev{display:none}
+    body.sb-collapsed .grouphead::before{content:"";display:block;width:20px;height:1px;background:var(--line2)}
+    body.sb-collapsed .navgroup.collapsed .nav{display:block} /* never hide in icon mode */
+
+    .nav a{display:flex;align-items:center;gap:11px;position:relative;
+      padding:8px 10px;border-radius:10px;color:var(--ink2);font-size:13.5px;font-weight:500;margin:1px 0}
+    .nav a svg{width:18px;height:18px;flex:none;stroke:currentColor;opacity:.82}
+    .nav a .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .nav a .tag{margin-left:auto;font-size:9px;font-weight:700;letter-spacing:.4px;color:var(--muted);
+      border:1px solid var(--line2);border-radius:6px;padding:1px 5px}
     .nav a:hover{background:var(--panel2);color:var(--ink)}
-    .nav a.on{background:linear-gradient(90deg,rgba(79,124,255,.16),rgba(155,107,255,.05));
-      color:#fff;border-left-color:var(--brand)}
-    .nav a .soon{font-size:9px;letter-spacing:.5px;color:var(--muted);border:1px solid var(--line2);
-      border-radius:6px;padding:1px 5px}
+    .nav a:hover svg{opacity:1}
+    .nav a.on{background:var(--brandsoft);color:#fff}
+    .nav a.on svg{opacity:1;stroke:var(--brand)}
+    .nav a.on::before{content:"";position:absolute;left:-12px;top:7px;bottom:7px;width:3px;
+      border-radius:0 3px 3px 0;background:var(--grad)}
+    .nav a:focus-visible{outline:2px solid var(--brandline);outline-offset:1px}
+    body.sb-collapsed .nav a{justify-content:center;padding:9px 0}
+    body.sb-collapsed .nav a .t,body.sb-collapsed .nav a .tag{display:none}
+    body.sb-collapsed .nav a.on::before{left:0;top:6px;bottom:6px}
+    /* Tooltip in collapsed mode */
+    body.sb-collapsed .nav a[data-tip]:hover::after{content:attr(data-tip);position:absolute;left:52px;
+      white-space:nowrap;background:var(--panel);border:1px solid var(--line2);color:var(--ink);
+      padding:5px 10px;border-radius:8px;font-size:12.5px;font-weight:600;z-index:60;
+      box-shadow:0 10px 30px rgba(0,0,0,.5)}
 
-    /* Main */
+    .side-foot{border-top:1px solid var(--line);padding:10px 12px}
+    .userchip{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:10px;color:var(--ink2);min-width:0}
+    .userchip:hover{background:var(--panel2);color:var(--ink)}
+    .userchip .nm{min-width:0;line-height:1.2}
+    .userchip .nm b{display:block;font-size:13px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .userchip .nm span{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+    body.sb-collapsed .userchip .nm{display:none}
+    body.sb-collapsed .userchip{justify-content:center;padding:7px 0}
+
+    /* ---------- Main / Topbar ---------- */
     .main{flex:1;min-width:0;display:flex;flex-direction:column}
-    .topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;
-      border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(8,12,24,.72);
-      backdrop-filter:blur(10px);z-index:5}
-    .topbar .crumb{color:var(--muted);font-size:13px}
-    .topbar .who{display:flex;align-items:center;gap:14px;font-size:13px;color:var(--ink2)}
-    /* profile menu */
-    .profile{position:relative}
-    .profile-btn{display:flex;align-items:center;gap:10px;background:transparent;border:1px solid var(--line2);
-      border-radius:999px;padding:5px 12px 5px 5px;cursor:pointer;color:var(--ink)}
-    .profile-btn:hover{border-color:var(--brand,#4f7cff)}
+    .topbar{display:flex;align-items:center;gap:14px;padding:12px 24px;
+      border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(10,14,26,.78);
+      backdrop-filter:blur(12px);z-index:20}
+    .hamb{display:none;background:transparent;border:1px solid var(--line2);color:var(--ink2);
+      width:36px;height:36px;border-radius:9px;cursor:pointer;align-items:center;justify-content:center;padding:0;flex:none}
+    .searchbtn{display:flex;align-items:center;gap:10px;flex:1;max-width:440px;height:38px;padding:0 12px;
+      background:var(--panel2);border:1px solid var(--line2);border-radius:10px;color:var(--muted);
+      cursor:text;font-size:13.5px;font-weight:500}
+    .searchbtn:hover{border-color:var(--line2);color:var(--ink2);background:var(--panel)}
+    .searchbtn svg{width:16px;height:16px;stroke:currentColor;flex:none}
+    .searchbtn .kbd{margin-left:auto;display:flex;gap:3px}
+    .searchbtn .kbd span{border:1px solid var(--line2);border-radius:5px;padding:1px 5px;font-size:11px;
+      font-weight:700;color:var(--muted);background:var(--bg)}
+    .tb-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+    .iconbtn{position:relative;background:transparent;border:1px solid transparent;color:var(--ink2);
+      width:36px;height:36px;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+    .iconbtn:hover{background:var(--panel2);color:var(--ink);border-color:var(--line2)}
+    .iconbtn svg{width:18px;height:18px;stroke:currentColor}
+    .orgswitch{position:relative}
+    .orgbtn{display:flex;align-items:center;gap:8px;background:transparent;border:1px solid var(--line2);
+      border-radius:9px;padding:6px 10px;cursor:pointer;color:var(--ink);font-size:13px;font-weight:600;max-width:200px}
+    .orgbtn:hover{border-color:var(--brandline)}
+    .orgbtn .on{width:18px;height:18px;border-radius:6px;background:var(--grad);flex:none;display:flex;
+      align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff}
+    .orgbtn .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .orgbtn .caret{color:var(--muted);font-size:9px}
+    @media(max-width:700px){.orgbtn .nm{display:none}}
+    .menu{position:absolute;right:0;top:44px;min-width:230px;background:var(--panel);
+      border:1px solid var(--line2);border-radius:12px;box-shadow:0 20px 50px rgba(0,0,0,.55);padding:7px;z-index:40}
+    .menu .mh{padding:7px 10px 9px;border-bottom:1px solid var(--line);margin-bottom:5px}
+    .menu .mh .n{font-weight:700;color:var(--ink);font-size:13.5px;word-break:break-word}
+    .menu .mh .e{color:var(--muted);font-size:12px;word-break:break-word}
+    .menu .mh .role{display:inline-block;margin-top:6px;font-size:10px;text-transform:uppercase;letter-spacing:.6px;
+      color:var(--brand);border:1px solid var(--line2);border-radius:99px;padding:1px 8px}
+    .menu a,.menu button{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:none;border:0;
+      color:var(--ink2);font-size:13px;padding:8px 10px;border-radius:8px;cursor:pointer;font-weight:500}
+    .menu a:hover,.menu button:hover{background:var(--panel2);color:var(--ink)}
+    .menu .sep{height:1px;background:var(--line);margin:5px 0}
     .avatar{width:30px;height:30px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
-      font-size:12px;font-weight:800;color:#fff;background:linear-gradient(135deg,#4f7cff,#9b6bff)}
-    .profile-btn .pname{font-size:13px;font-weight:700;color:var(--ink);max-width:160px;overflow:hidden;
-      text-overflow:ellipsis;white-space:nowrap}
-    .profile-btn .caret{color:var(--muted);font-size:10px}
-    @media(max-width:640px){.profile-btn .pname{display:none}}
-    .pmenu{position:absolute;right:0;top:46px;min-width:230px;background:var(--panel,#101a30);
-      border:1px solid var(--line2);border-radius:12px;box-shadow:0 20px 50px rgba(0,0,0,.5);padding:8px;z-index:40}
-    .pmenu .phead{padding:8px 10px 10px;border-bottom:1px solid var(--line);margin-bottom:6px}
-    .pmenu .phead .n{font-weight:700;color:var(--ink);font-size:13.5px;word-break:break-word}
-    .pmenu .phead .e{color:var(--muted);font-size:12px;word-break:break-word}
-    .pmenu .phead .role{display:inline-block;margin-top:6px;font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;
-      color:var(--brand,#4f7cff);border:1px solid var(--line2);border-radius:99px;padding:1px 8px}
-    .pmenu a,.pmenu button{display:block;width:100%;text-align:left;background:none;border:0;color:var(--ink2);
-      font-size:13px;padding:8px 10px;border-radius:8px;cursor:pointer}
-    .pmenu a:hover,.pmenu button:hover{background:var(--panel2,#0c1424);color:var(--ink)}
-    .pmenu .sep{height:1px;background:var(--line);margin:6px 0}
-    .content{padding:26px 28px;max-width:1180px;width:100%}
+      font-size:12px;font-weight:800;color:#fff;background:var(--grad)}
 
-    h1{font-size:24px;margin:0 0 4px;letter-spacing:-.02em}
-    h2{font-size:12px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin:26px 0 12px;font-weight:700}
+    .content{padding:26px 28px;max-width:1240px;width:100%}
+
+    /* ---------- Typography / primitives ---------- */
+    h1{font-size:24px;margin:0 0 4px;letter-spacing:-.02em;font-weight:700}
+    h2{font-size:12px;text-transform:uppercase;letter-spacing:1.1px;color:var(--muted);margin:28px 0 12px;font-weight:700}
     .sub{color:var(--muted);margin:0 0 20px}
-
     .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
-    .card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);
-      border-radius:14px;padding:16px 18px}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px}
     .stat .k{color:var(--muted);font-size:12px;letter-spacing:.4px;text-transform:uppercase}
     .stat .v{font-size:30px;font-weight:800;letter-spacing:-.02em;margin-top:6px}
     .stat .v.grad{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
     .row{display:grid;grid-template-columns:2fr 1fr;gap:16px}
     @media(max-width:1000px){.row{grid-template-columns:1fr}}
-
     .bar{height:9px;border-radius:99px;background:var(--panel2);overflow:hidden;border:1px solid var(--line)}
     .bar>i{display:block;height:100%;background:var(--grad)}
     .badge{display:inline-block;border-radius:99px;padding:2px 10px;font-size:11.5px;font-weight:700}
@@ -97,7 +157,6 @@
     .b-running,.b-planning,.b-deploying,.b-building{background:var(--runbg);color:var(--run)}
     .b-queued,.b-blocked,.b-cancelled,.b-pending{background:var(--idlebg);color:var(--idle)}
     .b-waiting_for_approval,.b-waiting_for_tool,.b-waiting_for_agent,.b-analyzing{background:var(--waitbg);color:var(--wait)}
-
     table{width:100%;border-collapse:collapse}
     th,td{text-align:left;padding:11px 8px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:middle}
     th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px}
@@ -107,94 +166,151 @@
     .list a{color:var(--ink)}
     .feed .it{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
     .feed .it:last-child{border-bottom:0}
-    .feed .dot{width:9px;height:9px;border-radius:99px;background:var(--grad);flex:none;box-shadow:0 0 10px rgba(79,124,255,.6)}
+    .feed .dot{width:9px;height:9px;border-radius:99px;background:var(--grad);flex:none;box-shadow:0 0 10px rgba(91,132,255,.6)}
     .feed .who{font-weight:600}.feed .act{color:var(--muted)}.feed .when{margin-left:auto;color:var(--muted);font-size:12px}
-
-    input,select,textarea{width:100%;padding:9px 11px;border:1px solid var(--line2);border-radius:9px;
+    input,select,textarea{width:100%;padding:9px 11px;border:1px solid var(--line2);border-radius:10px;
       background:var(--panel2);color:var(--ink);font:inherit;transition:border-color .15s,box-shadow .15s}
-    input:focus,select:focus,textarea:focus{outline:0;border-color:var(--brand);
-      box-shadow:0 0 0 3px rgba(79,124,255,.18)}
+    input:focus,select:focus,textarea:focus{outline:0;border-color:var(--brand);box-shadow:0 0 0 3px var(--brandsoft)}
     select{-webkit-appearance:none;-moz-appearance:none;appearance:none;cursor:pointer;padding-right:34px;
-      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%237f8aa8' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%2378839f' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
       background-repeat:no-repeat;background-position:right 12px center;background-size:12px}
-    select:hover{border-color:var(--line2);color:#fff}
-    select option{background:#0e1526;color:var(--ink)}
+    select option{background:#0f1626;color:var(--ink)}
     input::placeholder,textarea::placeholder{color:var(--muted)}
     label{display:block;font-size:11.5px;color:var(--muted);margin:8px 0 3px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
-    button,.btn{background:var(--grad);color:#fff;border:0;border-radius:9px;padding:10px 15px;font-weight:700;cursor:pointer}
-    button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line2)}
+    button,.btn{background:var(--grad);color:#fff;border:0;border-radius:10px;padding:10px 15px;font-weight:700;cursor:pointer}
+    button.ghost,.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line2)}
     .inline{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
-    .msg{padding:10px 13px;border-radius:9px;margin-bottom:10px;font-size:13px;border:1px solid transparent}
+    .msg{padding:10px 13px;border-radius:10px;margin-bottom:10px;font-size:13px;border:1px solid transparent}
     .msg.success{background:var(--okbg);color:var(--ok);border-color:rgba(52,211,153,.3)}
     .msg.error{background:var(--failbg);color:var(--fail);border-color:rgba(248,113,113,.3)}
+    .msg.warning{background:var(--waitbg);color:var(--wait);border-color:rgba(251,191,36,.3)}
     .empty{color:var(--muted);font-style:italic}
     .muted{color:var(--muted)}
-    @media(max-width:820px){
-      .layout{flex-direction:column}
-      .side{width:100%;height:auto;position:static;display:flex;gap:6px;overflow-x:auto;padding:10px}
-      .navgroup{margin:0}.navgroup .lbl{display:none}.nav{display:flex;gap:4px}
+
+    /* ---------- Command palette ---------- */
+    .cmdk-overlay{position:fixed;inset:0;background:rgba(5,8,16,.6);backdrop-filter:blur(3px);z-index:80;
+      display:flex;align-items:flex-start;justify-content:center;padding-top:12vh}
+    .cmdk{width:min(620px,92vw);background:var(--panel);border:1px solid var(--line2);border-radius:16px;
+      box-shadow:0 30px 80px rgba(0,0,0,.6);overflow:hidden}
+    .cmdk input{border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;
+      padding:16px 18px;font-size:16px}
+    .cmdk input:focus{box-shadow:none}
+    .cmdk-res{max-height:52vh;overflow-y:auto;padding:8px}
+    .cmdk-grp{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:700;
+      padding:10px 12px 4px}
+    .cmdk-item{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;cursor:pointer;color:var(--ink2)}
+    .cmdk-item .ci{width:16px;height:16px;flex:none;color:var(--muted)}
+    .cmdk-item .cm{margin-left:auto;font-size:11px;color:var(--muted)}
+    .cmdk-item.sel,.cmdk-item:hover{background:var(--brandsoft);color:#fff}
+    .cmdk-empty{padding:26px;text-align:center;color:var(--muted);font-size:13px}
+
+    /* ---------- Responsive ---------- */
+    .scrim{position:fixed;inset:0;background:rgba(5,8,16,.55);z-index:25;display:none}
+    @media(max-width:900px){
+      .side{position:fixed;left:0;top:0;transform:translateX(-100%);transition:transform .2s ease;--sb:260px}
+      body.sb-collapsed .side{--sb:260px} /* no icon-mode on mobile; use drawer */
+      body.drawer-open .side{transform:translateX(0)}
+      body.drawer-open .scrim{display:block}
+      .hamb{display:flex}
+      .sb-toggle{display:none}
+      .content{padding:20px 16px}
     }
+    @media(min-width:901px){.hamb{display:none}}
   </style>
   {% if request.user.is_authenticated %}
   <style>
-    /* Accessibility preferences (account settings), applied app-wide. */
-    body.reduce-motion *,
-    body.reduce-motion *::before,
-    body.reduce-motion *::after{
+    body.reduce-motion *,body.reduce-motion *::before,body.reduce-motion *::after{
       animation-duration:.001ms!important;animation-iteration-count:1!important;
-      transition-duration:.001ms!important;scroll-behavior:auto!important;
-    }
+      transition-duration:.001ms!important;scroll-behavior:auto!important}
   </style>
   {% endif %}
+  <script>
+    // Apply persisted sidebar state before paint (no flash).
+    try{
+      if(localStorage.getItem('sb-collapsed')==='1')document.documentElement.classList.add('pre-collapsed');
+    }catch(e){}
+  </script>
+  <style>html.pre-collapsed body{--sb:66px}</style>
 </head>
 <body{% if request.user.is_authenticated %}{% if request.user.reduce_motion %} class="reduce-motion"{% endif %}{% if request.user.font_scale_factor != 1.0 %} style="zoom:{{ request.user.font_scale_factor }}"{% endif %}{% endif %}>
+<div class="scrim" onclick="document.body.classList.remove('drawer-open')"></div>
 <div class="layout">
-  <aside class="side">
-    <div class="logo"><span class="mark"><img src="{% if app_logo_url %}{{ app_logo_url }}{% else %}{% static 'img/boldron-mark.svg' %}{% endif %}" alt="{{ app_name }}" onerror="this.remove()"></span><b>{{ app_name }}</b></div>
-    {% include "dashboard/_nav.html" %}
+  <aside class="side" id="side">
+    <div class="side-top">
+      <a class="logo" href="{% url 'dashboard:home' %}" aria-label="{{ app_name }} home">
+        <span class="mark"><img src="{% if app_logo_url %}{{ app_logo_url }}{% else %}{% static 'img/boldron-mark.svg' %}{% endif %}" alt="" onerror="this.remove()"></span><b>{{ app_name }}</b>
+      </a>
+      <button class="sb-toggle" type="button" aria-label="Collapse sidebar" onclick="toggleSidebar()" title="Collapse sidebar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg>
+      </button>
+    </div>
+    <div class="navwrap">{% include "dashboard/_nav.html" %}</div>
+    <div class="side-foot">
+      <a class="userchip" href="{% url 'dashboard:account' %}" title="{{ request.user.display_name }}">
+        {% include "dashboard/_avatar.html" with u=request.user size=30 font=12 %}
+        <span class="nm"><b>{{ request.user.display_name }}</b><span>{{ request.user.email }}</span></span>
+      </a>
+    </div>
   </aside>
+
   <main class="main">
     <div class="topbar">
-      <div class="crumb">{% block crumb %}{% endblock %}</div>
-      <div class="who">
-        <div class="profile" id="profile">
-          <button class="profile-btn" type="button" aria-haspopup="true" aria-expanded="false"
-                  onclick="var m=document.getElementById('pmenu');var o=m.hidden;m.hidden=!o;this.setAttribute('aria-expanded',o)">
-            {% include "dashboard/_avatar.html" with u=request.user size=30 font=12 %}
-            <span class="pname">{{ request.user.display_name }}</span>
+      <button class="hamb" type="button" aria-label="Open navigation" onclick="document.body.classList.toggle('drawer-open')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <button class="searchbtn" type="button" onclick="openCmdk()" aria-label="Search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4" stroke-linecap="round"/></svg>
+        <span>Search anything…</span>
+        <span class="kbd"><span>⌘</span><span>K</span></span>
+      </button>
+      <div class="tb-right">
+        <a class="iconbtn" href="{% url 'support:mine' %}" aria-label="Help &amp; support" title="Help &amp; support">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.2 9a2.8 2.8 0 015.6.3c0 1.8-2.7 2-2.7 3.7" stroke-linecap="round"/><circle cx="12" cy="17" r=".6" fill="currentColor" stroke="none"/></svg>
+        </a>
+        {% with myorgs=request.user.organizations.all %}
+        <div class="orgswitch" id="orgswitch">
+          <button class="orgbtn" type="button" aria-haspopup="true" aria-expanded="false"
+            onclick="var m=document.getElementById('orgmenu');var o=m.hidden;m.hidden=!o;this.setAttribute('aria-expanded',o)">
+            <span class="on">{% if myorgs %}{{ myorgs.0.name|slice:':1'|upper }}{% else %}·{% endif %}</span>
+            <span class="nm">{% if myorgs %}{{ myorgs.0.name }}{% else %}No organization{% endif %}</span>
             <span class="caret">▾</span>
           </button>
-          <div class="pmenu" id="pmenu" hidden>
-            <div class="phead">
+          <div class="menu" id="orgmenu" hidden>
+            <div class="mh"><div class="n">Organizations</div></div>
+            {% for o in myorgs %}<a href="{% url 'dashboard:people' %}">{{ o.name }}</a>{% empty %}<div class="mh"><div class="e">You're not in an organization yet.</div></div>{% endfor %}
+            <div class="sep"></div>
+            <a href="{% url 'dashboard:org_settings' %}">Organization settings</a>
+          </div>
+        </div>
+        {% endwith %}
+        <div class="orgswitch" id="profile">
+          <button class="iconbtn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Account menu"
+            onclick="var m=document.getElementById('pmenu');var o=m.hidden;m.hidden=!o;this.setAttribute('aria-expanded',o)">
+            {% include "dashboard/_avatar.html" with u=request.user size=30 font=12 %}
+          </button>
+          <div class="menu" id="pmenu" hidden>
+            <div class="mh">
               <div class="n">{{ request.user.display_name }}</div>
               <div class="e">{{ request.user.email }}</div>
               {% if request.user.is_staff %}<span class="role">Staff</span>{% endif %}
               {% if not request.user.email_verified %}<span class="role" style="color:#f5c454;border-color:rgba(245,196,84,.4)">Unverified</span>{% endif %}
             </div>
             <a href="{% url 'dashboard:account' %}">Account &amp; security</a>
+            <a href="{% url 'dashboard:settings_center' %}">Settings</a>
             <a href="{% url 'dashboard:people' %}">Team</a>
             {% if request.user.is_staff %}<div class="sep"></div>
             <a href="/staff/">Control Center</a>
             <a href="/admin/">Django admin</a>{% endif %}
             <div class="sep"></div>
-            <form action="{% url 'dashboard:logout' %}" method="post">{% csrf_token %}
-              <button type="submit">Log out</button>
-            </form>
+            <form action="{% url 'dashboard:logout' %}" method="post">{% csrf_token %}<button type="submit">Log out</button></form>
           </div>
         </div>
       </div>
-      <script>
-        document.addEventListener('click', function(e){
-          var p = document.getElementById('profile'), m = document.getElementById('pmenu');
-          if (p && m && !m.hidden && !p.contains(e.target)) {
-            m.hidden = true; p.querySelector('.profile-btn').setAttribute('aria-expanded','false');
-          }
-        });
-      </script>
     </div>
+
     <div class="content">
       {% if request.user.is_authenticated and not request.user.email_verified %}
-      <div class="msg" style="background:rgba(245,196,84,.12);border:1px solid rgba(245,196,84,.35);color:#f5c454;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <div class="msg warning" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
         <span>Verify your email (<strong>{{ request.user.email }}</strong>) to unlock building. Check your inbox for the link.</span>
         <form method="post" action="{% url 'dashboard:resend_verification' %}" style="margin:0">{% csrf_token %}
           <button class="ghost" style="padding:5px 12px;font-size:12px">Resend email</button>
@@ -206,5 +322,75 @@
     </div>
   </main>
 </div>
+
+<script>
+  document.documentElement.classList.remove('pre-collapsed');
+  (function(){ try{ if(localStorage.getItem('sb-collapsed')==='1') document.body.classList.add('sb-collapsed'); }catch(e){} })();
+  function toggleSidebar(){
+    var c=document.body.classList.toggle('sb-collapsed');
+    try{ localStorage.setItem('sb-collapsed', c?'1':'0'); }catch(e){}
+  }
+  // Close any open topbar menu on outside click.
+  document.addEventListener('click', function(e){
+    ['orgmenu','pmenu'].forEach(function(id){
+      var m=document.getElementById(id); if(!m||m.hidden) return;
+      var wrap=m.parentElement;
+      if(!wrap.contains(e.target)){ m.hidden=true; var b=wrap.querySelector('button[aria-expanded]'); if(b)b.setAttribute('aria-expanded','false'); }
+    });
+  });
+
+  /* ---------- Command palette ---------- */
+  var CMDK_URL="{% url 'dashboard:search' %}";
+  var cmdkEl=null, cmdkItems=[], cmdkSel=0;
+  function openCmdk(){
+    if(cmdkEl) return;
+    cmdkEl=document.createElement('div'); cmdkEl.className='cmdk-overlay';
+    cmdkEl.innerHTML='<div class="cmdk" role="dialog" aria-label="Search">'+
+      '<input type="text" placeholder="Search projects, pages, settings…" aria-label="Search" autocomplete="off">'+
+      '<div class="cmdk-res"></div></div>';
+    document.body.appendChild(cmdkEl);
+    cmdkEl.addEventListener('click', function(e){ if(e.target===cmdkEl) closeCmdk(); });
+    var inp=cmdkEl.querySelector('input');
+    inp.addEventListener('input', function(){ runCmdk(inp.value); });
+    inp.addEventListener('keydown', cmdkKey);
+    runCmdk('');
+    setTimeout(function(){ inp.focus(); },10);
+  }
+  function closeCmdk(){ if(cmdkEl){ cmdkEl.remove(); cmdkEl=null; } }
+  var cmdkT=null;
+  function runCmdk(q){
+    if(cmdkT) clearTimeout(cmdkT);
+    cmdkT=setTimeout(function(){
+      fetch(CMDK_URL+'?q='+encodeURIComponent(q)).then(function(r){return r.json();}).then(renderCmdk);
+    }, 120);
+  }
+  function renderCmdk(data){
+    if(!cmdkEl) return;
+    var res=cmdkEl.querySelector('.cmdk-res'); res.innerHTML=''; cmdkItems=[]; cmdkSel=0;
+    var groups=data.groups||[];
+    if(!groups.length){ res.innerHTML='<div class="cmdk-empty">No matches.</div>'; return; }
+    groups.forEach(function(g){
+      var h=document.createElement('div'); h.className='cmdk-grp'; h.textContent=g.label; res.appendChild(h);
+      g.items.forEach(function(it){
+        var a=document.createElement('a'); a.className='cmdk-item'; a.href=it.url;
+        a.innerHTML='<span class="ci">'+(it.icon||'')+'</span><span>'+esc(it.title)+'</span>'+(it.meta?'<span class="cm">'+esc(it.meta)+'</span>':'');
+        res.appendChild(a); cmdkItems.push(a);
+      });
+    });
+    highlight();
+  }
+  function esc(s){ return (s||'').replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function highlight(){ cmdkItems.forEach(function(a,i){ a.classList.toggle('sel', i===cmdkSel); }); if(cmdkItems[cmdkSel]) cmdkItems[cmdkSel].scrollIntoView({block:'nearest'}); }
+  function cmdkKey(e){
+    if(e.key==='Escape'){ closeCmdk(); }
+    else if(e.key==='ArrowDown'){ e.preventDefault(); cmdkSel=Math.min(cmdkSel+1,cmdkItems.length-1); highlight(); }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); cmdkSel=Math.max(cmdkSel-1,0); highlight(); }
+    else if(e.key==='Enter'){ e.preventDefault(); if(cmdkItems[cmdkSel]) window.location=cmdkItems[cmdkSel].href; }
+  }
+  document.addEventListener('keydown', function(e){
+    if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); cmdkEl?closeCmdk():openCmdk(); }
+    else if(e.key==='/' && !/input|textarea|select/i.test((e.target.tagName||''))){ e.preventDefault(); openCmdk(); }
+  });
+</script>
 </body>
 </html>

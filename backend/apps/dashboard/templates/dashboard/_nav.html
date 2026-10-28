@@ -1,37 +1,70 @@
-{% comment %}Sidebar nav. Simple-first; technical pages live under Advanced.{% endcomment %}
-<div class="navgroup">
-  <div class="nav">
-    <a href="{% url 'dashboard:home' %}" class="{% if active == 'overview' %}on{% endif %}">Home</a>
-    <a href="{% url 'dashboard:projects' %}" class="{% if active == 'projects' %}on{% endif %}">Projects</a>
-    <a href="{% url 'dashboard:deployments' %}" class="{% if active == 'deployments' %}on{% endif %}">Deploy</a>
-    <a href="{% url 'dashboard:tasks' %}" class="{% if active == 'tasks' or active == 'activity' %}on{% endif %}">Activity</a>
-    <a href="{% url 'dashboard:people' %}" class="{% if active == 'people' %}on{% endif %}">Team</a>
-    <a href="{% url 'support:mine' %}" class="{% if active == 'support' %}on{% endif %}">Help &amp; Support</a>
-    <a href="{% url 'dashboard:settings_center' %}" class="{% if active == 'settings' %}on{% endif %}">Settings</a>
-    <a href="{% url 'dashboard:account' %}" class="{% if active == 'account' %}on{% endif %}">Account</a>
-  </div>
-</div>
+{% comment %}Two-level sidebar nav. Primary + Advanced (always visible, default
+expanded) + Account. Icons are inline SVG (one consistent line set). The `active`
+context var drives the current-page highlight.{% endcomment %}
 
-<details class="navgroup" style="margin-top:14px">
-  <summary style="cursor:pointer;font-size:10.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);padding:0 8px 6px;font-weight:700;list-style:none">Advanced ▾</summary>
+<nav class="navgroup" aria-label="Primary">
   <div class="nav">
-    <a href="{% url 'dashboard:agents' %}" class="{% if active == 'agents' %}on{% endif %}">AI Engineering</a>
-    <a href="{% url 'dashboard:templates' %}" class="{% if active == 'templates' %}on{% endif %}">Templates</a>
-    <a href="{% url 'dashboard:repository' %}" class="{% if active == 'repository' %}on{% endif %}">Repository</a>
-    <a href="{% url 'dashboard:section' 'database' %}" class="{% if active == 'database' %}on{% endif %}">Database</a>
-    <a href="{% url 'dashboard:section' 'apis' %}" class="{% if active == 'apis' %}on{% endif %}">APIs</a>
-    <a href="{% url 'dashboard:section' 'tests' %}" class="{% if active == 'tests' %}on{% endif %}">Tests</a>
-    <a href="{% url 'dashboard:section' 'code-issues' %}" class="{% if active == 'code-issues' %}on{% endif %}">Code Issues</a>
-    <a href="{% url 'dashboard:security' %}" class="{% if active == 'security' %}on{% endif %}">Security</a>
-    <a href="{% url 'dashboard:ops' 'environments' %}" class="{% if active == 'environments' %}on{% endif %}">Environments</a>
-    <a href="{% url 'dashboard:ops' 'cloud' %}" class="{% if active == 'cloud' %}on{% endif %}">Cloud</a>
-    <a href="{% url 'dashboard:ops' 'infrastructure' %}" class="{% if active == 'infrastructure' %}on{% endif %}">Infrastructure</a>
-    <a href="{% url 'dashboard:ops' 'monitoring' %}" class="{% if active == 'monitoring' %}on{% endif %}">Monitoring</a>
-    <a href="{% url 'dashboard:ops' 'logs' %}" class="{% if active == 'logs' %}on{% endif %}">Logs</a>
-    <a href="{% url 'dashboard:ops' 'incidents' %}" class="{% if active == 'incidents' %}on{% endif %}">Incidents</a>
-    <a href="{% url 'dashboard:ops' 'scaling' %}" class="{% if active == 'scaling' %}on{% endif %}">Scaling</a>
-    <a href="{% url 'dashboard:ops' 'performance' %}" class="{% if active == 'performance' %}on{% endif %}">Performance</a>
-    <a href="{% url 'dashboard:ops' 'modernization' %}" class="{% if active == 'modernization' %}on{% endif %}">Modernization</a>
-    <a href="{% url 'dashboard:usage' %}" class="{% if active == 'usage' %}on{% endif %}">Costs &amp; AI Usage</a>
+    <a href="{% url 'dashboard:home' %}" data-tip="Home" class="{% if active == 'overview' or active == 'home' %}on{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M3 10l9-7 9 7M5 9v11h14V9" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="t">Home</span></a>
+    <a href="{% url 'dashboard:projects' %}" data-tip="Projects" class="{% if active == 'projects' or active == 'project' %}on{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="t">Projects</span></a>
+    <a href="{% url 'dashboard:home' %}#build" data-tip="Build" class="{% if active == 'build' %}on{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 3l1.8 4.9L19 9l-4.2 2.7L16 17l-4-3-4 3 1.2-5.3L5 9l5.2-1.1z" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="t">Build</span></a>
+    <a href="{% url 'dashboard:deployments' %}" data-tip="Deployments" class="{% if active == 'deployments' %}on{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M5 15c-1 2-1 4-1 4s2 0 4-1m-3-3a9 9 0 016-9 9 9 0 019 0 9 9 0 01-9 9 9 9 0 01-6-9m5 8l-2-2m2 2c1-1 2-3 2-3m-4-1s-2 1-3 2m8-6a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="t">Deployments</span></a>
+    <a href="{% url 'dashboard:org_domains' %}" data-tip="Domains" class="{% if active == 'domains' %}on{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18" stroke-linecap="round"/></svg><span class="t">Domains</span></a>
+    <a href="{% url 'dashboard:usage' %}" data-tip="Analytics" class="{% if active == 'usage' or active == 'analytics' %}on{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M4 19V5m0 14h16M8 15v-3m4 3V8m4 7v-5" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="t">Analytics</span></a>
+    <a href="{% url 'dashboard:tasks' %}" data-tip="Activity" class="{% if active == 'tasks' or active == 'activity' %}on{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M3 12h4l2 6 4-14 2 8h6" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="t">Activity</span></a>
   </div>
-</details>
+</nav>
+
+<section class="navgroup" id="adv-group" aria-label="Advanced">
+  <button class="grouphead" type="button" aria-expanded="true" onclick="toggleAdvanced(this)">
+    Advanced
+    <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+  </button>
+  <div class="nav">
+    <a href="{% url 'dashboard:ops' 'environments' %}" data-tip="Environments" class="{% if active == 'environments' %}on{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 3l9 5-9 5-9-5 9-5zM3 12l9 5 9-5M3 16l9 5 9-5" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="t">Environments</span></a>
+    <a href="{% url 'dashboard:org_integrations' %}" data-tip="Integrations" class="{% if active == 'integrations' %}on{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M9 3v5m6-5v5M7 8h10v3a5 5 0 01-10 0zM12 16v5" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="t">Integrations</span></a>
+    <a href="{% url 'dashboard:org_developer' %}" data-tip="API" class="{% if active == 'developer' or active == 'api' %}on{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M8 9l-4 3 4 3m8-6l4 3-4 3M13 6l-2 12" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="t">API</span></a>
+    <a href="{% url 'dashboard:org_developer' %}#webhooks" data-tip="Webhooks" class="{% if active == 'webhooks' %}on{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M9 7a3 3 0 113.8 2.9L9 16m2 0h5a3 3 0 11-2.8 4M8 13a3 3 0 10.2 5.9" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="t">Webhooks</span></a>
+    <a href="{% url 'dashboard:ops' 'monitoring' %}" data-tip="Monitoring" class="{% if active == 'monitoring' %}on{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M3 12h3l2 7 4-14 2 7h7" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="t">Monitoring</span></a>
+    <a href="{% url 'dashboard:security' %}" data-tip="Security" class="{% if active == 'security' %}on{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="t">Security</span></a>
+    <a href="{% url 'dashboard:releases' %}" data-tip="Mobile Releases" class="{% if active == 'releases' %}on{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2" stroke-linecap="round"/></svg><span class="t">Mobile Releases</span></a>
+    <a href="{% url 'dashboard:agents' %}" data-tip="AI Engineering" class="{% if active == 'agents' %}on{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M9 3v3m6-3v3M9 18v3m6-3v3M3 9h3m-3 6h3m12-6h3m-3 6h3" stroke-linecap="round"/></svg><span class="t">AI Engineering</span></a>
+  </div>
+</section>
+
+<nav class="navgroup" aria-label="Account">
+  <div class="grouphead">Account</div>
+  <div class="nav">
+    <a href="{% url 'dashboard:settings_center' %}" data-tip="Settings" class="{% if active == 'settings' %}on{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 00-.1-1.3l2-1.6-2-3.4-2.4 1a7 7 0 00-2.3-1.3L13.8 2h-3.6l-.4 2.4A7 7 0 007.5 5.7l-2.4-1-2 3.4 2 1.6A7 7 0 005 12c0 .4 0 .9.1 1.3l-2 1.6 2 3.4 2.4-1c.7.6 1.5 1 2.3 1.3l.4 2.4h3.6l.4-2.4c.8-.3 1.6-.7 2.3-1.3l2.4 1 2-3.4-2-1.6c.1-.4.1-.9.1-1.3z" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="t">Settings</span></a>
+    <a href="{% url 'support:mine' %}" data-tip="Help &amp; Support" class="{% if active == 'support' %}on{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/><path d="M15 9l3-3M6 18l3-3m0-6L6 6m12 12l-3-3" stroke-linecap="round"/></svg><span class="t">Help &amp; Support</span></a>
+    <a href="{% url 'dashboard:account' %}" data-tip="Profile" class="{% if active == 'account' %}on{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" stroke-linecap="round"/></svg><span class="t">Profile</span></a>
+  </div>
+</nav>
+
+<script>
+  (function(){
+    try{ if(localStorage.getItem('adv-collapsed')==='1'){ var g=document.getElementById('adv-group'); if(g){ g.classList.add('collapsed'); g.querySelector('.grouphead').setAttribute('aria-expanded','false'); } } }catch(e){}
+  })();
+  function toggleAdvanced(btn){
+    var g=document.getElementById('adv-group'); var c=g.classList.toggle('collapsed');
+    btn.setAttribute('aria-expanded', c?'false':'true');
+    try{ localStorage.setItem('adv-collapsed', c?'1':'0'); }catch(e){}
+  }
+</script>
