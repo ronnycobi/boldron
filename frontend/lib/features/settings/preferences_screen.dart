@@ -30,8 +30,11 @@ class _PreferencesScreenState extends ConsumerState<PreferencesScreen> {
 
   String _language = '';
   String _timezone = '';
+  static const _themes = {'dark': 'Dark', 'light': 'Light', 'system': 'System'};
+
   String _fontScale = 'md';
   bool _reduceMotion = false;
+  String _theme = 'dark';
   bool _saving = false;
 
   @override
@@ -42,6 +45,7 @@ class _PreferencesScreenState extends ConsumerState<PreferencesScreen> {
     if (user != null) {
       _fontScale = user.fontScale;
       _reduceMotion = user.reduceMotion;
+      _theme = user.theme;
     }
   }
 
@@ -53,6 +57,7 @@ class _PreferencesScreenState extends ConsumerState<PreferencesScreen> {
         'timezone': _timezone,
         'font_scale': _fontScale,
         'reduce_motion': _reduceMotion,
+        'theme': _theme,
       });
       await ref.read(authControllerProvider.notifier).refreshUser();
       if (mounted) {
@@ -103,6 +108,16 @@ class _PreferencesScreenState extends ConsumerState<PreferencesScreen> {
           Text('Appearance & accessibility',
               style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            value: _theme,
+            decoration: const InputDecoration(labelText: 'Theme'),
+            items: [
+              for (final e in _themes.entries)
+                DropdownMenuItem(value: e.key, child: Text(e.value)),
+            ],
+            onChanged: (v) => setState(() => _theme = v ?? 'dark'),
+          ),
+          const SizedBox(height: 10),
           DropdownButtonFormField<String>(
             value: _fontScale,
             decoration: const InputDecoration(labelText: 'Text size'),

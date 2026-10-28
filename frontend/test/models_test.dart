@@ -6,6 +6,7 @@ import 'package:boldron_app/features/projects/project_models.dart';
 import 'package:boldron_app/features/releases/releases_repository.dart';
 import 'package:boldron_app/features/support/support_repository.dart';
 import 'package:boldron_app/features/website/website_repository.dart';
+import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -32,6 +33,17 @@ void main() {
     expect(u.fullName, '');
     expect(u.organizations, isEmpty);
     expect(u.emailVerified, isFalse);
+    expect(u.theme, 'dark'); // defaults to the brand theme
+    expect(u.themeMode, ThemeMode.dark);
+  });
+
+  test('AuthUser maps theme to ThemeMode', () {
+    expect(AuthUser.fromJson({'id': 1, 'email': 'a@b.com', 'theme': 'light'})
+        .themeMode, ThemeMode.light);
+    expect(AuthUser.fromJson({'id': 1, 'email': 'a@b.com', 'theme': 'system'})
+        .themeMode, ThemeMode.system);
+    expect(AuthUser.fromJson({'id': 1, 'email': 'a@b.com', 'theme': 'dark'})
+        .themeMode, ThemeMode.dark);
   });
 
   test('Project and BuildStatus parse', () {

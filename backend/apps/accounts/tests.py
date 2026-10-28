@@ -686,3 +686,27 @@ class ProfileAndPrefsTests(TestCase):
         body = self.client.get(reverse("accounts:me"), **auth).json()
         for key in ("job_title", "pronouns", "bio", "font_scale", "reduce_motion"):
             self.assertIn(key, body)
+
+
+class ThemeApiTests(TestCase):
+    """The colour theme is exposed to and settable by the mobile client."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(email="tht@x.com", password="pw12345!")
+
+    def _auth(self):
+        from apps.accounts.api import issue_tokens
+        return {"HTTP_AUTHORIZATION": f"Bearer {issue_tokens(self.user)['access']}"}
+
+    def test_me_includes_theme(self):
+        body = self.client.get(reverse("accounts:me"), **self._auth()).json()
+        self.assertEqual(body["theme"], "dark")
+
+    def test_account_patch_sets_theme(self):
+        resp = self.client.patch(
+            reverse("accounts:account"), data={"theme": "light"},
+            content_type="application/json", **self._auth())
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()["theme"], "light")
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.theme, "light")

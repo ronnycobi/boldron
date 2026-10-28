@@ -1,6 +1,7 @@
 // Typed models for the authenticated user and the orgs they belong to.
 // These mirror the `user` payload the API returns from auth endpoints and
 // `me/` — parsing lives here, never in widgets (spec §33).
+import 'package:flutter/material.dart' show ThemeMode;
 
 class OrgSummary {
   final int id;
@@ -40,6 +41,7 @@ class AuthUser {
   final String bio;
   final String fontScale; // sm | md | lg | xl
   final bool reduceMotion;
+  final String theme; // dark | light | system
 
   const AuthUser({
     required this.id,
@@ -55,7 +57,14 @@ class AuthUser {
     this.bio = '',
     this.fontScale = 'md',
     this.reduceMotion = false,
+    this.theme = 'dark',
   });
+
+  ThemeMode get themeMode => theme == 'light'
+      ? ThemeMode.light
+      : theme == 'system'
+          ? ThemeMode.system
+          : ThemeMode.dark;
 
   /// Text-scale multiplier for the chosen size (mirrors the backend factors).
   double get fontScaleFactor => const {
@@ -82,5 +91,6 @@ class AuthUser {
         bio: (json['bio'] ?? '') as String,
         fontScale: (json['font_scale'] ?? 'md') as String,
         reduceMotion: (json['reduce_motion'] ?? false) as bool,
+        theme: (json['theme'] ?? 'dark') as String,
       );
 }

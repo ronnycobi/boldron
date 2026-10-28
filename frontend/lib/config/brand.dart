@@ -84,14 +84,11 @@ class PanelCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final card = DecoratedBox(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [AppTheme.panel, AppTheme.panel2],
-        ),
-        border: Border.all(color: AppTheme.line),
+        color: scheme.surface,
+        border: Border.all(color: scheme.outlineVariant),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Padding(padding: padding, child: child),
@@ -223,7 +220,8 @@ class BrandBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        const Positioned.fill(child: ColoredBox(color: AppTheme.bg)),
+        Positioned.fill(
+            child: ColoredBox(color: Theme.of(context).scaffoldBackgroundColor)),
         Positioned(
           top: -160,
           right: -120,

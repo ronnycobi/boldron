@@ -31,10 +31,11 @@ class BoldronApp extends ConsumerWidget {
     return MaterialApp.router(
       title: AppConfig.appName,
       debugShowCheckedModeBanner: false,
-      // Dark-first, matching the website — regardless of the system setting.
-      theme: AppTheme.dark(),
+      // Dark-first (matching the website); the signed-in user can switch to the
+      // real light theme or follow their device.
+      theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
-      themeMode: ThemeMode.dark,
+      themeMode: user?.themeMode ?? ThemeMode.dark,
       routerConfig: router,
       // Apply the signed-in user's accessibility preferences app-wide: text
       // size scales real text; reduce-motion disables implicit animations.
