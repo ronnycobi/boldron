@@ -3,11 +3,12 @@
 {% block crumb %}Home{% endblock %}
 {% block content %}
   <style>
-    .builder{max-width:760px;margin:24px auto 8px;text-align:center}
-    .builder h1{font-size:30px;letter-spacing:-.02em}
-    .builder .sub{margin:6px 0 22px}
+    .builder{max-width:720px;margin:12px auto 10px;text-align:center}
+    .builder .hi{color:var(--muted);font-size:14px;font-weight:600;margin-bottom:2px}
+    .builder h1{font-size:30px;letter-spacing:-.02em;margin:0}
+    .builder .sub{margin:6px 0 20px}
     .promptbox{position:relative;text-align:left}
-    .promptbox textarea{width:100%;min-height:120px;resize:vertical;font-size:15px;line-height:1.6;
+    .promptbox textarea{width:100%;min-height:112px;resize:vertical;font-size:15px;line-height:1.6;
       padding:16px 16px 56px;border-radius:16px;border:1px solid var(--line2);background:var(--panel2);color:var(--ink)}
     .promptbox .go{position:absolute;right:12px;bottom:12px;width:auto;padding:10px 20px;font-size:14px}
     .starters{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:16px 0 4px}
@@ -15,7 +16,6 @@
       border-radius:99px;padding:7px 15px;font-size:13px;font-weight:600;width:auto;cursor:pointer}
     .starters button:hover{color:#fff;border-color:var(--brand)}
     .starters .lbl{width:100%;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px}
-    .pcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
     .readystrip{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;
       font-size:12.5px;padding:7px 14px;border-radius:99px;margin:0 auto 16px;border:1px solid var(--line2)}
     .readystrip .dot{width:8px;height:8px;border-radius:99px;flex:none}
@@ -28,9 +28,40 @@
     .readystrip .recheck{width:auto;background:none;border:none;color:inherit;opacity:.8;
       text-decoration:underline;cursor:pointer;font-size:12px;padding:0 0 0 4px;font-weight:600}
     .readystrip .recheck:hover{opacity:1}
+
+    .home-grid{display:grid;grid-template-columns:1.9fr 1fr;gap:20px;margin-top:8px;align-items:start}
+    @media(max-width:1000px){.home-grid{grid-template-columns:1fr}}
+    .sec-h{display:flex;align-items:baseline;justify-content:space-between;margin:26px 0 12px}
+    .sec-h h2{margin:0}
+    .sec-h a{font-size:12.5px;font-weight:600}
+    .pcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+    .pcard{display:block;color:inherit;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px 16px;transition:border-color .15s,transform .15s}
+    .pcard:hover{border-color:var(--brandline);transform:translateY(-1px)}
+    .pcard .nm{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .ab{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);margin-bottom:8px}
+    .ab .nm{font-weight:600;min-width:0;flex:1}
+    .ab .nm .o{color:var(--muted);font-size:12px}
+    .ab .bar{width:120px;flex:none}
+    .railcard{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:16px}
+    .railcard h3{margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:700}
+    .u-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;font-size:13px}
+    .u-row .nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .u-row .pl{color:var(--muted);font-size:11.5px}
+    .u-bar{margin:6px 0 14px}
+    .alert{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)}
+    .alert:last-child{border-bottom:0}
+    .alert .ico{color:var(--wait);flex:none;margin-top:1px}
+    .alert .t{font-weight:600;font-size:13px}
+    .alert .d{color:var(--muted);font-size:12px}
+    .afeed .it{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
+    .afeed .it:last-child{border-bottom:0}
+    .afeed .dot{width:7px;height:7px;border-radius:99px;background:var(--grad);flex:none;margin-top:6px}
+    .afeed .when{color:var(--muted);font-size:11.5px}
+    .empty-soft{color:var(--muted);font-size:13px;padding:6px 0}
   </style>
 
-  <div class="builder">
+  <div class="builder" id="build">
+    <div class="hi">{{ greeting }}{% if request.user.short_name %}, {{ request.user.short_name }}{% endif %}</div>
     <h1>What do you want to build?</h1>
     <p class="sub">Describe it in your own words. {{ app_name }} turns your idea into working software.</p>
 
@@ -72,27 +103,92 @@
     </div>
   </div>
 
-  <h2>Your projects</h2>
-  {% if cards %}
-  <div class="pcards">
-    {% for c in cards %}
-    <a href="{% url 'dashboard:project' c.project.id %}" class="card" style="display:block;color:inherit">
-      <div style="font-weight:700">{{ c.project.name }}</div>
-      <div class="muted" style="font-size:12px;margin:2px 0 10px">{{ c.project.organization.name }}</div>
-      <span class="badge b-{{ c.state|lower }}">{{ c.state }}</span>
-      <div class="bar" style="margin-top:10px"><i style="width:{{ c.progress }}%"></i></div>
-    </a>
-    {% endfor %}
+  <div class="home-grid">
+    <div class="home-main">
+      <div class="sec-h"><h2>Recent projects</h2>{% if cards %}<a href="{% url 'dashboard:projects' %}">All projects →</a>{% endif %}</div>
+      {% if cards %}
+      <div class="pcards">
+        {% for c in cards|slice:":6" %}
+        <a href="{% url 'dashboard:project' c.project.id %}" class="pcard">
+          <div class="nm">{{ c.project.name }}</div>
+          <div class="muted" style="font-size:12px;margin:2px 0 10px">{{ c.project.organization.name }}</div>
+          <span class="badge b-{{ c.state|lower }}">{{ c.state }}</span>
+          <div class="bar" style="margin-top:10px"><i style="width:{{ c.progress }}%"></i></div>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="card"><p class="empty">No projects yet — describe one above and {{ app_name }} will build it.</p></div>
+      {% endif %}
+
+      {% if active_builds %}
+      <div class="sec-h"><h2>Active builds</h2></div>
+      {% for c in active_builds %}
+      <a class="ab" href="{% url 'dashboard:project' c.project.id %}">
+        <div class="nm">{{ c.project.name }} <span class="o">· {{ c.project.organization.name }}</span></div>
+        <span class="badge b-{{ c.state|lower }}">{{ c.state }}</span>
+        <div class="bar ab-bar"><i style="width:{{ c.progress }}%"></i></div>
+      </a>
+      {% endfor %}
+      {% endif %}
+    </div>
+
+    <aside class="home-rail">
+      {% if home_alerts %}
+      <div class="railcard">
+        <h3>Needs attention</h3>
+        {% for a in home_alerts %}
+        <div class="alert">
+          <span class="ico">⚠</span>
+          <div style="flex:1">
+            <div class="t">{{ a.title }}</div>
+            <div class="d">{{ a.detail }}</div>
+          </div>
+          {% if a.route %}<a href="{% url a.route %}" style="font-size:12px;font-weight:600">Fix</a>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if usage %}
+      <div class="railcard">
+        <h3>Usage</h3>
+        {% for o in usage %}
+        <div class="u-row">
+          <span class="nm">{{ o.name }}</span>
+          <span class="pl">{% if o.plan %}{{ o.plan|title }}{% endif %}{% if o.credits_pct is not None %} · {{ o.credits_pct }}%{% endif %}</span>
+        </div>
+        {% if o.credits_pct is not None %}<div class="bar u-bar"><i style="width:{{ o.credits_pct }}%"></i></div>{% else %}<div style="margin-bottom:12px"></div>{% endif %}
+        {% endfor %}
+        <a href="{% url 'dashboard:usage' %}" style="font-size:12.5px;font-weight:600">Full usage →</a>
+      </div>
+      {% endif %}
+
+      <div class="railcard">
+        <h3>Recent activity</h3>
+        {% if activity %}
+        <div class="afeed">
+          {% for e in activity %}
+          <div class="it">
+            <span class="dot"></span>
+            <div style="flex:1">
+              <div>{{ e.summary|default:e.action }}</div>
+              <div class="when">{{ e.actor|default:"system" }} · {{ e.created_at|slice:":10" }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-soft">No activity yet. It'll show here as you build.</p>
+        {% endif %}
+      </div>
+    </aside>
   </div>
-  {% else %}
-  <div class="card"><p class="empty">No projects yet — describe one above and {{ app_name }} will build it.</p></div>
-  {% endif %}
 
   {{ placeholders|json_script:"phs" }}
   <script>
     (function(){
       var ta = document.getElementById('brief');
-      // Rotating placeholder examples.
       try {
         var phs = JSON.parse(document.getElementById('phs').textContent);
         var i = 0;
@@ -101,7 +197,6 @@
           setInterval(function(){ if(!ta.value){ i=(i+1)%phs.length; ta.setAttribute('placeholder', phs[i]); } }, 3200);
         }
       } catch(e){}
-      // Starter chips insert a prompt to edit.
       document.querySelectorAll('.starters button').forEach(function(b){
         b.addEventListener('click', function(){ ta.value = b.dataset.prompt; ta.focus(); });
       });

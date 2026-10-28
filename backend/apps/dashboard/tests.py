@@ -1158,3 +1158,37 @@ class NavSearchAndReleasesTests(TestCase):
         self.assertIn("Advanced", html)
         self.assertIn("Search anything", html)
         self.assertIn("Mobile Releases", html)
+
+
+class HomeHierarchyTests(TestCase):
+    """The AI-first home surfaces the full information hierarchy, real data."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email="hh@x.com", password="pw12345678", full_name="Ada Lovelace")
+        self.org = Organization.objects.create(name="HHOrg")
+        self.org.add_member(self.user, role=Role.OWNER)
+        self.client.force_login(self.user)
+
+    def test_home_shows_greeting_and_rail_sections(self):
+        html = self.client.get(reverse("dashboard:home")).content.decode()
+        self.assertIn("Good ", html)          # time-of-day greeting
+        self.assertIn("Ada", html)            # personalised
+        self.assertIn("Recent projects", html)
+        self.assertIn("Recent activity", html)
+
+    def test_low_credits_surfaces_as_home_alert(self):
+        from apps.credits.services import ensure_account
+        acct = ensure_account(self.org, plan="free")
+        acct.balance = 20  # < 15% of the free allowance
+        acct.save(update_fields=["balance"])
+        html = self.client.get(reverse("dashboard:home")).content.decode()
+        self.assertIn("Needs attention", html)
+        self.assertIn("AI credits are low", html)
+
+    def test_active_build_section_appears_with_a_running_project(self):
+        from apps.orchestrator.models import AgentTask
+        p = Project.objects.create(organization=self.org, name="Live App")
+        AgentTask.objects.create(project=p, agent_key="backend", status="running")
+        html = self.client.get(reverse("dashboard:home")).content.decode()
+        self.assertIn("Live App", html)

@@ -275,9 +275,38 @@ def overview(request):
         {"project": p, "state": _project_state(p), "progress": _project_progress(p)}
         for p in projects[:12]
     ]
+
+    # Active builds — projects still in progress (reuses the real build state).
+    _ACTIVE = {"planning", "building", "running", "analyzing", "deploying", "implementing"}
+    active_builds = [c for c in cards if (c["state"] or "").lower() in _ACTIVE][:4]
+
+    # Usage overview + actionable alerts (reuse the settings service — one source).
+    from apps.settings import service as _settings
+    usage = _settings.organization_status(user)
+    alerts = _settings.alerts_for(user)
+
+    # Recent activity across the user's organizations (real audit events).
+    from apps.audit.models import AuditEvent
+    from apps.audit.service import event_dict
+    activity = [event_dict(e) for e in (
+        AuditEvent.objects.filter(organization__in=orgs)
+        .select_related("actor")[:8]
+    )]
+
+    # Time-of-day greeting in the user's timezone.
+    from django.utils import timezone as _tz
+    hour = _tz.localtime().hour
+    greeting = ("Good morning" if hour < 12 else
+                "Good afternoon" if hour < 18 else "Good evening")
+
     from apps.ai_providers.registry import build_readiness
     return render(request, "dashboard/home.html", {
         "active": "overview", "cards": cards,
+        "greeting": greeting,
+        "active_builds": active_builds,
+        "usage": usage,
+        "home_alerts": alerts,
+        "activity": activity,
         "starters": _STARTERS, "placeholders": _PLACEHOLDERS,
         "prefill": request.session.pop("build_idea", ""),  # carried from marketing signup
         "readiness": build_readiness(probe=False),  # cached-only: keeps the page instant
