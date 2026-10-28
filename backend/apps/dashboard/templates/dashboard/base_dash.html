@@ -1,6 +1,18 @@
 {% load static %}<!doctype html>
-<html lang="en">
+<html lang="en"{% if request.user.is_authenticated and request.user.theme != 'system' %} data-theme="{{ request.user.theme|default:'dark' }}"{% endif %}>
 <head>
+  <script>
+    // Resolve theme before paint (no flash). Server sets data-theme for an
+    // explicit dark/light choice; otherwise (system / signed-out) fall back to
+    // a saved preference, then the OS setting.
+    (function(){
+      var h=document.documentElement;
+      if(h.hasAttribute('data-theme')) return;
+      var t=null; try{ t=localStorage.getItem('theme'); }catch(e){}
+      if(t==='light'||t==='dark'){ h.setAttribute('data-theme',t); return; }
+      try{ h.setAttribute('data-theme', (window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark'); }catch(e){ h.setAttribute('data-theme','dark'); }
+    })();
+  </script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ app_name }}{% endblock %}</title>
@@ -15,7 +27,26 @@
       --ok:#34d399; --okbg:rgba(52,211,153,.14); --fail:#f87171; --failbg:rgba(248,113,113,.14);
       --run:#60a5fa; --runbg:rgba(96,165,250,.14); --wait:#fbbf24; --waitbg:rgba(251,191,36,.14);
       --idle:#8a93ad; --idlebg:rgba(138,147,173,.12);
+      --topbar:rgba(10,14,26,.78); --optbg:#0f1626;
       --sb:248px; --radius:14px;
+    }
+    /* Light theme — a real palette, applied via data-theme on <html>. */
+    :root[data-theme="light"]{
+      --bg:#f7f9fd; --bg2:#eef2fb; --sidebar:#ffffff; --sidebar2:#f4f7fd;
+      --panel:#ffffff; --panel2:#f3f6fd; --line:#e6ebf5; --line2:#d6deed;
+      --ink:#151d2f; --ink2:#3c4761; --muted:#697590; --muted2:#8b96ad;
+      --brand:#4a69e0; --brand2:#8a5cf0; --grad:linear-gradient(135deg,#4a69e0,#8a5cf0);
+      --brandsoft:rgba(74,105,224,.12); --brandline:rgba(74,105,224,.42);
+      --ok:#0f9d6e; --okbg:rgba(16,157,110,.12); --fail:#d83a3a; --failbg:rgba(216,58,58,.1);
+      --run:#2d6fe0; --runbg:rgba(45,111,224,.1); --wait:#b07d08; --waitbg:rgba(176,125,8,.12);
+      --idle:#6a7690; --idlebg:rgba(106,118,144,.12);
+      --topbar:rgba(255,255,255,.82); --optbg:#ffffff;
+    }
+    :root[data-theme="light"] body{
+      background:
+        radial-gradient(1100px 500px at 85% -10%, rgba(138,92,240,.06), transparent 60%),
+        radial-gradient(900px 500px at -10% 0%, rgba(74,105,224,.07), transparent 55%),
+        var(--bg);
     }
     *{box-sizing:border-box}
     html,body{margin:0}
@@ -70,7 +101,7 @@
       border:1px solid var(--line2);border-radius:6px;padding:1px 5px}
     .nav a:hover{background:var(--panel2);color:var(--ink)}
     .nav a:hover svg{opacity:1}
-    .nav a.on{background:var(--brandsoft);color:#fff}
+    .nav a.on{background:var(--brandsoft);color:var(--ink)}
     .nav a.on svg{opacity:1;stroke:var(--brand)}
     .nav a.on::before{content:"";position:absolute;left:-12px;top:7px;bottom:7px;width:3px;
       border-radius:0 3px 3px 0;background:var(--grad)}
@@ -96,7 +127,7 @@
     /* ---------- Main / Topbar ---------- */
     .main{flex:1;min-width:0;display:flex;flex-direction:column}
     .topbar{display:flex;align-items:center;gap:14px;padding:12px 24px;
-      border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(10,14,26,.78);
+      border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--topbar);
       backdrop-filter:blur(12px);z-index:20}
     .hamb{display:none;background:transparent;border:1px solid var(--line2);color:var(--ink2);
       width:36px;height:36px;border-radius:9px;cursor:pointer;align-items:center;justify-content:center;padding:0;flex:none}
@@ -113,6 +144,9 @@
       width:36px;height:36px;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
     .iconbtn:hover{background:var(--panel2);color:var(--ink);border-color:var(--line2)}
     .iconbtn svg{width:18px;height:18px;stroke:currentColor}
+    .themetoggle .ic-moon{display:none}
+    :root[data-theme="light"] .themetoggle .ic-sun{display:none}
+    :root[data-theme="light"] .themetoggle .ic-moon{display:block}
     .orgswitch{position:relative}
     .orgbtn{display:flex;align-items:center;gap:8px;background:transparent;border:1px solid var(--line2);
       border-radius:9px;padding:6px 10px;cursor:pointer;color:var(--ink);font-size:13px;font-weight:600;max-width:200px}
@@ -174,7 +208,7 @@
     select{-webkit-appearance:none;-moz-appearance:none;appearance:none;cursor:pointer;padding-right:34px;
       background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%2378839f' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
       background-repeat:no-repeat;background-position:right 12px center;background-size:12px}
-    select option{background:#0f1626;color:var(--ink)}
+    select option{background:var(--optbg);color:var(--ink)}
     input::placeholder,textarea::placeholder{color:var(--muted)}
     label{display:block;font-size:11.5px;color:var(--muted);margin:8px 0 3px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
     button,.btn{background:var(--grad);color:#fff;border:0;border-radius:10px;padding:10px 15px;font-weight:700;cursor:pointer}
@@ -201,7 +235,7 @@
     .cmdk-item{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;cursor:pointer;color:var(--ink2)}
     .cmdk-item .ci{width:16px;height:16px;flex:none;color:var(--muted)}
     .cmdk-item .cm{margin-left:auto;font-size:11px;color:var(--muted)}
-    .cmdk-item.sel,.cmdk-item:hover{background:var(--brandsoft);color:#fff}
+    .cmdk-item.sel,.cmdk-item:hover{background:var(--brandsoft);color:var(--ink)}
     .cmdk-empty{padding:26px;text-align:center;color:var(--muted);font-size:13px}
 
     /* ---------- Responsive ---------- */
@@ -264,6 +298,10 @@
         <span class="kbd"><span>⌘</span><span>K</span></span>
       </button>
       <div class="tb-right">
+        <button class="iconbtn themetoggle" type="button" onclick="toggleTheme()" aria-label="Toggle light or dark theme" title="Toggle theme">
+          <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4 12H2m20 0h-2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19" stroke-linecap="round"/></svg>
+          <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M20 14.5A8 8 0 019.5 4 7 7 0 1020 14.5z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
         <a class="iconbtn" href="{% url 'support:mine' %}" aria-label="Help &amp; support" title="Help &amp; support">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.2 9a2.8 2.8 0 015.6.3c0 1.8-2.7 2-2.7 3.7" stroke-linecap="round"/><circle cx="12" cy="17" r=".6" fill="currentColor" stroke="none"/></svg>
         </a>
@@ -329,6 +367,16 @@
   function toggleSidebar(){
     var c=document.body.classList.toggle('sb-collapsed');
     try{ localStorage.setItem('sb-collapsed', c?'1':'0'); }catch(e){}
+  }
+  var THEME_URL="{% url 'dashboard:set_theme' %}";
+  function toggleTheme(){
+    var h=document.documentElement;
+    var next=(h.getAttribute('data-theme')==='light')?'dark':'light';
+    h.setAttribute('data-theme', next);
+    try{ localStorage.setItem('theme', next); }catch(e){}
+    // Persist to the account (best-effort; the UI already updated).
+    var tok=(document.querySelector('[name=csrfmiddlewaretoken]')||{}).value;
+    fetch(THEME_URL, {method:'POST', headers:{'X-CSRFToken':tok||'','Content-Type':'application/x-www-form-urlencoded'}, body:'theme='+next}).catch(function(){});
   }
   // Close any open topbar menu on outside click.
   document.addEventListener('click', function(e){

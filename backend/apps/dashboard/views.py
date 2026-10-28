@@ -2230,6 +2230,21 @@ def project_repository(request, pk):
 
 
 @login_required
+def set_theme(request):
+    """Persist the user's colour-theme choice (dark / light / system)."""
+    from django.http import HttpResponse
+    from apps.accounts.models import User
+
+    if request.method != "POST":
+        return HttpResponse(status=405)
+    theme = (request.POST.get("theme") or "").strip()
+    if theme in dict(User.THEME_CHOICES):
+        request.user.theme = theme
+        request.user.save(update_fields=["theme"])
+    return HttpResponse(status=204)
+
+
+@login_required
 def releases(request):
     """Global Mobile Releases hub: the user's projects, each linking to its
     release center (reuses the per-project release workflow — no new backend)."""
@@ -2422,7 +2437,9 @@ def settings_page(request):
             scale = (request.POST.get("font_scale") or "").strip()
             u.font_scale = scale if scale in dict(_User.FONT_SCALES) else _User.FONT_MD
             u.reduce_motion = request.POST.get("reduce_motion") == "on"
-            u.save(update_fields=["language", "timezone", "font_scale", "reduce_motion"])
+            theme = (request.POST.get("theme") or "").strip()
+            u.theme = theme if theme in dict(_User.THEME_CHOICES) else _User.THEME_DARK
+            u.save(update_fields=["language", "timezone", "font_scale", "reduce_motion", "theme"])
             messages.success(request, "Preferences saved.")
             return redirect(f"{reverse('dashboard:settings')}?tab=preferences")
 
@@ -2500,6 +2517,7 @@ def settings_page(request):
         "pref_language": request.user.language, "pref_timezone": request.user.timezone,
         "font_scales": _User.FONT_SCALES, "pref_font_scale": request.user.font_scale,
         "pref_reduce_motion": request.user.reduce_motion,
+        "themes": _User.THEME_CHOICES, "pref_theme": request.user.theme,
     })
 
 

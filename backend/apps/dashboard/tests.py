@@ -1192,3 +1192,42 @@ class HomeHierarchyTests(TestCase):
         AgentTask.objects.create(project=p, agent_key="backend", status="running")
         html = self.client.get(reverse("dashboard:home")).content.decode()
         self.assertIn("Live App", html)
+
+
+class ThemeTests(TestCase):
+    """The real light/dark theme: persisted, applied server-side (no flash)."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(email="th@x.com", password="pw12345678")
+        self.client.force_login(self.user)
+
+    def test_default_is_dark_applied_on_html(self):
+        html = self.client.get(reverse("dashboard:home")).content.decode()
+        self.assertIn('data-theme="dark"', html)
+
+    def test_set_theme_persists_and_applies(self):
+        r = self.client.post(reverse("dashboard:set_theme"), {"theme": "light"})
+        self.assertEqual(r.status_code, 204)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.theme, "light")
+        html = self.client.get(reverse("dashboard:home")).content.decode()
+        self.assertIn('data-theme="light"', html)
+
+    def test_set_theme_rejects_unknown(self):
+        self.client.post(reverse("dashboard:set_theme"), {"theme": "neon"})
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.theme, "dark")  # unchanged
+
+    def test_system_theme_omits_server_attr(self):
+        self.user.theme = "system"
+        self.user.save(update_fields=["theme"])
+        html = self.client.get(reverse("dashboard:home")).content.decode()
+        # 'system' leaves it to the pre-paint script (OS/localStorage), no SSR attr.
+        self.assertNotIn('data-theme="system"', html)
+
+    def test_appearance_setting_saves_theme(self):
+        self.client.post(reverse("dashboard:settings"), {
+            "action": "save_preferences", "theme": "light",
+        })
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.theme, "light")

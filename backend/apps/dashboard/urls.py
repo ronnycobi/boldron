@@ -8,6 +8,7 @@ app_name = "dashboard"
 urlpatterns = [
     path("", views.overview, name="home"),
     path("search/", views.search, name="search"),
+    path("set-theme/", views.set_theme, name="set_theme"),
     path("releases/", views.releases, name="releases"),
     path("projects/", views.projects, name="projects"),
     path("projects/<int:pk>/", views.project, name="project"),

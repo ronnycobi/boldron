@@ -99,6 +99,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     font_scale = models.CharField(max_length=2, choices=FONT_SCALES, default=FONT_MD)
     reduce_motion = models.BooleanField(default=False)
 
+    # Appearance: colour theme for the web workspace. Dark-first (the brand), with
+    # a real light theme the user can switch to; applied server-side so there's no
+    # flash. "system" follows the device's prefers-color-scheme.
+    THEME_DARK, THEME_LIGHT, THEME_SYSTEM = "dark", "light", "system"
+    THEME_CHOICES = [(THEME_DARK, "Dark"), (THEME_LIGHT, "Light"), (THEME_SYSTEM, "System")]
+    theme = models.CharField(max_length=8, choices=THEME_CHOICES, default=THEME_DARK)
+
     @property
     def font_scale_factor(self) -> float:
         return self.FONT_SCALE_FACTORS.get(self.font_scale, 1.0)
