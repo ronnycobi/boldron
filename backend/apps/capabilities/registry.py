@@ -50,7 +50,7 @@ _CATALOG = [
     Capability("email", "Email", "Application", AVAILABLE, "Transactional and notification email."),
     Capability("files", "File storage", "Application", AVAILABLE, "Private and public uploads, images, documents, with thumbnails."),
     Capability("sms", "SMS", "Application", PLANNED, "Text-message notifications."),
-    Capability("jobs", "Background jobs", "Application", PLANNED, "Async and scheduled work."),
+    Capability("jobs", "Background jobs", "Application", AVAILABLE, "Long-running work (reports, exports, batches) runs off-request with real queued/running/done status."),
     # Business
     Capability("crm", "CRM", "Business", AVAILABLE, "Contacts, leads, deals, activities."),
     Capability("payments", "Payments", "Business", AVAILABLE, "Checkout, manual/EFT payments and refunds today; card gateways (Stripe, PayFast) activate when connected."),

@@ -1319,3 +1319,25 @@ class AnalyticsSurfaceTests(TestCase):
                                currency="USD", slug="p")
         html = self.client.get(reverse("dashboard:analytics", args=[self.project.id])).content.decode()
         self.assertIn("Revenue &amp; orders", html)
+
+
+class JobsWebTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(email="jw@x.com", password="pw12345678")
+        self.org = Organization.objects.create(name="JobsWebOrg")
+        self.org.add_member(self.user, role=Role.OWNER)
+        self.project = Project.objects.create(
+            organization=self.org, name="App", capabilities=["auth", "database"])
+        self.client.force_login(self.user)
+
+    def test_run_job_from_page(self):
+        from apps.jobs.models import Job
+        self.client.post(reverse("dashboard:jobs", args=[self.project.id]),
+                         {"action": "run", "kind": "project_report"})
+        jobs = Job.objects.filter(project=self.project)
+        self.assertEqual(jobs.count(), 1)
+        self.assertEqual(jobs.first().status, "completed")  # ran inline in tests
+
+    def test_page_renders(self):
+        html = self.client.get(reverse("dashboard:jobs", args=[self.project.id])).content.decode()
+        self.assertIn("Background jobs", html)

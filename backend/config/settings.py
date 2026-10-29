@@ -174,6 +174,7 @@ INSTALLED_APPS = [
     "apps.settings",
     "apps.developer",
     "apps.files",
+    "apps.jobs",
 ]
 
 # --- Auth redirects (server-rendered dashboard UI) --------------------------

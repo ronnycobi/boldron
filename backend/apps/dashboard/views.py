@@ -1951,6 +1951,33 @@ def org_ai(request):
 
 
 @login_required
+def project_jobs(request, pk):
+    """Background jobs for a project (spec §20). Start a report, watch real
+    status (queued → running → done/failed), read the result. Status is never
+    faked — a job is 'completed' only when its handler actually finished."""
+    from apps.jobs import service as jobs_svc
+
+    proj = get_object_or_404(
+        Project.objects.filter(organization__in=organizations_for(request.user)), pk=pk)
+
+    if request.method == "POST" and request.POST.get("action") == "run":
+        kind = request.POST.get("kind", "")
+        try:
+            jobs_svc.enqueue(kind, organization=proj.organization, project=proj,
+                             created_by=request.user)
+            messages.success(request, "Job started — it runs in the background.")
+        except jobs_svc.JobError as exc:
+            messages.error(request, str(exc))
+        return redirect("dashboard:jobs", pk=pk)
+
+    jobs = list(proj.jobs.all()[:30])
+    return render(request, "dashboard/jobs.html", {
+        "active": "projects", "project": proj, "jobs": jobs,
+        "kinds": jobs_svc.kinds(),
+    })
+
+
+@login_required
 def project_payments(request, pk):
     """Payments surface (spec §24): connected providers (honest, env-gated), the
     transaction history, and a real money summary. Read-only; confirming and

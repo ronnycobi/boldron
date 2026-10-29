@@ -1,0 +1,46 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}Background jobs · {{ project.name }} · {{ app_name }}{% endblock %}
+{% block crumb %}<a href="{% url 'dashboard:project' project.id %}">{{ project.name }}</a> · Jobs{% endblock %}
+{% block content %}
+<h1>Background jobs</h1>
+<p class="sub">Long-running work runs here without blocking the app — reports, exports and batches. Status is real: a job is done only when it genuinely finished.</p>
+
+<div class="card" style="margin-bottom:18px">
+  <h2 style="margin-top:0">Start a job</h2>
+  <form method="post" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">{% csrf_token %}
+    <input type="hidden" name="action" value="run">
+    <div style="flex:1;min-width:200px">
+      <label>Job</label>
+      <select name="kind">{% for k in kinds %}<option value="{{ k.kind }}">{{ k.label }}</option>{% endfor %}</select>
+    </div>
+    <button class="btn" type="submit">Run</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">Recent jobs</h2>
+  {% if jobs %}
+  <table>
+    <tr><th>Job</th><th>Status</th><th>Progress</th><th>Started</th><th>Result</th></tr>
+    {% for j in jobs %}
+    <tr>
+      <td class="strong">{{ j.label }}</td>
+      <td><span class="badge b-{% if j.status == 'completed' %}completed{% elif j.status == 'failed' %}failed{% elif j.status == 'running' %}running{% else %}pending{% endif %}">{{ j.get_status_display }}</span></td>
+      <td>
+        <div class="bar" style="width:90px"><i style="width:{{ j.progress }}%"></i></div>
+      </td>
+      <td class="muted">{{ j.started_at|date:"M j, H:i"|default:"—" }}</td>
+      <td class="muted" style="max-width:280px">
+        {% if j.status == 'failed' %}<span style="color:var(--fail)">{{ j.error }}</span>
+        {% elif j.result %}<code style="font-size:11px">{{ j.result|truncatechars:80 }}</code>
+        {% else %}—{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  <p class="muted" style="font-size:12px;margin:10px 0 0">Reload to refresh running jobs.</p>
+  {% else %}
+  <p class="empty">No jobs yet — start one above.</p>
+  {% endif %}
+</div>
+{% endblock %}
