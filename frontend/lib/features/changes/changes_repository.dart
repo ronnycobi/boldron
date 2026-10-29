@@ -3,6 +3,53 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api_client.dart';
 import '../../core/providers.dart';
 
+/// A surface a change touches (e.g. "Mobile apps") with a plain-language detail.
+class ChangeSurface {
+  final String name;
+  final String detail;
+  const ChangeSurface({required this.name, required this.detail});
+
+  factory ChangeSurface.fromJson(Map<String, dynamic> j) => ChangeSurface(
+        name: (j['name'] ?? '') as String,
+        detail: (j['detail'] ?? '') as String,
+      );
+}
+
+/// The customer-facing impact view for a change (spec §6/§19): what it touches and
+/// the tests it requires before shipping.
+class ChangeImpact {
+  final String summary;
+  final List<ChangeSurface> surfaces;
+  final List<String> requiredTests;
+  final int testsRequired;
+  final String riskLabel;
+  final bool requiresApproval;
+
+  const ChangeImpact({
+    required this.summary,
+    required this.surfaces,
+    required this.requiredTests,
+    required this.testsRequired,
+    required this.riskLabel,
+    required this.requiresApproval,
+  });
+
+  bool get isEmpty => surfaces.isEmpty && requiredTests.isEmpty;
+
+  factory ChangeImpact.fromJson(Map<String, dynamic> j) => ChangeImpact(
+        summary: (j['summary'] ?? '') as String,
+        surfaces: ((j['surfaces'] as List?) ?? [])
+            .map((s) => ChangeSurface.fromJson(s as Map<String, dynamic>))
+            .toList(),
+        requiredTests: ((j['required_tests'] as List?) ?? [])
+            .map((e) => e.toString())
+            .toList(),
+        testsRequired: (j['tests_required'] ?? 0) as int,
+        riskLabel: (j['risk_label'] ?? '') as String,
+        requiresApproval: (j['requires_approval'] ?? false) as bool,
+      );
+}
+
 class ChangeRequest {
   final int id;
   final int project;
@@ -14,6 +61,7 @@ class ChangeRequest {
   final bool requiresApproval;
   final bool approved;
   final String risk;
+  final ChangeImpact? impact;
   final bool canRollback;
 
   const ChangeRequest({
@@ -27,6 +75,7 @@ class ChangeRequest {
     required this.requiresApproval,
     required this.approved,
     required this.risk,
+    required this.impact,
     required this.canRollback,
   });
 
@@ -41,6 +90,9 @@ class ChangeRequest {
         requiresApproval: (j['requires_approval'] ?? false) as bool,
         approved: (j['approved'] ?? false) as bool,
         risk: (j['risk'] ?? '') as String,
+        impact: j['impact'] is Map
+            ? ChangeImpact.fromJson((j['impact'] as Map).cast<String, dynamic>())
+            : null,
         canRollback: (j['can_rollback'] ?? false) as bool,
       );
 }

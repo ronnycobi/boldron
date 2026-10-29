@@ -132,6 +132,10 @@ class ChangeDetailScreen extends ConsumerWidget {
               if (c.requiresApproval)
                 Chip(label: Text(c.approved ? 'Approved' : 'Needs approval')),
             ]),
+            if (c.impact != null && !c.impact!.isEmpty) ...[
+              const SizedBox(height: 16),
+              _ImpactCard(impact: c.impact!),
+            ],
             if (c.plan['summary'] != null) ...[
               const SizedBox(height: 16),
               Text('Plan', style: Theme.of(context).textTheme.titleSmall),
@@ -158,6 +162,99 @@ class ChangeDetailScreen extends ConsumerWidget {
       return 'About ${credits[0]}–${credits[1]} AI credits.';
     }
     return e.toString();
+  }
+}
+
+/// The §19 "proposed change" preview: what the change touches and the tests it
+/// requires before shipping. Data comes from the shared backend impact engine —
+/// the same one the web console renders.
+class _ImpactCard extends StatelessWidget {
+  final ChangeImpact impact;
+  const _ImpactCard({required this.impact});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      color: scheme.surfaceVariant,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text('Proposed change',
+                      style: Theme.of(context).textTheme.titleMedium),
+                ),
+                if (impact.riskLabel.isNotEmpty)
+                  Chip(
+                    label: Text('${impact.riskLabel} impact'),
+                    visualDensity: VisualDensity.compact,
+                  ),
+              ],
+            ),
+            Text('${impact.testsRequired} test'
+                '${impact.testsRequired == 1 ? '' : 's'} required before it ships',
+                style: Theme.of(context).textTheme.bodySmall),
+            if (impact.summary.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(impact.summary),
+            ],
+            if (impact.surfaces.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text('This will touch',
+                  style: Theme.of(context).textTheme.labelMedium),
+              const SizedBox(height: 4),
+              for (final s in impact.surfaces)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.check, size: 16, color: scheme.primary),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        width: 96,
+                        child: Text(s.name,
+                            style: const TextStyle(fontWeight: FontWeight.w600)),
+                      ),
+                      Expanded(
+                        child: Text(s.detail,
+                            style: Theme.of(context).textTheme.bodySmall),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+            if (impact.requiredTests.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text('Tests that must pass before it ships',
+                  style: Theme.of(context).textTheme.labelMedium),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final t in impact.requiredTests)
+                    Chip(
+                      label: Text(t),
+                      visualDensity: VisualDensity.compact,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                ],
+              ),
+            ],
+            if (impact.requiresApproval) ...[
+              const SizedBox(height: 10),
+              Text('This change needs your approval before it is implemented.',
+                  style: Theme.of(context).textTheme.bodySmall),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }
 
