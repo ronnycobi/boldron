@@ -76,10 +76,11 @@ _CATALOG = [
                "the real email engine, with honest per-recipient sent/failed results."),
     # Infrastructure
     Capability("hosting", "Hosting", "Infrastructure", AVAILABLE, "Preview and deploy your app."),
-    Capability("mobile_publishing", "App store publishing", "Infrastructure", AVAILABLE,
+    Capability("mobile_publishing", "App store publishing", "Infrastructure", PLANNED,
                "Prepare mobile releases for Google Play, App Store and AppGallery — store listing, "
-               "screenshots, signing references, readiness checks and approvals. Live submission "
-               "activates when you connect your store credentials; nothing is submitted without them."),
+               "screenshots, signing references, readiness checks and approvals are built. Live "
+               "submission stays gated on your store credentials, and nothing is submitted without "
+               "them, so the capability is not offered as live until a store is connected."),
     Capability("domains", "Custom domains", "Infrastructure", AVAILABLE,
                "Connect your own domain and verify ownership with real DNS checks; the verified "
                "domain serves your site. Automatic SSL activates once the domain is routed to live hosting."),
@@ -95,11 +96,16 @@ _CATALOG = [
     Capability("ai", "AI features", "Growth", PLANNED, "Chatbots and document Q&A in your app."),
     # Integrations
     Capability("git", "GitHub / GitLab", "Integrations", AVAILABLE, "Import and connect repositories."),
-    Capability("google", "Google Workspace", "Integrations", PLANNED, "Sign-in and data."),
-    Capability("slack", "Slack", "Integrations", PLANNED, "Notifications and actions."),
-    Capability("whatsapp", "WhatsApp", "Integrations", PLANNED, "Messaging."),
-    Capability("stripe", "Stripe", "Integrations", PLANNED, "Card payments."),
-    Capability("payfast", "PayFast", "Integrations", PLANNED, "South African payments."),
+    Capability("google", "Google Workspace", "Integrations", PLANNED,
+               "Google sign-in (SSO) and data. Adapter built and gated; activates when you connect Google credentials."),
+    Capability("slack", "Slack", "Integrations", PLANNED,
+               "Notifications and actions. Connector built and gated; activates when a Slack bot token is connected."),
+    Capability("whatsapp", "WhatsApp", "Integrations", PLANNED,
+               "Messaging via the WhatsApp Business API. Connector built and gated; activates when a token is connected."),
+    Capability("stripe", "Stripe", "Integrations", PLANNED,
+               "Card payments. Gateway adapter built and gated; activates when Stripe keys are connected — no charge is ever faked."),
+    Capability("payfast", "PayFast", "Integrations", PLANNED,
+               "South African payments. Gateway adapter built and gated; activates when PayFast keys are connected."),
 ]
 
 _BY_ID = {c.id: c for c in _CATALOG}

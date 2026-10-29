@@ -85,7 +85,26 @@ class PostgresConnector(Connector):
     actions = frozenset({"query"})
 
 
-_CONNECTORS = [GitHubConnector(), SlackConnector(), PostgresConnector()]
+class GoogleConnector(Connector):
+    name = "connector.google"
+    key = "google"
+    provider = "Google Workspace"
+    description = "Google Workspace sign-in (SSO) and data access."
+    env_var = "GOOGLE_OAUTH_CLIENT_ID"
+    actions = frozenset({"sso.signin", "profile.read"})
+
+
+class WhatsAppConnector(Connector):
+    name = "connector.whatsapp"
+    key = "whatsapp"
+    provider = "WhatsApp"
+    description = "Send WhatsApp messages via the WhatsApp Business API."
+    env_var = "WHATSAPP_TOKEN"
+    actions = frozenset({"message.send"})
+
+
+_CONNECTORS = [GitHubConnector(), SlackConnector(), PostgresConnector(),
+               GoogleConnector(), WhatsAppConnector()]
 
 for _c in _CONNECTORS:
     if _c.name not in registry:

@@ -41,6 +41,15 @@ class SettingsOverviewView(APIView):
         })
 
 
+class IntegrationStatusView(APIView):
+    """The honest inventory of external integrations (connectors, payment gateways,
+    SMS gateways) and their REAL env-gated connection state. Never the secret value."""
+
+    def get(self, request):
+        from apps.settings.connections import integration_status
+        return Response(integration_status())
+
+
 class SettingsSearchView(APIView):
     """Search settings sections across all scopes (?q=). Web route names are
     stripped — mobile navigates by scope+key."""

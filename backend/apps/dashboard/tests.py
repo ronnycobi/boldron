@@ -1249,16 +1249,15 @@ class CapabilityEngineWebTests(TestCase):
         d = r.json()
         self.assertGreater(d["available_count"], 0)
         self.assertIn("SMS", d["planned_names"])           # coming, not faked
-        self.assertIn("Subscriptions", d["planned_names"])
 
     def test_project_page_shows_capability_map(self):
         p = Project.objects.create(
             organization=self.org, name="Shop",
-            capabilities=["auth", "database", "ecommerce", "subscriptions", "email"])
+            capabilities=["auth", "database", "ecommerce", "sms", "email"])
         html = self.client.get(reverse("dashboard:project", args=[p.id])).content.decode()
         self.assertIn("What this app includes", html)
         self.assertIn("E-commerce", html)
-        self.assertIn("COMING", html)  # subscriptions shown honestly as coming
+        self.assertIn("COMING", html)  # SMS shown honestly as coming
 
 
 class PaymentsSurfaceTests(TestCase):

@@ -12,13 +12,13 @@ class RegistryTests(SimpleTestCase):
 
     def test_planned_capabilities_are_not_marked_available(self):
         # The guardrail: things we don't offer yet must be PLANNED.
-        for cid in ("sms", "stripe", "whatsapp", "slack"):
+        for cid in ("sms", "stripe", "whatsapp", "slack", "mobile_publishing"):
             self.assertEqual(get(cid).status, PLANNED, cid)
 
     def test_real_capabilities_are_available(self):
         for cid in ("auth", "database", "email", "security", "audit", "export",
                     "git", "backups", "files", "payments", "analytics", "invoicing",
-                    "tax", "monitoring", "domains", "mobile_publishing", "subscriptions",
+                    "tax", "monitoring", "domains", "subscriptions",
                     "currency", "campaigns"):
             self.assertEqual(get(cid).status, AVAILABLE, cid)
 
