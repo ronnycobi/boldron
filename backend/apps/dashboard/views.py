@@ -2377,6 +2377,37 @@ def set_theme(request):
 
 
 @login_required
+def project_tests(request, pk):
+    """A project's test runs (spec §8): real history + latest status + the tests the
+    latest change requires. Members view; owners/admins can run the suite."""
+    from apps.testing import runner
+    proj = get_object_or_404(
+        Project.objects.filter(organization__in=organizations_for(request.user)), pk=pk)
+    can_manage = proj.organization_id in _manageable_ids(request.user)
+
+    if request.method == "POST":
+        if not can_manage:
+            messages.error(request, "Owner or admin rights required.")
+            return redirect("dashboard:project_tests", pk=pk)
+        run = runner.run_project_tests(proj, trigger="manual", user=request.user)
+        messages.success(request, f"Test run finished: {run.get_status_display().lower()} — {run.summary}")
+        return redirect("dashboard:project_tests", pk=pk)
+
+    required = []
+    change = proj.changes.exclude(plan={}).first()
+    if change is not None:
+        from apps.changes.impact import analyze_impact
+        required = analyze_impact(change).get("required_tests", [])
+    return render(request, "dashboard/project_tests.html", {
+        "active": "projects", "project": proj, "can_manage": can_manage,
+        "green": runner.tests_green(proj),
+        "latest": runner.latest_run(proj),
+        "required_tests": required,
+        "runs": proj.test_runs.all()[:25],
+    })
+
+
+@login_required
 def project_intelligence(request, pk):
     """The project's structured intelligence (spec §14): the knowledge the platform
     keeps about this app — requirements, data, APIs, UI, mobile, capabilities,

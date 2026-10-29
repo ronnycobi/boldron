@@ -9,14 +9,16 @@ _SKIP_EXT = (".png", ".jpg", ".jpeg", ".gif", ".ico", ".pdf", ".zip", ".woff", "
 
 
 def run_tests(project, config) -> tuple[str, str]:
-    from apps.codegen.service import run_repo_tests
-    r = run_repo_tests(project)
-    passed = r.get("passed")
-    if passed is None:
-        return "skip", r.get("note", "nothing to test")
-    if passed:
-        return "pass", f"{r.get('ran', 0)} test(s) passed"
-    return "fail", f"{r.get('failures', 0)} failure(s), {r.get('errors', 0)} error(s)"
+    # Run through the ledger so every pre-deploy test run is recorded with its real
+    # outcome (apps.testing.runner reuses the same sandbox executor).
+    from apps.testing.models import TestRunStatus
+    from apps.testing.runner import run_project_tests
+    run = run_project_tests(project, trigger="pre_deploy")
+    if run.status == TestRunStatus.SKIPPED:
+        return "skip", run.summary
+    if run.status == TestRunStatus.PASSED:
+        return "pass", run.summary
+    return "fail", run.summary   # FAILED or ERROR both block the deploy
 
 
 def security_scan(project, config) -> tuple[str, str]:

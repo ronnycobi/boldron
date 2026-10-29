@@ -1,0 +1,55 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}{{ project.name }} · Tests · {{ app_name }}{% endblock %}
+{% block crumb %}Build / Projects / {{ project.name }} / Tests{% endblock %}
+{% block content %}
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+    <h1>Tests
+      {% if latest %}
+        <span class="badge b-{% if latest.status == 'passed' %}completed{% elif latest.status == 'failed' or latest.status == 'error' %}failed{% else %}waiting_for_approval{% endif %}" style="font-size:12px;vertical-align:middle">{{ latest.get_status_display }}</span>
+      {% endif %}
+    </h1>
+    <div style="display:flex;gap:8px">
+      {% if can_manage %}
+      <form method="post">{% csrf_token %}<button class="btn" type="submit">▶ Run tests</button></form>
+      {% endif %}
+      <a class="btn ghost" href="{% url 'dashboard:project' project.id %}">← {{ project.name }}</a>
+    </div>
+  </div>
+  <p class="sub">Real test runs for <strong>{{ project.name }}</strong>. {{ app_name }} runs the app's suite in an isolated sandbox and records the genuine result — a run with nothing to execute is shown as skipped, never a fake pass. Production deploys are gated on tests actually passing.</p>
+
+  <div class="card" style="margin-bottom:4px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="width:10px;height:10px;border-radius:99px;background:{% if green %}var(--ok){% else %}var(--muted){% endif %}"></span>
+      <strong>{% if green %}Tests are passing{% else %}Not currently passing{% endif %}</strong>
+      {% if latest %}<span class="muted" style="margin-left:auto;font-size:12.5px">{{ latest.summary }} · {{ latest.created_at|date:"M j, H:i" }}</span>{% endif %}
+    </div>
+    {% if not green %}
+    <p class="muted" style="font-size:12.5px;margin:8px 0 0">A production deploy is blocked until the suite genuinely passes.</p>
+    {% endif %}
+  </div>
+
+  {% if required_tests %}
+  <div class="card">
+    <h2 style="margin-top:0">Tests your latest change requires</h2>
+    <p class="muted" style="font-size:13px;margin:-4px 0 10px">Derived from the change's impact — these should all pass before it ships.</p>
+    <div>{% for t in required_tests %}<span class="chip">{{ t }}</span>{% endfor %}</div>
+  </div>
+  {% endif %}
+
+  <h2>Run history</h2>
+  <div class="card">
+    {% if runs %}
+    <table>
+      <tr><th>When</th><th>Trigger</th><th>Result</th><th>Detail</th></tr>
+      {% for r in runs %}
+      <tr>
+        <td class="muted">{{ r.created_at|date:"M j, H:i" }}</td>
+        <td class="muted" style="text-transform:capitalize">{{ r.get_trigger_display }}</td>
+        <td><span class="badge b-{% if r.status == 'passed' %}completed{% elif r.status == 'failed' or r.status == 'error' %}failed{% else %}waiting_for_approval{% endif %}">{{ r.get_status_display }}</span></td>
+        <td class="muted">{{ r.summary }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}<p class="empty" style="margin:0">No test runs yet.{% if can_manage %} Run the suite above.{% endif %}</p>{% endif %}
+  </div>
+{% endblock %}

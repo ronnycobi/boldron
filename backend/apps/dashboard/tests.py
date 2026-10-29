@@ -1263,6 +1263,13 @@ class CapabilityEngineWebTests(TestCase):
         html = self.client.get(reverse("dashboard:mobile_plan")).content.decode()
         self.assertNotIn("Your mobile app plan", html)
 
+    def test_project_tests_page_renders(self):
+        p = Project.objects.create(organization=self.org, name="QAApp")
+        html = self.client.get(
+            reverse("dashboard:project_tests", args=[p.id])).content.decode()
+        self.assertIn("Tests", html)
+        self.assertIn("No test runs yet", html)
+
     def test_project_intelligence_page_renders(self):
         p = Project.objects.create(
             organization=self.org, name="IntelApp", description="an online store",
