@@ -18,7 +18,7 @@ class RegistryTests(SimpleTestCase):
     def test_real_capabilities_are_available(self):
         for cid in ("auth", "database", "email", "security", "audit", "export",
                     "git", "backups", "files", "payments", "analytics", "invoicing",
-                    "tax", "monitoring"):
+                    "tax", "monitoring", "domains"):
             self.assertEqual(get(cid).status, AVAILABLE, cid)
 
     def test_grouped(self):
@@ -100,3 +100,7 @@ class InferenceCoverageTests(_TC):
     def test_uptime_brief_infers_monitoring(self):
         from apps.capabilities.analysis import capability_ids
         self.assertIn("monitoring", capability_ids("a status page that tracks uptime and incidents"))
+
+    def test_custom_domain_brief_infers_domains(self):
+        from apps.capabilities.analysis import capability_ids
+        self.assertIn("domains", capability_ids("I want to use my own custom domain with SSL"))
