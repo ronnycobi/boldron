@@ -376,13 +376,16 @@ def project(request, pk):
         "models": sum(1 for e in entries if e.kind == ContextKind.SCHEMA),
         "screens": sum(1 for e in entries if e.kind == ContextKind.SCREEN),
     }
-    from apps.capabilities.infer import infer_capabilities
+    from apps.capabilities.analysis import capability_ids, summary
+    # Use the project's persisted capability map; fall back to inferring from the
+    # brief for projects built before the map existed.
+    cap_ids = proj.capabilities or capability_ids(proj.description or proj.name)
     return render(request, "dashboard/project.html", {
         "active": "projects", "project": proj, "can_manage": can_manage,
         "state": _project_state(proj), "progress": _project_progress(proj),
         "pipeline": pipeline, "tasks": proj.agent_tasks.all(),
         "stack_roles": stack_roles,
-        "capabilities": infer_capabilities(proj.description or proj.name),
+        "capability_map": summary(cap_ids),
         "twin": twin, "changes": proj.changes.all()[:8],
         "backups": proj.backups.all()[:10],
         "credits": _project_credit_summary(proj),
@@ -2227,6 +2230,19 @@ def project_repository(request, pk):
         "active": "projects", "project": proj, "info": info,
         "remote_configured": remote_configured,
     })
+
+
+@login_required
+def analyze(request):
+    """Pre-build requirements analysis (spec §30): given a brief, return the
+    capabilities the app would need, grouped and with an honest built/coming
+    split. Lets the customer see the plan before building."""
+    from django.http import JsonResponse
+
+    from apps.capabilities.analysis import analyze as run_analysis
+
+    brief = request.POST.get("brief", "") if request.method == "POST" else request.GET.get("brief", "")
+    return JsonResponse(run_analysis(brief))
 
 
 @login_required

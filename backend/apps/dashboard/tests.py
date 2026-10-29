@@ -394,7 +394,7 @@ class DashboardUITests(TestCase):
         self.client.force_login(self.member)
         resp = self.client.get(reverse("dashboard:project", args=[self.project.id]))
         self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, "Built-in capabilities")
+        self.assertContains(resp, "What this app includes")
         self.assertContains(resp, "Build activity")
 
     def test_owner_queues_task_via_ui(self):
@@ -1231,3 +1231,31 @@ class ThemeTests(TestCase):
         })
         self.user.refresh_from_db()
         self.assertEqual(self.user.theme, "light")
+
+
+class CapabilityEngineWebTests(TestCase):
+    """Pre-build analysis endpoint + the project page capability map."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(email="ce@x.com", password="pw12345678")
+        self.org = Organization.objects.create(name="CEOrg")
+        self.org.add_member(self.user, role=Role.OWNER)
+        self.client.force_login(self.user)
+
+    def test_analyze_endpoint_returns_honest_plan(self):
+        r = self.client.get(reverse("dashboard:analyze"),
+                            {"brief": "online store with payments and email"})
+        self.assertEqual(r.status_code, 200)
+        d = r.json()
+        self.assertGreater(d["available_count"], 0)
+        self.assertIn("Payments", d["planned_names"])      # coming, not faked
+        self.assertIn("E-commerce", d["available_names"])  # built
+
+    def test_project_page_shows_capability_map(self):
+        p = Project.objects.create(
+            organization=self.org, name="Shop",
+            capabilities=["auth", "database", "ecommerce", "payments", "email"])
+        html = self.client.get(reverse("dashboard:project", args=[p.id])).content.decode()
+        self.assertIn("What this app includes", html)
+        self.assertIn("E-commerce", html)
+        self.assertIn("COMING", html)  # payments shown honestly as coming

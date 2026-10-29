@@ -44,6 +44,10 @@ class Project(models.Model):
     # agents read this to generate in the customer's chosen stack. Empty => the
     # agent's default (python-stdlib for backend).
     technology = models.JSONField(default=dict, blank=True)
+    # The capabilities this app composes (ids from apps.capabilities.registry),
+    # inferred from the brief at build time. The AI reads this when modifying the
+    # project so it reuses existing capabilities instead of rebuilding them.
+    capabilities = models.JSONField(default=list, blank=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

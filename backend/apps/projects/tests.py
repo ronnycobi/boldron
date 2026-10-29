@@ -373,3 +373,47 @@ class ProjectAiPreferenceTests(TestCase):
 
         with self.assertRaises(ValueError):
             pai.set_preferences(self.project, preferred_provider="nope")
+
+
+class CapabilityMapTests(TestCase):
+    """A project persists its capability map + exposes it to web and mobile."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(email="cap@x.com", password="pw12345!")
+        self.org = Organization.objects.create(name="CapOrg")
+        self.org.add_member(self.user, role=Role.OWNER)
+
+    def test_build_persists_capability_map(self):
+        import tempfile
+        from django.test import override_settings
+        from apps.projects.builds import create_and_start_build
+        with tempfile.TemporaryDirectory() as tmp, \
+                override_settings(BOLDRON_WORKSPACES_ROOT=tmp, RUNNING_TESTS=True):
+            p = create_and_start_build(
+                self.org, "an online store with products, cart and checkout", self.user)
+        self.assertIn("ecommerce", p.capabilities)
+        self.assertIn("auth", p.capabilities)  # baseline
+
+    def test_capabilities_api_returns_grouped_map(self):
+        resp = self.client.get(
+            reverse("projects:capabilities", args=[self.project_with_caps().id]),
+            **_auth(self.user))
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertIn("groups", body)
+        self.assertGreater(body["total"], 0)
+
+    def test_analyze_api(self):
+        resp = self.client.post(
+            reverse("projects:analyze"),
+            data={"brief": "a CRM with email and dashboards"},
+            content_type="application/json", **_auth(self.user))
+        self.assertEqual(resp.status_code, 200)
+        ids = {i["id"] for g in resp.json()["groups"] for i in g["items"]}
+        self.assertIn("crm", ids)
+        self.assertIn("email", ids)
+
+    def project_with_caps(self):
+        return Project.objects.create(
+            organization=self.org, name="App",
+            capabilities=["auth", "database", "ecommerce", "payments"])

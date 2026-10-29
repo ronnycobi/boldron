@@ -45,3 +45,41 @@ class InferenceTests(SimpleTestCase):
 
     def test_uploads_infer_file_storage(self):
         self.assertIn("files", self._ids("Customers upload documents and photos."))
+
+
+from django.test import TestCase as _TC  # noqa: E402
+
+
+class RequirementsAnalysisTests(_TC):
+    """The AI requirements analysis: brief -> capabilities, honest built/coming."""
+
+    def test_baseline_every_app_gets(self):
+        from apps.capabilities.analysis import analyze
+        a = analyze("a simple brochure website")
+        names = {n for g in a["groups"] for n in [i["name"] for i in g["items"]]}
+        self.assertIn("Authentication", names)
+        self.assertIn("Database", names)
+        self.assertIn("Dashboards", names)
+
+    def test_detects_commerce_and_payments(self):
+        from apps.capabilities.analysis import analyze
+        a = analyze("an online furniture store with products, cart, checkout and payments")
+        ids = {i["id"] for g in a["groups"] for i in g["items"]}
+        self.assertIn("ecommerce", ids)
+        self.assertIn("payments", ids)
+
+    def test_honest_built_vs_coming_split(self):
+        from apps.capabilities.analysis import analyze
+        a = analyze("store with payments")  # payments is planned, not built
+        payments = next(i for g in a["groups"] for i in g["items"] if i["id"] == "payments")
+        self.assertFalse(payments["available"])  # never faked as built
+        self.assertIn("E-commerce", a["available_names"])
+        self.assertIn("Payments", a["planned_names"])
+        self.assertEqual(a["total"], a["available_count"] + a["planned_count"])
+
+    def test_summary_from_persisted_ids(self):
+        from apps.capabilities.analysis import summary
+        s = summary(["auth", "database", "payments", "not-a-real-id"])
+        self.assertEqual(s["total"], 3)  # unknown id dropped
+        self.assertEqual(s["available_count"], 2)
+        self.assertEqual(s["planned_count"], 1)

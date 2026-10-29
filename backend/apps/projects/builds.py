@@ -196,12 +196,16 @@ def create_and_start_build(organization, brief, user) -> Project:
     """The full 'describe an app' flow: create the project (name + default
     stack), seed its workspace and requirement context, and start the build.
     Returns the new Project."""
+    from apps.capabilities.analysis import capability_ids
     project = Project.objects.create(
         organization=organization,
         name=name_from_brief(brief),
         created_by=user,
         description=brief[:500],
         technology=default_stack(),
+        # The app's capability map — what the brief implies it needs. Persisted so
+        # later changes reuse these capabilities instead of rebuilding them.
+        capabilities=capability_ids(brief),
     )
     project.ensure_default_workspace()
     ProjectContext(project).set(

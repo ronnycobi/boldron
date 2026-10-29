@@ -218,6 +218,28 @@ class ProjectAiView(APIView):
         return Response({"own": pai.own_preferences(project)})
 
 
+class ProjectCapabilitiesView(APIView):
+    """The project's capability map (what the app composes), grouped with an
+    honest built/coming split. Read-only; mobile reads the same data as web."""
+
+    def get(self, request, pk):
+        from apps.capabilities.analysis import capability_ids, summary
+        from apps.projects.access import project_for_read
+
+        project = project_for_read(request.user, pk)
+        ids = project.capabilities or capability_ids(project.description or project.name)
+        return Response(summary(ids))
+
+
+class AnalyzeView(APIView):
+    """Pre-build requirements analysis for a brief (spec §30)."""
+
+    def post(self, request):
+        from apps.capabilities.analysis import analyze
+
+        return Response(analyze(request.data.get("brief", "") or ""))
+
+
 class ProjectRepositoryView(APIView):
     """Real local git state for the project (read-only)."""
 

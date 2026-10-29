@@ -91,9 +91,20 @@
       <input type="hidden" name="action" value="build">
       <div class="promptbox">
         <textarea name="brief" id="brief" required>{{ prefill }}</textarea>
-        <button type="submit" class="go">Build →</button>
+        <div style="position:absolute;right:12px;bottom:12px;display:flex;gap:8px;align-items:center">
+          <button type="button" class="ghost" id="analyzebtn" style="width:auto;padding:9px 14px;font-size:13px">Analyze</button>
+          <button type="submit" class="go" style="position:static">Build →</button>
+        </div>
       </div>
     </form>
+    <div id="analysis" hidden style="text-align:left;margin-top:14px;border:1px solid var(--line);border-radius:14px;padding:16px 18px;background:var(--panel)">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <strong id="analysis-title">What your app needs</strong>
+        <span class="muted" id="analysis-count" style="font-size:12.5px"></span>
+      </div>
+      <p class="muted" style="font-size:12.5px;margin:4px 0 12px">{{ app_name }} composes these reusable capabilities — you don't configure them individually. "Coming" ones aren't available yet.</p>
+      <div id="analysis-groups"></div>
+    </div>
 
     <div class="starters">
       <div class="lbl">Start with an example</div>
@@ -200,6 +211,34 @@
       document.querySelectorAll('.starters button').forEach(function(b){
         b.addEventListener('click', function(){ ta.value = b.dataset.prompt; ta.focus(); });
       });
+
+      // Pre-build requirements analysis: show which capabilities the brief needs.
+      var btn = document.getElementById('analyzebtn');
+      var panel = document.getElementById('analysis');
+      if (btn) btn.addEventListener('click', function(){
+        var brief = (ta.value || '').trim();
+        if (!brief){ ta.focus(); return; }
+        btn.textContent = 'Analyzing…'; btn.disabled = true;
+        fetch('{% url 'dashboard:analyze' %}?brief=' + encodeURIComponent(brief))
+          .then(function(r){ return r.json(); })
+          .then(function(d){
+            document.getElementById('analysis-count').textContent =
+              d.available_count + ' built · ' + d.planned_count + ' coming';
+            var html = '';
+            (d.groups || []).forEach(function(g){
+              html += '<div style="margin:0 0 10px"><div class="muted" style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:5px">' + esc(g.label) + '</div><div>';
+              g.items.forEach(function(c){
+                html += '<span class="chip" title="' + esc(c.description) + '"' + (c.available ? '' : ' style="opacity:.55"') + '>' + esc(c.name) + (c.available ? '' : ' <span class="muted" style="font-size:9.5px">COMING</span>') + '</span>';
+              });
+              html += '</div></div>';
+            });
+            document.getElementById('analysis-groups').innerHTML = html;
+            panel.hidden = false;
+          })
+          .catch(function(){})
+          .finally(function(){ btn.textContent = 'Analyze'; btn.disabled = false; });
+      });
+      function esc(s){ return (s||'').replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
     })();
   </script>
 {% endblock %}
