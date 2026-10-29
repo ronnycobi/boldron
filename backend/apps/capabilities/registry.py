@@ -60,7 +60,9 @@ _CATALOG = [
                "activates when a gateway is connected."),
     Capability("invoicing", "Invoicing", "Business", AVAILABLE, "Real invoices and receipts generated from your orders — printable HTML and PDF, with honest paid/unpaid status."),
     Capability("tax", "Tax", "Business", AVAILABLE, "VAT/sales-tax rates applied deterministically at checkout and itemised on invoices."),
-    Capability("currency", "Multi-currency", "Business", PLANNED, "Prices and reporting per currency."),
+    Capability("currency", "Multi-currency", "Business", AVAILABLE,
+               "Format prices per currency and convert deterministically with the rates you store; "
+               "revenue reports group by currency. Automatic live FX rates activate when a feed is connected."),
     Capability("ecommerce", "E-commerce", "Business", AVAILABLE, "Products, cart, orders."),
     # Growth
     Capability("analytics", "Analytics", "Growth", AVAILABLE, "Real visitors, page views, traffic sources, conversions and (for stores) revenue."),

@@ -438,3 +438,51 @@ class SubscriptionRenewView(_StoreView):
         website = self.store(request, project_pk)
         opened = subs.renew_due(website=website)
         return Response({"opened": opened})
+
+
+# --- Multi-currency ---------------------------------------------------------
+
+class CurrencyView(_StoreView):
+    """Supported currencies, the store's stored exchange rates, and the honest live-
+    feed status. POST stores a real exchange rate (owner/admin)."""
+
+    def get(self, request, project_pk):
+        from apps.publishing import currency
+        self.manage = False
+        website = self.store(request, project_pk)
+        org = website.project.organization
+        rates = [{"base": r.base_code, "quote": r.quote_code,
+                  "rate": str(r.rate), "source": r.source,
+                  "updated_at": r.updated_at.isoformat()}
+                 for r in org.currency_rates.all()]
+        return Response({
+            "supported": currency.supported_currencies(),
+            "rates": rates,
+            "live_feed": currency.live_feed_status(),
+        })
+
+    def post(self, request, project_pk):
+        from apps.publishing import currency
+        self.manage = True
+        website = self.store(request, project_pk)
+        d = request.data
+        try:
+            currency.set_rate(website.project.organization,
+                              base=d.get("base", ""), quote=d.get("quote", ""),
+                              rate=d.get("rate", 0), user=request.user)
+        except (ValueError, TypeError) as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(status=status.HTTP_201_CREATED)
+
+
+class CurrencyRevenueView(_StoreView):
+    """Real paid revenue grouped by the currency it was charged in; optionally
+    converted to a ?base= currency using stored rates (unconvertible buckets flagged)."""
+
+    def get(self, request, project_pk):
+        from apps.publishing import currency
+        self.manage = False
+        website = self.store(request, project_pk)
+        base = request.query_params.get("base")
+        base = currency.normalise(base) if base else None
+        return Response(currency.revenue_by_currency(website, base=base))

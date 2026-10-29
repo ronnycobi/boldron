@@ -769,6 +769,29 @@ class SubscriptionInvoice(models.Model):
         return f"{self.subscription_id} cycle → {self.order.reference}"
 
 
+class CurrencyRate(models.Model):
+    """A merchant-stored exchange rate (spec §24): 1 unit base = `rate` units quote.
+
+    These are real, dated rates the merchant entered — the platform never invents or
+    guesses an FX rate. A live feed, when connected, would refresh `rate` and set a
+    non-manual source; until then `source` stays 'manual'."""
+
+    organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE,
+                                     related_name="currency_rates")
+    base_code = models.CharField(max_length=3)
+    quote_code = models.CharField(max_length=3)
+    rate = models.DecimalField(max_digits=20, decimal_places=8)
+    source = models.CharField(max_length=20, default="manual")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [("organization", "base_code", "quote_code")]
+        ordering = ["base_code", "quote_code"]
+
+    def __str__(self):
+        return f"1 {self.base_code} = {self.rate} {self.quote_code}"
+
+
 class PublishCheck(models.Model):
     """One publish-readiness check result (spec §12, §41)."""
 
