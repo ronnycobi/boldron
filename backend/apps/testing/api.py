@@ -42,12 +42,14 @@ class ProjectTestsView(APIView):
     """GET the test-run history + latest status; POST runs the suite now."""
 
     def get(self, request, project_pk):
+        from apps.testing.debug import analyze_failure
         project = project_for_read(request.user, project_pk)
         latest = runner.latest_run(project)
         return Response({
             "green": runner.tests_green(project),
             "required_tests": _required_tests(project),
             "latest": _run_dict(latest) if latest else None,
+            "diagnosis": analyze_failure(latest) if latest else None,
             "runs": [_run_dict(r) for r in project.test_runs.all()[:25]],
         })
 
@@ -55,3 +57,20 @@ class ProjectTestsView(APIView):
         project = require_manageable_project(request.user, project_pk)
         run = runner.run_project_tests(project, trigger="manual", user=request.user)
         return Response(_run_dict(run), status=201)
+
+
+class TestRunFixView(APIView):
+    """Propose a fix for a failed run (spec §7): analyses the real failure and creates
+    a change request in the safe-change pipeline. Never claims the run is fixed."""
+
+    def post(self, request, project_pk, pk):
+        from django.shortcuts import get_object_or_404
+        from apps.testing.debug import propose_fix
+        project = require_manageable_project(request.user, project_pk)
+        run = get_object_or_404(project.test_runs, pk=pk)
+        try:
+            change = propose_fix(run, user=request.user)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        return Response({"change": change.id, "description": change.description},
+                        status=201)

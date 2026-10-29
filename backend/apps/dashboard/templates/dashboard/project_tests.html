@@ -28,6 +28,33 @@
     {% endif %}
   </div>
 
+  {% if diagnosis %}
+  <div class="card" style="border-color:rgba(248,113,113,.4);background:rgba(248,113,113,.06)">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <h2 style="margin:0">What went wrong</h2>
+      {% if diagnosis.category %}<span class="chip" style="text-transform:capitalize">{{ diagnosis.category }}</span>{% endif %}
+    </div>
+    <p style="margin:8px 0 6px"><strong>Likely cause:</strong> {{ diagnosis.root_cause }}</p>
+    {% if diagnosis.suggested_fix %}<p style="margin:0 0 6px"><strong>Suggested fix:</strong> {{ diagnosis.suggested_fix }}</p>{% endif %}
+    {% if diagnosis.failing_tests %}<p class="muted" style="font-size:12.5px;margin:0 0 4px">Failing: {{ diagnosis.failing_tests|join:", " }}</p>{% endif %}
+    {% if diagnosis.location %}<p class="muted" style="font-size:12.5px;margin:0">Around <code>{{ diagnosis.location }}</code></p>{% endif %}
+    {% if diagnosis.log_excerpt %}
+      <details style="margin-top:10px">
+        <summary style="cursor:pointer;font-size:12.5px;color:var(--ink2)">Show the failure log</summary>
+        <pre style="overflow-x:auto;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px;font-size:11.5px;margin:8px 0 0;white-space:pre-wrap">{{ diagnosis.log_excerpt }}</pre>
+      </details>
+    {% endif %}
+    {% if can_manage %}
+    <form method="post" style="margin-top:12px">{% csrf_token %}
+      <input type="hidden" name="action" value="propose_fix">
+      <input type="hidden" name="run" value="{{ latest.id }}">
+      <button class="btn" type="submit">Propose a fix →</button>
+    </form>
+    <p class="muted" style="font-size:11.5px;margin:8px 0 0">A fix is proposed as a reviewed change — it's implemented and re-tested before anything is called fixed.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
   {% if required_tests %}
   <div class="card">
     <h2 style="margin-top:0">Tests your latest change requires</h2>

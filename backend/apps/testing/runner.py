@@ -29,8 +29,11 @@ def _apply_result(run: TestRun, result: dict) -> TestRun:
         run.status = TestRunStatus.PASSED
     else:
         run.status = TestRunStatus.FAILED
+        # Keep the real failure output only for a genuine failure (for the debugger).
+        run.log = (result.get("output", "") or "")[:8000]
     run.finished_at = timezone.now()
-    run.save(update_fields=["ran", "failures", "errors", "note", "status", "finished_at"])
+    run.save(update_fields=["ran", "failures", "errors", "note", "status",
+                            "log", "finished_at"])
     return run
 
 

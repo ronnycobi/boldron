@@ -2389,8 +2389,20 @@ def project_tests(request, pk):
         if not can_manage:
             messages.error(request, "Owner or admin rights required.")
             return redirect("dashboard:project_tests", pk=pk)
-        run = runner.run_project_tests(proj, trigger="manual", user=request.user)
-        messages.success(request, f"Test run finished: {run.get_status_display().lower()} — {run.summary}")
+        action = request.POST.get("action", "run")
+        if action == "propose_fix":
+            from apps.testing.debug import propose_fix
+            from apps.testing.models import TestRun
+            run = get_object_or_404(TestRun, pk=request.POST.get("run", 0), project=proj)
+            try:
+                change = propose_fix(run, user=request.user)
+                messages.success(request, "A fix was proposed as a change — review and approve it.")
+                return redirect("dashboard:change", pk=change.id)
+            except ValueError as exc:
+                messages.error(request, str(exc))
+        else:
+            run = runner.run_project_tests(proj, trigger="manual", user=request.user)
+            messages.success(request, f"Test run finished: {run.get_status_display().lower()} — {run.summary}")
         return redirect("dashboard:project_tests", pk=pk)
 
     required = []
@@ -2398,10 +2410,13 @@ def project_tests(request, pk):
     if change is not None:
         from apps.changes.impact import analyze_impact
         required = analyze_impact(change).get("required_tests", [])
+    latest = runner.latest_run(proj)
+    from apps.testing.debug import analyze_failure
     return render(request, "dashboard/project_tests.html", {
         "active": "projects", "project": proj, "can_manage": can_manage,
         "green": runner.tests_green(proj),
-        "latest": runner.latest_run(proj),
+        "latest": latest,
+        "diagnosis": analyze_failure(latest) if latest else None,
         "required_tests": required,
         "runs": proj.test_runs.all()[:25],
     })

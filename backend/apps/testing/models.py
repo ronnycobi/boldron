@@ -42,6 +42,9 @@ class TestRun(models.Model):
     failures = models.PositiveIntegerField(default=0)
     errors = models.PositiveIntegerField(default=0)
     note = models.CharField(max_length=300, blank=True)
+    # The real tail of the test output (stderr+stdout) — what the AI debugger reads
+    # to find the root cause of a failed run. Empty for passed/skipped runs.
+    log = models.TextField(blank=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
         related_name="test_runs")
