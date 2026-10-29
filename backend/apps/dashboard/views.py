@@ -1480,9 +1480,10 @@ def change_detail(request, pk):
 
     tasks = AgentTask.objects.filter(id__in=change.task_ids or [])
     areas = (change.plan or {}).get("affected_areas", {})
+    from apps.changes.impact import analyze_impact
     return render(request, "dashboard/change.html", {
         "active": "projects", "change": change, "can_manage": can_manage,
-        "areas": areas, "tasks": tasks,
+        "areas": areas, "tasks": tasks, "impact": analyze_impact(change),
     })
 
 

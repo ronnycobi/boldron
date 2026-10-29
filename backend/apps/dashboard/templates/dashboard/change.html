@@ -9,6 +9,39 @@
   </h1>
   <p class="sub">{{ change.description }}</p>
 
+  {% if impact.surfaces or impact.tests_required %}
+  <div class="card" style="border-color:var(--brandline);background:linear-gradient(180deg,var(--brandsoft),transparent)">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <h2 style="margin:0">Proposed change</h2>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="muted" style="font-size:12px">Impact</span>
+        <span class="badge b-{% if impact.risk == 'high' %}failed{% elif impact.risk == 'medium' %}waiting_for_approval{% else %}completed{% endif %}">{{ impact.risk_label }}</span>
+        <span class="muted" style="font-size:12px;margin-left:6px">{{ impact.tests_required }} test{{ impact.tests_required|pluralize }} required</span>
+      </div>
+    </div>
+    {% if impact.summary %}<p style="margin:8px 0 12px">{{ impact.summary }}</p>{% endif %}
+    {% if impact.surfaces %}
+    <div style="font-weight:700;font-size:12.5px;margin-bottom:6px">This will touch</div>
+    <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:12px">
+      {% for s in impact.surfaces %}
+      <div style="display:flex;gap:8px;align-items:baseline">
+        <span style="color:var(--ok)">✓</span>
+        <span class="strong" style="min-width:110px">{{ s.name }}</span>
+        <span class="muted" style="font-size:13px">{{ s.detail }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if impact.required_tests %}
+    <div style="font-weight:700;font-size:12.5px;margin-bottom:6px">Tests that must pass before it ships</div>
+    <div>{% for t in impact.required_tests %}<span class="chip">{{ t }}</span>{% endfor %}</div>
+    {% endif %}
+    {% if change.requires_approval and not change.approved %}
+    <p class="muted" style="font-size:12.5px;margin:12px 0 0">This change needs your approval before {{ app_name }} implements it. Review the plan below, then approve.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
   <div class="row">
     <div class="card">
       <h2 style="margin-top:0">Impact plan</h2>

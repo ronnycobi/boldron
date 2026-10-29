@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.changes import service
+from apps.changes.impact import analyze_impact
 from apps.changes.models import ChangeRequest
 from apps.organizations.access import manageable_organizations_for, organizations_for
 from apps.projects.access import project_for_read, require_manageable_project
@@ -30,6 +31,7 @@ def _change_dict(c: ChangeRequest) -> dict:
         "requires_approval": c.requires_approval,
         "approved": c.approved,
         "risk": c.risk,
+        "impact": analyze_impact(c),
         "can_rollback": c.can_rollback,
         "result": c.result,
         "created_at": c.created_at.isoformat(),
