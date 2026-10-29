@@ -769,6 +769,53 @@ class SubscriptionInvoice(models.Model):
         return f"{self.subscription_id} cycle → {self.order.reference}"
 
 
+class EmailCampaign(models.Model):
+    """A marketing email send to a store's collected contacts (spec §27). Counts
+    reflect REAL send results from the email engine — 'sent' means the configured
+    backend accepted the message, 'failed' records the actual error. Nothing is
+    marked sent that wasn't dispatched."""
+
+    STATUS = [("draft", "Draft"), ("sending", "Sending"),
+              ("sent", "Sent"), ("failed", "Failed")]
+    AUDIENCES = [("all", "Leads + customers"), ("leads", "Leads"), ("customers", "Customers")]
+
+    website = models.ForeignKey(Website, on_delete=models.CASCADE, related_name="campaigns")
+    subject = models.CharField(max_length=255)
+    body = models.TextField()
+    audience_source = models.CharField(max_length=12, choices=AUDIENCES, default="all")
+    status = models.CharField(max_length=10, choices=STATUS, default="draft")
+    total = models.PositiveIntegerField(default=0)
+    sent_count = models.PositiveIntegerField(default=0)
+    failed_count = models.PositiveIntegerField(default=0)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                   null=True, blank=True, related_name="email_campaigns")
+    created_at = models.DateTimeField(default=timezone.now)
+    sent_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.subject} ({self.status})"
+
+
+class CampaignRecipient(models.Model):
+    """One real recipient of a campaign and the real outcome of its send."""
+
+    STATUS = [("pending", "Pending"), ("sent", "Sent"), ("failed", "Failed")]
+
+    campaign = models.ForeignKey(EmailCampaign, on_delete=models.CASCADE, related_name="recipients")
+    email = models.EmailField()
+    name = models.CharField(max_length=255, blank=True)
+    status = models.CharField(max_length=8, choices=STATUS, default="pending")
+    error = models.CharField(max_length=300, blank=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["id"]
+        unique_together = [("campaign", "email")]
+
+
 class CurrencyRate(models.Model):
     """A merchant-stored exchange rate (spec §24): 1 unit base = `rate` units quote.
 

@@ -37,6 +37,7 @@ _RULES = [
     ("domains", r"\bcustom domain|own domain|\.com\b|dns|ssl|https|certificate\b"),
     ("mobile_publishing", r"\bapp store|google play|play store|appgallery|ios app|android app|publish.*app|mobile release\b"),
     ("monitoring", r"\buptime|health check|monitor|downtime|incident|status page\b"),
+    ("campaigns", r"\bcampaign|newsletter|marketing email|email blast|mailing list|broadcast\b"),
     ("ai", r"\bai |chatbot|assistant|recommend|semantic|ask questions\b"),
     ("git", r"\bgithub|gitlab|repository|existing (code|project)\b"),
 ]

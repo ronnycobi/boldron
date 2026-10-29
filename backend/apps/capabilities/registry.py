@@ -68,7 +68,9 @@ _CATALOG = [
     Capability("analytics", "Analytics", "Growth", AVAILABLE, "Real visitors, page views, traffic sources, conversions and (for stores) revenue."),
     Capability("seo", "SEO", "Growth", AVAILABLE, "Titles, meta, canonical, Open Graph, structured data, sitemap.xml and robots.txt — generated from your site."),
     Capability("forms", "Forms", "Growth", AVAILABLE, "Capture input and leads."),
-    Capability("campaigns", "Email campaigns", "Growth", PLANNED, "Marketing email sends."),
+    Capability("campaigns", "Email campaigns", "Growth", AVAILABLE,
+               "Send marketing email to the contacts your site collected (leads + customers) over "
+               "the real email engine, with honest per-recipient sent/failed results."),
     # Infrastructure
     Capability("hosting", "Hosting", "Infrastructure", AVAILABLE, "Preview and deploy your app."),
     Capability("mobile_publishing", "App store publishing", "Infrastructure", AVAILABLE,

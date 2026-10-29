@@ -486,3 +486,54 @@ class CurrencyRevenueView(_StoreView):
         base = request.query_params.get("base")
         base = currency.normalise(base) if base else None
         return Response(currency.revenue_by_currency(website, base=base))
+
+
+# --- Email campaigns --------------------------------------------------------
+
+def _campaign_dict(c) -> dict:
+    return {
+        "id": c.id, "subject": c.subject, "audience_source": c.audience_source,
+        "status": c.status, "total": c.total, "sent_count": c.sent_count,
+        "failed_count": c.failed_count, "created_at": c.created_at.isoformat(),
+        "sent_at": c.sent_at.isoformat() if c.sent_at else None,
+    }
+
+
+class CampaignListCreateView(_StoreView):
+    def get(self, request, project_pk):
+        from apps.publishing import campaigns
+        self.manage = False
+        website = self.store(request, project_pk)
+        audience = campaigns.build_audience(website, request.query_params.get("audience", "all"))
+        return Response({
+            "audience_size": len(audience),
+            "campaigns": [_campaign_dict(c) for c in website.campaigns.all()[:100]],
+        })
+
+    def post(self, request, project_pk):
+        from apps.publishing import campaigns
+        self.manage = True
+        website = self.store(request, project_pk)
+        d = request.data
+        try:
+            campaign = campaigns.create_campaign(
+                website, subject=d.get("subject", ""), body=d.get("body", ""),
+                audience_source=d.get("audience_source", "all"), user=request.user)
+        except campaigns.CampaignError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(_campaign_dict(campaign), status=status.HTTP_201_CREATED)
+
+
+class CampaignSendView(_StoreView):
+    """Dispatch a drafted campaign to its real audience over the email engine."""
+
+    def post(self, request, project_pk, pk):
+        from apps.publishing import campaigns
+        self.manage = True
+        website = self.store(request, project_pk)
+        campaign = get_object_or_404(website.campaigns, pk=pk)
+        try:
+            campaigns.send_campaign(campaign, user=request.user)
+        except campaigns.CampaignError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(_campaign_dict(campaign))

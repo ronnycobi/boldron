@@ -19,7 +19,7 @@ class RegistryTests(SimpleTestCase):
         for cid in ("auth", "database", "email", "security", "audit", "export",
                     "git", "backups", "files", "payments", "analytics", "invoicing",
                     "tax", "monitoring", "domains", "mobile_publishing", "subscriptions",
-                    "currency"):
+                    "currency", "campaigns"):
             self.assertEqual(get(cid).status, AVAILABLE, cid)
 
     def test_grouped(self):

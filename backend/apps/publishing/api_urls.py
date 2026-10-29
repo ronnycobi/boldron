@@ -31,6 +31,8 @@ urlpatterns = [
     path("projects/<int:project_pk>/commerce/subscriptions/renew/", m.SubscriptionRenewView.as_view(), name="admin-subscriptions-renew"),
     path("projects/<int:project_pk>/commerce/currency/", m.CurrencyView.as_view(), name="admin-currency"),
     path("projects/<int:project_pk>/commerce/currency/revenue/", m.CurrencyRevenueView.as_view(), name="admin-currency-revenue"),
+    path("projects/<int:project_pk>/campaigns/", m.CampaignListCreateView.as_view(), name="admin-campaigns"),
+    path("projects/<int:project_pk>/campaigns/<int:pk>/send/", m.CampaignSendView.as_view(), name="admin-campaign-send"),
 
     # Website management (authenticated) — keyed by project, over publishing.
     path("projects/<int:project_pk>/website/", w.WebsiteView.as_view(), name="website"),
