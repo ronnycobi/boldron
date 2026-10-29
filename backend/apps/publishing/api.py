@@ -118,8 +118,11 @@ class OrderStatusView(APIView):
 
 class OrderInvoiceView(APIView):
     """The invoice for an order (spec §24/§32): structured data by default, or a
-    printable HTML document with ?format=html. Reflects the real order + payments —
-    the same engine the web console renders from. Any channel can fetch it."""
+    printable HTML document with ?as=html. Reflects the real order + payments —
+    the same engine the web console renders from. Any channel can fetch it.
+
+    Note: the query param is `as`, not `format` — `format` is reserved by DRF for
+    content negotiation and would never reach this view's HTML branch."""
 
     permission_classes = [AllowAny]
 
@@ -130,6 +133,6 @@ class OrderInvoiceView(APIView):
                  .filter(website__subdomain=subdomain, reference=reference).first())
         if order is None:
             return Response({"detail": "Order not found."}, status=404)
-        if request.GET.get("format") == "html":
+        if request.GET.get("as") == "html":
             return HttpResponse(invoicing.render_invoice_html(order), content_type="text/html")
         return Response(invoicing.invoice_data(order))

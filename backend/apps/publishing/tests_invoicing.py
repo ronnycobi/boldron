@@ -149,3 +149,15 @@ class InvoiceSurfaceTests(TestCase):
         resp = self.client.get(
             reverse("commerce_api:order-invoice", args=[self.website.subdomain, "ORD-NOPE"]))
         self.assertEqual(resp.status_code, 404)
+
+    def test_public_invoice_api_renders_html_document(self):
+        # ?as=html must return the printable document (not DRF's reserved ?format).
+        resp = self.client.get(
+            reverse("commerce_api:order-invoice",
+                    args=[self.website.subdomain, self.order.reference]),
+            {"as": "html"})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp["Content-Type"], "text/html")
+        body = resp.content.decode()
+        self.assertIn("<!doctype html>", body.lower())
+        self.assertIn(invoicing.invoice_number(self.order), body)
