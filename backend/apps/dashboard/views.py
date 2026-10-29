@@ -2366,6 +2366,25 @@ def set_theme(request):
 
 
 @login_required
+def mobile_plan(request):
+    """Mobile app planner (spec §5/§48): describe a mobile app, see the honest plan —
+    capabilities (generated vs gated), device permissions, and target platforms —
+    before building. Server-rendered over apps.mobile.planner."""
+    from apps.mobile import planner
+
+    brief = (request.GET.get("brief") or "").strip()
+    selected = request.GET.getlist("platform") or ["ios", "android", "huawei"]
+    plan = planner.plan(brief, platforms=selected) if brief else None
+    return render(request, "dashboard/mobile_plan.html", {
+        "active": "mobile_plan",
+        "brief": brief,
+        "selected_platforms": set(selected),
+        "platform_choices": planner.platform_choices(),
+        "plan": plan,
+    })
+
+
+@login_required
 def releases(request):
     """Global Mobile Releases hub: the user's projects, each linking to its
     release center (reuses the per-project release workflow — no new backend)."""
@@ -2391,6 +2410,7 @@ _SEARCH_PAGES = [
     ("Webhooks", "dashboard:org_developer", None, "events callbacks"),
     ("Monitoring", "dashboard:ops", "monitoring", "uptime logs incidents"),
     ("Security", "dashboard:security", None, "mfa sessions audit"),
+    ("Plan a mobile app", "dashboard:mobile_plan", None, "mobile app ios android huawei capabilities plan"),
     ("Mobile Releases", "dashboard:releases", None, "app store play ios android"),
     ("AI Engineering", "dashboard:agents", None, "agents pipeline build"),
     ("Settings", "dashboard:settings_center", None, "preferences configuration"),

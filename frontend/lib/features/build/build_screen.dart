@@ -147,7 +147,20 @@ class _BuildScreenState extends ConsumerState<BuildScreen> {
                       ],
                     ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 10),
+            Center(
+              child: TextButton.icon(
+                onPressed: () {
+                  final brief = _brief.text.trim();
+                  context.push(
+                    '/mobile-plan${brief.isEmpty ? '' : '?brief=${Uri.encodeQueryComponent(brief)}'}',
+                  );
+                },
+                icon: const Icon(Icons.phone_iphone, size: 18),
+                label: const Text('Plan a mobile app (iOS · Android · Huawei)'),
+              ),
+            ),
+            const SizedBox(height: 14),
             Text('Start with an example',
                 style: Theme.of(context).textTheme.labelLarge),
             const SizedBox(height: 10),

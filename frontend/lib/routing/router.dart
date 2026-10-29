@@ -23,6 +23,7 @@ import '../features/projects/environment_screen.dart';
 import '../features/projects/files_screen.dart';
 import '../features/projects/project_detail_screen.dart';
 import '../features/projects/projects_screen.dart';
+import '../features/mobile/mobile_plan_screen.dart';
 import '../features/releases/releases_screen.dart';
 import '../features/releases/store_listing_screen.dart';
 import '../features/search/search_screen.dart';
@@ -215,6 +216,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/projects/:id/releases',
         builder: (_, s) => ReleasesScreen(projectId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/mobile-plan',
+        builder: (_, s) =>
+            MobilePlanScreen(initialBrief: s.uri.queryParameters['brief'] ?? ''),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,

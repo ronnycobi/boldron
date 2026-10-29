@@ -10,6 +10,7 @@ urlpatterns = [
     path("search/", views.search, name="search"),
     path("set-theme/", views.set_theme, name="set_theme"),
     path("analyze/", views.analyze, name="analyze"),
+    path("mobile/", views.mobile_plan, name="mobile_plan"),
     path("releases/", views.releases, name="releases"),
     path("projects/", views.projects, name="projects"),
     path("projects/<int:pk>/", views.project, name="project"),

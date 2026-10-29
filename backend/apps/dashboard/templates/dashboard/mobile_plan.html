@@ -1,0 +1,92 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}Plan a mobile app · {{ app_name }}{% endblock %}
+{% block crumb %}Mobile Releases / Plan{% endblock %}
+{% block content %}
+<h1>Plan a mobile app</h1>
+<p class="sub">Describe your app in plain language. {{ app_name }} works out the screens, capabilities,
+  device permissions and target platforms — and tells you honestly what it builds today versus
+  what activates once your developer accounts are connected.</p>
+
+<form method="get" class="card" style="margin-bottom:16px">
+  <label for="brief" style="font-weight:600">What should the app do?</label>
+  <textarea name="brief" id="brief" rows="3"
+    placeholder="e.g. A field app where employees log jobs, take photos, capture GPS and work offline; managers see progress and costs."
+    style="width:100%;margin-top:8px">{{ brief }}</textarea>
+  <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:12px">
+    <span class="muted" style="font-size:12.5px;font-weight:600">Platforms:</span>
+    {% for id, name in platform_choices %}
+      <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px">
+        <input type="checkbox" name="platform" value="{{ id }}"
+          {% if id in selected_platforms %}checked{% endif %}> {{ name }}
+      </label>
+    {% endfor %}
+    <button type="submit" style="margin-left:auto">Plan it</button>
+  </div>
+</form>
+
+{% if plan %}
+  <div class="card" style="margin-bottom:4px">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap">
+      <h2 style="margin-top:0">Your mobile app plan</h2>
+      <span class="muted" style="font-size:12.5px">
+        {{ plan.summary.generated_count }} built-in ·
+        {{ plan.summary.gated_count }} needs connection ·
+        {{ plan.summary.planned_count }} coming
+      </span>
+    </div>
+    <div style="margin:4px 0 14px">
+      {% for p in plan.platforms %}
+        <span class="chip" style="background:var(--brandsoft);border-color:var(--brandline)">{{ p.name }}</span>
+      {% endfor %}
+    </div>
+
+    {% for g in plan.groups %}
+    <div style="margin:0 0 12px">
+      <div class="muted" style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:6px">{{ g.group }}</div>
+      <div>
+        {% for c in g.items %}
+          <span class="chip" title="{{ c.summary }}"{% if not c.generated %} style="opacity:.72"{% endif %}>
+            {{ c.name }}
+            {% if c.status == 'gated' %}<span class="muted" style="font-size:9.5px;letter-spacing:.4px">· NEEDS CONNECTION</span>
+            {% elif c.status == 'planned' %}<span class="muted" style="font-size:9.5px;letter-spacing:.4px">· COMING</span>{% endif %}
+          </span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if plan.permissions %}
+  <div class="card">
+    <h2 style="margin-top:0">Device permissions this app will request</h2>
+    <p class="muted" style="font-size:13px;margin:-4px 0 10px">Each is asked for with a clear reason, only when needed.</p>
+    <table>
+      {% for perm in plan.permissions %}
+      <tr>
+        <td class="strong" style="width:34%">{{ perm.name }}</td>
+        <td class="muted">{{ perm.rationale }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+
+  {% if plan.summary.gated_names %}
+  <div class="card" style="border-color:rgba(245,196,84,.45);background:rgba(245,196,84,.07)">
+    <strong style="color:#f5c454">Needs a connected account to go live</strong>
+    <p class="muted" style="font-size:13px;margin:6px 0 0">
+      {{ plan.summary.gated_names|join:", " }} are built into the engine but stay off until you connect
+      the required developer accounts or providers — nothing is signed, submitted or sent without them.
+    </p>
+  </div>
+  {% endif %}
+
+  <p class="muted" style="font-size:12.5px;margin-top:10px">{{ plan.disclosure }}</p>
+
+  <div style="margin-top:14px">
+    <a class="btn" href="{% url 'dashboard:releases' %}">Go to Mobile Releases →</a>
+  </div>
+{% else %}
+  <p class="empty">Describe your app above and {{ app_name }} will plan it.</p>
+{% endif %}
+{% endblock %}

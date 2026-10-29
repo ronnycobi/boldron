@@ -1250,6 +1250,19 @@ class CapabilityEngineWebTests(TestCase):
         self.assertGreater(d["available_count"], 0)
         self.assertIn("SMS", d["planned_names"])           # coming, not faked
 
+    def test_mobile_plan_page_renders_honest_plan(self):
+        html = self.client.get(
+            reverse("dashboard:mobile_plan"),
+            {"brief": "a field app with photos, GPS and offline mode"}).content.decode()
+        self.assertIn("Your mobile app plan", html)
+        self.assertIn("Huawei AppGallery", html)        # all three platforms
+        self.assertIn("NEEDS CONNECTION", html)          # gated steps shown honestly
+        self.assertIn("Camera", html)                    # a device permission
+
+    def test_mobile_plan_page_empty_without_brief(self):
+        html = self.client.get(reverse("dashboard:mobile_plan")).content.decode()
+        self.assertNotIn("Your mobile app plan", html)
+
     def test_project_page_shows_capability_map(self):
         p = Project.objects.create(
             organization=self.org, name="Shop",

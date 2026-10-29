@@ -30,6 +30,11 @@ _BASELINE = ["screens", "navigation", "design_system", "auth", "sessions",
 _ALL_PLATFORMS = ["ios", "android", "huawei"]
 _PLATFORM_NAMES = {"ios": "iOS", "android": "Android", "huawei": "Huawei AppGallery"}
 
+
+def platform_choices() -> list[tuple[str, str]]:
+    """(id, display name) for every supported mobile platform."""
+    return [(p, _PLATFORM_NAMES[p]) for p in _ALL_PLATFORMS]
+
 # (capability id, regex over the lowered brief)
 _RULES = [
     ("forms", r"\bform|submit|capture|log |record|register|entry|checklist\b"),
