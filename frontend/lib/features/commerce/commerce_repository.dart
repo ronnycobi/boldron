@@ -158,6 +158,96 @@ class CommerceRepository {
       'percent_off': percentOff,
     });
   }
+
+  // --- Invoicing ---
+  Future<Map<String, dynamic>> orderInvoice(int projectId, int orderId) async {
+    final data = await _api.get('${_base(projectId)}/orders/$orderId/invoice/');
+    return (data as Map).cast<String, dynamic>();
+  }
+
+  // --- Tax ---
+  Future<Map<String, dynamic>> tax(int projectId) async {
+    final data = await _api.get('${_base(projectId)}/tax/');
+    return (data as Map).cast<String, dynamic>();
+  }
+
+  Future<void> setTax(int projectId, {required String name, required num percent}) =>
+      _api.post('${_base(projectId)}/tax/', body: {'name': name, 'percent': percent});
+
+  // --- Subscriptions ---
+  Future<List<SubscriptionPlan>> plans(int projectId) async {
+    final data = await _api.get('${_base(projectId)}/plans/');
+    return (data as List)
+        .map((p) => SubscriptionPlan.fromJson(p as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<void> createPlan(int projectId,
+      {required String name, required int amountCents, String interval = 'monthly'}) {
+    return _api.post('${_base(projectId)}/plans/', body: {
+      'name': name,
+      'amount_cents': amountCents,
+      'interval': interval,
+    });
+  }
+
+  Future<SubscriptionsView> subscriptions(int projectId) async {
+    final data = await _api.get('${_base(projectId)}/subscriptions/');
+    return SubscriptionsView.fromJson((data as Map).cast<String, dynamic>());
+  }
+
+  Future<void> subscribe(int projectId,
+      {required int planId, String customerName = '', String customerEmail = ''}) {
+    return _api.post('${_base(projectId)}/subscriptions/', body: {
+      'plan_id': planId,
+      'customer_name': customerName,
+      'customer_email': customerEmail,
+    });
+  }
+
+  Future<void> cancelSubscription(int projectId, int subscriptionId) =>
+      _api.post('${_base(projectId)}/subscriptions/$subscriptionId/cancel/');
+
+  Future<int> renewSubscriptions(int projectId) async {
+    final data = await _api.post('${_base(projectId)}/subscriptions/renew/');
+    return ((data as Map)['opened'] ?? 0) as int;
+  }
+
+  // --- Multi-currency ---
+  Future<Map<String, dynamic>> currency(int projectId) async {
+    final data = await _api.get('${_base(projectId)}/currency/');
+    return (data as Map).cast<String, dynamic>();
+  }
+
+  Future<void> setRate(int projectId,
+      {required String base, required String quote, required String rate}) {
+    return _api.post('${_base(projectId)}/currency/',
+        body: {'base': base, 'quote': quote, 'rate': rate});
+  }
+
+  Future<Map<String, dynamic>> currencyRevenue(int projectId, {String? base}) async {
+    final data = await _api.get('${_base(projectId)}/currency/revenue/',
+        query: base == null ? null : {'base': base});
+    return (data as Map).cast<String, dynamic>();
+  }
+
+  // --- Email campaigns (under /projects/<id>/campaigns/, not /commerce) ---
+  Future<CampaignsView> campaigns(int projectId) async {
+    final data = await _api.get('projects/$projectId/campaigns/');
+    return CampaignsView.fromJson((data as Map).cast<String, dynamic>());
+  }
+
+  Future<void> createCampaign(int projectId,
+      {required String subject, required String body, String audienceSource = 'all'}) {
+    return _api.post('projects/$projectId/campaigns/', body: {
+      'subject': subject,
+      'body': body,
+      'audience_source': audienceSource,
+    });
+  }
+
+  Future<void> sendCampaign(int projectId, int campaignId) =>
+      _api.post('projects/$projectId/campaigns/$campaignId/send/');
 }
 
 class Discount {
@@ -181,6 +271,113 @@ class Discount {
         kind: (j['kind'] ?? '') as String,
         percentOff: (j['percent_off'] ?? 0) as int,
         amountOffCents: (j['amount_off_cents'] ?? 0) as int,
+      );
+}
+
+class SubscriptionPlan {
+  final int id;
+  final String name;
+  final String amountDisplay;
+  final String interval;
+  final bool active;
+
+  const SubscriptionPlan({
+    required this.id,
+    required this.name,
+    required this.amountDisplay,
+    required this.interval,
+    required this.active,
+  });
+
+  factory SubscriptionPlan.fromJson(Map<String, dynamic> j) => SubscriptionPlan(
+        id: j['id'] as int,
+        name: (j['name'] ?? '') as String,
+        amountDisplay: (j['amount_display'] ?? '') as String,
+        interval: (j['interval'] ?? 'monthly') as String,
+        active: (j['active'] ?? true) as bool,
+      );
+}
+
+class Subscription {
+  final int id;
+  final String plan;
+  final String status;
+  final String customerEmail;
+  final String amountDisplay;
+  final String interval;
+  final int renewals;
+
+  const Subscription({
+    required this.id,
+    required this.plan,
+    required this.status,
+    required this.customerEmail,
+    required this.amountDisplay,
+    required this.interval,
+    required this.renewals,
+  });
+
+  factory Subscription.fromJson(Map<String, dynamic> j) => Subscription(
+        id: j['id'] as int,
+        plan: (j['plan'] ?? '') as String,
+        status: (j['status'] ?? '') as String,
+        customerEmail: (j['customer_email'] ?? '') as String,
+        amountDisplay: (j['amount_display'] ?? '') as String,
+        interval: (j['interval'] ?? '') as String,
+        renewals: (j['renewals'] ?? 0) as int,
+      );
+}
+
+class SubscriptionsView {
+  final Map<String, dynamic> overview;
+  final List<Subscription> subscriptions;
+  const SubscriptionsView({required this.overview, required this.subscriptions});
+
+  factory SubscriptionsView.fromJson(Map<String, dynamic> j) => SubscriptionsView(
+        overview: ((j['overview'] as Map?) ?? {}).cast<String, dynamic>(),
+        subscriptions: ((j['subscriptions'] as List?) ?? [])
+            .map((s) => Subscription.fromJson(s as Map<String, dynamic>))
+            .toList(),
+      );
+}
+
+class Campaign {
+  final int id;
+  final String subject;
+  final String status;
+  final int total;
+  final int sentCount;
+  final int failedCount;
+
+  const Campaign({
+    required this.id,
+    required this.subject,
+    required this.status,
+    required this.total,
+    required this.sentCount,
+    required this.failedCount,
+  });
+
+  factory Campaign.fromJson(Map<String, dynamic> j) => Campaign(
+        id: j['id'] as int,
+        subject: (j['subject'] ?? '') as String,
+        status: (j['status'] ?? '') as String,
+        total: (j['total'] ?? 0) as int,
+        sentCount: (j['sent_count'] ?? 0) as int,
+        failedCount: (j['failed_count'] ?? 0) as int,
+      );
+}
+
+class CampaignsView {
+  final int audienceSize;
+  final List<Campaign> campaigns;
+  const CampaignsView({required this.audienceSize, required this.campaigns});
+
+  factory CampaignsView.fromJson(Map<String, dynamic> j) => CampaignsView(
+        audienceSize: (j['audience_size'] ?? 0) as int,
+        campaigns: ((j['campaigns'] as List?) ?? [])
+            .map((c) => Campaign.fromJson(c as Map<String, dynamic>))
+            .toList(),
       );
 }
 
@@ -212,4 +409,29 @@ final ordersFilterProvider = StateProvider.family<String, int>((ref, _) => '');
 final discountsProvider =
     FutureProvider.family<List<Discount>, int>((ref, projectId) {
   return ref.watch(commerceRepositoryProvider).discounts(projectId);
+});
+
+final plansProvider =
+    FutureProvider.family<List<SubscriptionPlan>, int>((ref, projectId) {
+  return ref.watch(commerceRepositoryProvider).plans(projectId);
+});
+
+final subscriptionsProvider =
+    FutureProvider.family<SubscriptionsView, int>((ref, projectId) {
+  return ref.watch(commerceRepositoryProvider).subscriptions(projectId);
+});
+
+final currencyProvider =
+    FutureProvider.family<Map<String, dynamic>, int>((ref, projectId) {
+  return ref.watch(commerceRepositoryProvider).currency(projectId);
+});
+
+final campaignsProvider =
+    FutureProvider.family<CampaignsView, int>((ref, projectId) {
+  return ref.watch(commerceRepositoryProvider).campaigns(projectId);
+});
+
+final taxProvider =
+    FutureProvider.family<Map<String, dynamic>, int>((ref, projectId) {
+  return ref.watch(commerceRepositoryProvider).tax(projectId);
 });

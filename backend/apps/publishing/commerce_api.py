@@ -349,6 +349,45 @@ class SalesSummaryView(_StoreView):
         return Response(shop.sales_summary(website))
 
 
+class OrderInvoiceView(_StoreView):
+    """The invoice for one of this store's orders, as structured data (spec §24/§32).
+    Built from the real order + payments — the same engine the web console renders."""
+
+    def get(self, request, project_pk, pk):
+        from apps.publishing import invoicing
+        self.manage = False
+        website = self.store(request, project_pk)
+        order = get_object_or_404(
+            Order.objects.prefetch_related("items", "payments"), pk=pk, website=website)
+        return Response(invoicing.invoice_data(order))
+
+
+class TaxRateView(_StoreView):
+    """GET the store's active tax rate; POST sets it (owner/admin). Real, deterministic
+    VAT/sales-tax applied at checkout and itemised on invoices."""
+
+    def get(self, request, project_pk):
+        self.manage = False
+        website = self.store(request, project_pk)
+        rate = website.tax_rates.filter(active=True).first()
+        if rate is None:
+            return Response({"name": None, "percent": None, "rate_display": None})
+        return Response({"name": rate.name, "rate_bps": rate.rate_bps,
+                         "percent": rate.rate_bps / 100, "rate_display": rate.rate_display})
+
+    def post(self, request, project_pk):
+        self.manage = True
+        website = self.store(request, project_pk)
+        try:
+            rate = shop.set_tax_rate(
+                website, name=request.data.get("name", "Tax"),
+                percent=request.data.get("percent", 0), user=request.user)
+        except shop.EcommerceError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"name": rate.name, "rate_display": rate.rate_display},
+                        status=status.HTTP_201_CREATED)
+
+
 # --- Subscriptions (recurring billing) --------------------------------------
 
 def _plan_dict(p) -> dict:

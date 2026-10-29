@@ -173,3 +173,61 @@ class CommerceAdminApiTests(TestCase):
             reverse("commerce_api:admin-products", args=[bare.id]), **auth(self.owner)
         )
         self.assertEqual(resp.status_code, 404)
+
+
+class MerchantInvoiceTaxApiTests(TestCase):
+    """Mobile merchant invoice-by-order + tax get/set endpoints."""
+
+    def setUp(self):
+        self.owner = User.objects.create_user(email="mi-owner@x.com", password="pw12345!")
+        self.member = User.objects.create_user(email="mi-member@x.com", password="pw12345!")
+        self.org = Organization.objects.create(name="MI Org")
+        self.org.add_member(self.owner, role=Role.OWNER)
+        self.org.add_member(self.member, role=Role.MEMBER)
+        self.project = Project.objects.create(organization=self.org, name="MI Store")
+        self.website = Website.objects.create(project=self.project, subdomain="mi-store")
+
+    def test_tax_get_set_roundtrip(self):
+        # No rate yet.
+        g0 = self.client.get(reverse("commerce_api:admin-tax", args=[self.project.id]),
+                             **auth(self.member))
+        self.assertEqual(g0.status_code, 200)
+        self.assertIsNone(g0.json()["percent"])
+        # Owner sets 15%.
+        s = self.client.post(reverse("commerce_api:admin-tax", args=[self.project.id]),
+                             data={"name": "VAT", "percent": 15},
+                             content_type="application/json", **auth(self.owner))
+        self.assertEqual(s.status_code, 201)
+        g1 = self.client.get(reverse("commerce_api:admin-tax", args=[self.project.id]),
+                             **auth(self.member)).json()
+        self.assertEqual(g1["percent"], 15)
+        self.assertEqual(g1["name"], "VAT")
+
+    def test_member_cannot_set_tax(self):
+        resp = self.client.post(reverse("commerce_api:admin-tax", args=[self.project.id]),
+                                data={"percent": 10}, content_type="application/json",
+                                **auth(self.member))
+        self.assertEqual(resp.status_code, 403)
+
+    def test_order_invoice_returns_real_data(self):
+        shop.set_tax_rate(self.website, name="VAT", percent=15, user=self.owner)
+        p = shop.create_product(self.website, name="Mug", price_cents=1000)
+        order = shop.create_order(self.website, items=[{"product_id": p.id, "quantity": 2}],
+                                  customer_name="Ada")
+        resp = self.client.get(
+            reverse("commerce_api:admin-order-invoice", args=[self.project.id, order.id]),
+            **auth(self.member))
+        self.assertEqual(resp.status_code, 200)
+        d = resp.json()
+        self.assertTrue(d["number"].startswith("INV-"))
+        self.assertEqual(d["total_cents"], 2300)   # 2000 + 15% VAT
+        self.assertEqual(d["payment_state"], "Unpaid")
+
+    def test_invoice_outsider_404(self):
+        out = User.objects.create_user(email="mi-out@x.com", password="pw12345!")
+        p = shop.create_product(self.website, name="X", price_cents=100)
+        order = shop.create_order(self.website, items=[{"product_id": p.id, "quantity": 1}])
+        resp = self.client.get(
+            reverse("commerce_api:admin-order-invoice", args=[self.project.id, order.id]),
+            **auth(out))
+        self.assertEqual(resp.status_code, 404)
