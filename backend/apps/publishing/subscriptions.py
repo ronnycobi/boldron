@@ -65,20 +65,20 @@ def create_plan(website, *, name, amount_cents, interval="monthly", currency="US
 
 def _open_cycle(subscription: Subscription, *, period_start, period_end,
                 provider_key="manual") -> Order:
-    """Open a real billing cycle: a manual Order for the plan amount (+ the store's
-    active tax), with a pending payment. The order IS the bill for this cycle."""
-    plan = subscription.plan
+    """Open a real billing cycle: a manual Order for the subscription's locked amount
+    (+ the store's active tax), with a pending payment. The order IS the bill for this
+    cycle. Terms come from the subscription itself, not the (mutable) plan."""
     website = subscription.website
     with transaction.atomic():
         order = Order.objects.create(
             website=website, reference=shop._reference(), channel="web",
             customer_name=subscription.customer_name, customer_email=subscription.customer_email,
-            currency=plan.currency, status="pending",
+            currency=subscription.currency, status="pending",
         )
-        label = f"{plan.name} — {plan.get_interval_display().lower()} subscription"
+        label = f"{subscription.plan_name} — {subscription.interval_display.lower()} subscription"
         OrderItem.objects.create(order=order, product=None, name=label,
-                                 unit_price_cents=plan.amount_cents, quantity=1)
-        subtotal = plan.amount_cents
+                                 unit_price_cents=subscription.amount_cents, quantity=1)
+        subtotal = subscription.amount_cents
         tax_rate = website.tax_rates.filter(active=True).first()
         tax = tax_rate.tax_for(subtotal) if tax_rate else 0
         order.subtotal_cents = subtotal
@@ -104,6 +104,8 @@ def subscribe(plan: SubscriptionPlan, *, customer_name="", customer_email="",
     period_end = _advance(now, plan.interval)
     subscription = Subscription.objects.create(
         website=plan.website, plan=plan,
+        plan_name=plan.name, amount_cents=plan.amount_cents,
+        currency=plan.currency, interval=plan.interval,
         customer_name=(customer_name or "").strip(),
         customer_email=(customer_email or "").strip(),
         status="active", current_period_start=now, current_period_end=period_end,
@@ -145,11 +147,11 @@ def renew_due(*, now=None, website=None) -> int:
     if website is not None:
         qs = qs.filter(website=website)
     opened = 0
-    for sub in qs.select_related("plan", "website"):
+    for sub in qs.select_related("website"):
         if _outstanding_cycle(sub) is not None:
             continue  # last cycle still unpaid — don't stack another bill
         period_start = sub.current_period_end
-        period_end = _advance(period_start, sub.plan.interval)
+        period_end = _advance(period_start, sub.interval)
         _open_cycle(sub, period_start=period_start, period_end=period_end)
         sub.current_period_start = period_start
         sub.current_period_end = period_end
@@ -167,19 +169,19 @@ def cancel(subscription: Subscription, *, user=None) -> Subscription:
     subscription.save(update_fields=["status", "cancelled_at"])
     audit("subscription.cancel", actor=user,
           organization=subscription.website.project.organization,
-          target=f"subscription:{subscription.id}", summary=subscription.plan.name)
+          target=f"subscription:{subscription.id}", summary=subscription.plan_name)
     return subscription
 
 
 def overview(website) -> dict:
     """A real subscriptions summary for a store — counts and recurring revenue from
     actual records, nothing fabricated."""
-    subs = list(website.subscriptions.select_related("plan"))
+    subs = list(website.subscriptions.all())
     active = [s for s in subs if s.status in ("active", "past_due")]
-    # Normalise each active plan's amount to a monthly figure for MRR.
+    # Normalise each subscription's locked amount to a monthly figure for MRR.
     factor = {"weekly": 52 / 12, "monthly": 1, "yearly": 1 / 12}
-    mrr = sum(round(s.plan.amount_cents * factor[s.plan.interval]) for s in active)
-    currency = subs[0].plan.currency if subs else "USD"
+    mrr = sum(round(s.amount_cents * factor[s.interval]) for s in active)
+    currency = subs[0].currency if subs else "USD"
     return {
         "plans": website.plans.filter(active=True).count(),
         "total": len(subs),

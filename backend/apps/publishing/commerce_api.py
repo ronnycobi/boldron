@@ -361,11 +361,11 @@ def _plan_dict(p) -> dict:
 
 def _subscription_dict(s) -> dict:
     return {
-        "id": s.id, "plan": s.plan.name, "plan_id": s.plan_id,
+        "id": s.id, "plan": s.plan_name, "plan_id": s.plan_id,
         "customer_name": s.customer_name, "customer_email": s.customer_email,
         "status": s.status, "renewals": s.renewals,
         "current_period_end": s.current_period_end.isoformat(),
-        "amount_display": s.plan.amount_display, "interval": s.plan.interval,
+        "amount_display": s.amount_display, "interval": s.interval,
     }
 
 

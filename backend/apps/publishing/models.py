@@ -728,13 +728,26 @@ class Subscription(models.Model):
     """A customer's ongoing subscription to a plan (spec §24). Status reflects REAL
     billing state: a renewal is 'past_due' until its order is actually paid; it never
     optimistically shows active/paid. Card auto-renewal is gated on a connected
-    gateway — until then renewals are settled as manual payments, like any order."""
+    gateway — until then renewals are settled as manual payments, like any order.
+
+    The billing TERMS (name/amount/currency/interval) are copied onto the subscription
+    at signup and are the source of truth for its cycles — so editing or deleting the
+    plan later never retroactively changes what an existing subscriber is billed, and a
+    store can be torn down without a protected-plan conflict. `plan` is kept as a link
+    (nullable) back to the offered plan; the terms stand on their own."""
 
     STATUS = [("active", "Active"), ("past_due", "Past due"),
               ("cancelled", "Cancelled"), ("expired", "Expired")]
+    INTERVALS = SubscriptionPlan.INTERVALS
 
     website = models.ForeignKey(Website, on_delete=models.CASCADE, related_name="subscriptions")
-    plan = models.ForeignKey(SubscriptionPlan, on_delete=models.PROTECT, related_name="subscriptions")
+    plan = models.ForeignKey(SubscriptionPlan, on_delete=models.SET_NULL, null=True, blank=True,
+                             related_name="subscriptions")
+    # Billing terms locked at signup (independent of later plan edits/deletion).
+    plan_name = models.CharField(max_length=120, default="")
+    amount_cents = models.PositiveIntegerField(default=0)
+    currency = models.CharField(max_length=3, default="USD")
+    interval = models.CharField(max_length=10, choices=INTERVALS, default="monthly")
     customer_name = models.CharField(max_length=255, blank=True)
     customer_email = models.EmailField(blank=True)
     status = models.CharField(max_length=12, choices=STATUS, default="active")
@@ -749,7 +762,15 @@ class Subscription(models.Model):
         indexes = [models.Index(fields=["website", "status", "current_period_end"])]
 
     def __str__(self):
-        return f"{self.customer_email or self.customer_name} → {self.plan.name} ({self.status})"
+        return f"{self.customer_email or self.customer_name} → {self.plan_name} ({self.status})"
+
+    @property
+    def amount_display(self) -> str:
+        return f"{self.currency} {self.amount_cents / 100:.2f}"
+
+    @property
+    def interval_display(self) -> str:
+        return dict(self.INTERVALS).get(self.interval, self.interval)
 
 
 class SubscriptionInvoice(models.Model):

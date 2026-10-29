@@ -104,6 +104,39 @@ class SubscriptionEngineTests(TestCase):
         from apps.capabilities.registry import get
         self.assertTrue(get("subscriptions").is_available)
 
+    def test_terms_locked_at_signup_survive_plan_price_change(self):
+        # Editing the plan's price must NOT retroactively rebill existing subscribers.
+        sub, _ = subs.subscribe(self.plan, customer_email="a@x.com", user=self.owner)
+        self.plan.amount_cents = 9999
+        self.plan.save(update_fields=["amount_cents"])
+        sub.current_period_end = timezone.now() - timedelta(minutes=1)
+        sub.save(update_fields=["current_period_end"])
+        subs.renew_due()
+        renewal = sub.cycles.order_by("-created_at").first().order
+        self.assertEqual(renewal.total_cents, 2000)   # still the locked $20, not $99.99
+
+    def test_store_with_active_subscription_can_be_deleted(self):
+        # Regression: tearing down a project/store that has subscriptions must not
+        # raise ProtectedError (plan is SET_NULL, terms live on the subscription).
+        from apps.projects.models import Project
+        subs.subscribe(self.plan, customer_email="a@x.com", user=self.owner)
+        pid = self.project.id
+        self.project.delete()
+        self.assertFalse(Project.objects.filter(id=pid).exists())
+
+    def test_deleting_a_plan_keeps_the_subscription_and_its_terms(self):
+        sub, order = subs.subscribe(self.plan, customer_email="a@x.com", user=self.owner)
+        subs.settle_cycle(order, user=self.owner)   # clear the first cycle
+        self.plan.delete()
+        sub.refresh_from_db()
+        self.assertIsNone(sub.plan_id)        # link cleared
+        self.assertEqual(sub.plan_name, "Pro")  # terms stand on their own
+        self.assertEqual(sub.amount_cents, 2000)
+        # The subscription can still renew on its locked terms.
+        sub.current_period_end = timezone.now() - timedelta(minutes=1)
+        sub.save(update_fields=["current_period_end"])
+        self.assertEqual(subs.renew_due(), 1)
+
 
 class SubscriptionApiTests(TestCase):
     def setUp(self):
