@@ -34,16 +34,23 @@ class ProjectsRepository {
     return BuildStatus.fromJson(data as Map<String, dynamic>);
   }
 
-  /// A project's environment variables (secret values come back masked).
-  Future<List<Map<String, dynamic>>> envVars(int projectId) async {
-    final data = await _api.get('projects/$projectId/env/');
-    return (data as List).map((e) => (e as Map).cast<String, dynamic>()).toList();
+  /// A project's environment variables for one environment (secret values come
+  /// back masked). Returns {environments: [...], variables: [...]}.
+  Future<Map<String, dynamic>> envVars(int projectId,
+      {String environment = 'development'}) async {
+    final data = await _api.get('projects/$projectId/env/',
+        query: {'environment': environment});
+    return (data as Map).cast<String, dynamic>();
   }
 
   Future<void> setEnvVar(int projectId, String key, String value,
-          {bool isSecret = false}) =>
-      _api.post('projects/$projectId/env/',
-          body: {'key': key, 'value': value, 'is_secret': isSecret});
+          {bool isSecret = false, String environment = 'development'}) =>
+      _api.post('projects/$projectId/env/', body: {
+        'key': key,
+        'value': value,
+        'is_secret': isSecret,
+        'environment': environment,
+      });
 
   Future<void> deleteEnvVar(int projectId, int varId) =>
       _api.delete('projects/$projectId/env/$varId/');
@@ -85,10 +92,12 @@ final buildStatusProvider = FutureProvider.family<BuildStatus, int>(
       ref.watch(projectsRepositoryProvider).buildStatus(projectId),
 );
 
-/// A project's environment variables.
-final envVarsProvider =
-    FutureProvider.family<List<Map<String, dynamic>>, int>(
-  (ref, projectId) => ref.watch(projectsRepositoryProvider).envVars(projectId),
+/// A project's environment variables for one environment.
+final envVarsProvider = FutureProvider.family<Map<String, dynamic>,
+    ({int projectId, String environment})>(
+  (ref, args) => ref
+      .watch(projectsRepositoryProvider)
+      .envVars(args.projectId, environment: args.environment),
 );
 
 /// A project's AI preference (own + effective + options).

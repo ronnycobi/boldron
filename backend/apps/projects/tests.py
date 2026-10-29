@@ -255,6 +255,57 @@ class EnvVarServiceTests(TestCase):
         # But the real value is still what gets injected.
         self.assertEqual(env.env_for_project(self.project)["TOKEN"], "s3cr3t")
 
+    def test_environments_are_isolated(self):
+        from apps.projects import env
+
+        env.set_var(self.project, "API_URL", "https://dev", environment="development")
+        env.set_var(self.project, "API_URL", "https://prod", environment="production")
+        self.assertEqual(self.project.env_vars.count(), 2)  # same key, two envs
+        self.assertEqual(
+            env.env_for_project(self.project, "development")["API_URL"], "https://dev")
+        self.assertEqual(
+            env.env_for_project(self.project, "production")["API_URL"], "https://prod")
+        # Development never leaks production's value.
+        self.assertNotIn("https://prod", env.env_for_project(self.project, "development").values())
+
+    def test_unknown_environment_rejected(self):
+        from apps.projects import env
+        with self.assertRaises(env.EnvVarError):
+            env.set_var(self.project, "K", "v", environment="prod")  # not a valid env
+
+    def test_secrets_are_encrypted_at_rest(self):
+        from apps.projects import env
+        from apps.projects.models import EnvVar
+        from apps.projects.secrets_crypto import is_encrypted
+
+        env.set_var(self.project, "STRIPE_KEY", "sk_live_realsecret", is_secret=True)
+        row = EnvVar.objects.get(project=self.project, key="STRIPE_KEY")
+        # The stored column is ciphertext — the plaintext is NOT in the database.
+        self.assertNotIn("sk_live_realsecret", row.value)
+        self.assertTrue(is_encrypted(row.value))
+        # It still decrypts for the real run.
+        self.assertEqual(
+            env.env_for_project(self.project)["STRIPE_KEY"], "sk_live_realsecret")
+
+    def test_non_secret_value_is_not_encrypted(self):
+        from apps.projects import env
+        from apps.projects.models import EnvVar
+        from apps.projects.secrets_crypto import is_encrypted
+
+        env.set_var(self.project, "API_URL", "https://api.example.com")
+        row = EnvVar.objects.get(project=self.project, key="API_URL")
+        self.assertFalse(is_encrypted(row.value))   # plain config, stored readable
+        self.assertEqual(row.value, "https://api.example.com")
+
+    def test_legacy_plaintext_secret_still_readable(self):
+        # A secret stored before encryption shipped (no version prefix) must not break.
+        from apps.projects import env
+        from apps.projects.models import EnvVar
+
+        EnvVar.objects.create(project=self.project, key="OLD", value="plainlegacy",
+                              is_secret=True, environment="development")
+        self.assertEqual(env.env_for_project(self.project)["OLD"], "plainlegacy")
+
 
 class EnvVarApiTests(TestCase):
     def setUp(self):
@@ -276,7 +327,7 @@ class EnvVarApiTests(TestCase):
             reverse("projects:env-list", args=[self.project.id]), **_auth(self.member)
         )
         self.assertEqual(listed.status_code, 200)
-        self.assertEqual(listed.json()[0]["key"], "API_URL")
+        self.assertEqual(listed.json()["variables"][0]["key"], "API_URL")
 
     def test_member_cannot_write(self):
         resp = self.client.post(
@@ -294,7 +345,7 @@ class EnvVarApiTests(TestCase):
         )
         listed = self.client.get(
             reverse("projects:env-list", args=[self.project.id]), **_auth(self.owner)
-        ).json()
+        ).json()["variables"]
         tok = next(v for v in listed if v["key"] == "TOKEN")
         self.assertNotEqual(tok["value"], "s3cr3t")
         self.assertTrue(tok["is_secret"])

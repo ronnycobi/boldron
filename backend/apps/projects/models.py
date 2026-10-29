@@ -118,31 +118,42 @@ class ProjectAiPreference(models.Model):
 
 
 class EnvVar(models.Model):
-    """A project's environment variable (spec §20).
+    """A project's environment variable, per environment (spec §11, §20).
 
     These are the *customer's app* configuration — values the platform must
     store so it can inject them into the project's preview/run process (see
     apps.preview_runner). That is different from platform secrets, which remain
-    environment-only and are never stored in the DB. A var flagged `is_secret` is
-    masked in every read (its value is write-only); non-secret values are shown
-    so they can be edited. Values are not encrypted at rest in this phase — a
-    limitation stated honestly rather than faked with reversible 'encryption'.
+    environment-only and are never stored in the DB.
+
+    Each var belongs to one ENVIRONMENT (development / staging / production), so the
+    same key can hold different values per environment. A var flagged `is_secret` is
+    masked in every read (its value is write-only) AND stored encrypted at rest
+    (apps.projects.secrets_crypto); non-secret values are plain config, shown so they
+    can be edited.
     """
+
+    ENVIRONMENTS = [
+        ("development", "Development"),
+        ("staging", "Staging"),
+        ("production", "Production"),
+    ]
 
     project = models.ForeignKey(
         "projects.Project", on_delete=models.CASCADE, related_name="env_vars"
     )
+    environment = models.CharField(max_length=16, choices=ENVIRONMENTS, default="development")
     key = models.CharField(max_length=128)
-    value = models.TextField(blank=True)
+    value = models.TextField(blank=True)   # secrets are stored encrypted (see secrets_crypto)
     is_secret = models.BooleanField(default=False)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["key"]
+        ordering = ["environment", "key"]
         constraints = [
             models.UniqueConstraint(
-                fields=["project", "key"], name="unique_env_key_per_project"
+                fields=["project", "environment", "key"],
+                name="unique_env_key_per_project_env",
             )
         ]
 

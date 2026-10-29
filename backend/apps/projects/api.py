@@ -158,10 +158,18 @@ class EnvVarListCreateView(APIView):
 
     def get(self, request, pk):
         from apps.projects.access import project_for_read
-        from apps.projects.env import list_vars, public_dict
+        from apps.projects.env import EnvVarError, environments, list_vars, public_dict
 
         project = project_for_read(request.user, pk)
-        return Response([public_dict(v) for v in list_vars(project)])
+        env = request.query_params.get("environment")
+        try:
+            vars_ = list_vars(project, environment=env)
+        except EnvVarError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({
+            "environments": environments(),
+            "variables": [public_dict(v) for v in vars_],
+        })
 
     def post(self, request, pk):
         from apps.projects.access import require_manageable_project
@@ -174,13 +182,14 @@ class EnvVarListCreateView(APIView):
                 request.data.get("key", ""),
                 request.data.get("value", ""),
                 is_secret=bool(request.data.get("is_secret", False)),
+                environment=request.data.get("environment", "development"),
             )
         except EnvVarError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         from apps.settings.service import audit_change
         audit_change("project.env_set", actor=request.user,
                      organization=project.organization,
-                     summary=f"{project.name}: set {var.key}")
+                     summary=f"{project.name}: set {var.key} ({var.environment})")
         return Response(public_dict(var), status=status.HTTP_201_CREATED)
 
 

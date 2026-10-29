@@ -2064,34 +2064,44 @@ def project_environment(request, pk):
     )
     can_manage = proj.organization_id in _manageable_ids(request.user)
 
+    try:
+        selected_env = envsvc.validate_environment(request.GET.get("env", "development"))
+    except envsvc.EnvVarError:
+        selected_env = "development"
+
     if request.method == "POST":
         if not can_manage:
             messages.error(request, "Owner or admin rights required.")
             return redirect("dashboard:environment", pk=pk)
         action = request.POST.get("action")
+        post_env = request.POST.get("environment", "development")
         if action == "set":
             try:
-                envsvc.set_var(
+                var = envsvc.set_var(
                     proj, request.POST.get("key", ""), request.POST.get("value", ""),
                     is_secret=request.POST.get("is_secret") == "on",
+                    environment=post_env,
                 )
                 from apps.settings.service import audit_change
                 audit_change("project.env_set", actor=request.user,
                              organization=proj.organization,
-                             summary=f"{proj.name}: set {request.POST.get('key', '')}")
+                             summary=f"{proj.name}: set {var.key} ({var.environment})")
                 messages.success(request, "Variable saved.")
+                selected_env = var.environment
             except envsvc.EnvVarError as exc:
                 messages.error(request, str(exc))
         elif action == "delete":
             envsvc.delete_var(proj, request.POST.get("var", 0))
             messages.success(request, "Variable deleted.")
-        return redirect("dashboard:environment", pk=pk)
+        return redirect(f"{reverse('dashboard:environment', args=[pk])}?env={selected_env}")
 
     return render(request, "dashboard/environment.html", {
         "active": "projects",
         "project": proj,
         "can_manage": can_manage,
-        "vars": [envsvc.public_dict(v) for v in envsvc.list_vars(proj)],
+        "environments": envsvc.environments(),
+        "selected_env": selected_env,
+        "vars": [envsvc.public_dict(v) for v in envsvc.list_vars(proj, environment=selected_env)],
     })
 
 

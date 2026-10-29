@@ -4,14 +4,31 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api_exception.dart';
 import 'projects_repository.dart';
 
-/// A project's environment variables. Values set here are really injected into
-/// the project's preview run. Secret values are masked on read (write-only).
-/// Setting/deleting requires org management rights (the API enforces it).
-class EnvironmentScreen extends ConsumerWidget {
+/// A project's environment variables, per environment (development / staging /
+/// production). Values are really injected into the project's run for that
+/// environment. Secret values are masked on read (write-only) and encrypted at
+/// rest. Setting/deleting requires org management rights (the API enforces it).
+class EnvironmentScreen extends ConsumerStatefulWidget {
   final int projectId;
   const EnvironmentScreen({super.key, required this.projectId});
 
-  Future<void> _add(BuildContext context, WidgetRef ref) async {
+  @override
+  ConsumerState<EnvironmentScreen> createState() => _EnvironmentScreenState();
+}
+
+class _EnvironmentScreenState extends ConsumerState<EnvironmentScreen> {
+  String _env = 'development';
+
+  static const _envs = <(String, String)>[
+    ('development', 'Development'),
+    ('staging', 'Staging'),
+    ('production', 'Production'),
+  ];
+
+  ({int projectId, String environment}) get _key =>
+      (projectId: widget.projectId, environment: _env);
+
+  Future<void> _add(BuildContext context) async {
     final result = await showDialog<_NewVar>(
       context: context,
       builder: (_) => const _AddVarDialog(),
@@ -19,8 +36,9 @@ class EnvironmentScreen extends ConsumerWidget {
     if (result == null) return;
     try {
       await ref.read(projectsRepositoryProvider).setEnvVar(
-          projectId, result.key, result.value, isSecret: result.isSecret);
-      ref.invalidate(envVarsProvider(projectId));
+          widget.projectId, result.key, result.value,
+          isSecret: result.isSecret, environment: _env);
+      ref.invalidate(envVarsProvider(_key));
     } on ApiException catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context)
@@ -29,10 +47,10 @@ class EnvironmentScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _delete(BuildContext context, WidgetRef ref, int id) async {
+  Future<void> _delete(BuildContext context, int id) async {
     try {
-      await ref.read(projectsRepositoryProvider).deleteEnvVar(projectId, id);
-      ref.invalidate(envVarsProvider(projectId));
+      await ref.read(projectsRepositoryProvider).deleteEnvVar(widget.projectId, id);
+      ref.invalidate(envVarsProvider(_key));
     } on ApiException catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
@@ -41,53 +59,77 @@ class EnvironmentScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final vars = ref.watch(envVarsProvider(projectId));
+  Widget build(BuildContext context) {
+    final vars = ref.watch(envVarsProvider(_key));
     return Scaffold(
       appBar: AppBar(title: const Text('Environment')),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _add(context, ref),
+        onPressed: () => _add(context),
         icon: const Icon(Icons.add),
         label: const Text('Variable'),
       ),
-      body: vars.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text(e.toString())),
-        data: (list) => ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Text(
-              'Configuration injected into this project when it runs in preview. '
-              'Mark sensitive values as secret — they are stored to inject but '
-              'never shown again.',
-              style: Theme.of(context).textTheme.bodySmall,
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+            child: SegmentedButton<String>(
+              segments: [
+                for (final e in _envs)
+                  ButtonSegment(value: e.$1, label: Text(e.$2)),
+              ],
+              selected: {_env},
+              showSelectedIcon: false,
+              onSelectionChanged: (s) => setState(() => _env = s.first),
             ),
-            const SizedBox(height: 10),
-            if (list.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: Text('No environment variables yet.'),
-              )
-            else
-              for (final v in list)
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text('${v['key']}',
-                      style: const TextStyle(fontFamily: 'monospace')),
-                  subtitle: Text(
-                    (v['is_secret'] ?? false) as bool
-                        ? 'secret'
-                        : '${v['value']}',
-                    style: const TextStyle(fontFamily: 'monospace', fontSize: 12.5),
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: () => _delete(context, ref, v['id'] as int),
-                  ),
-                ),
-            const SizedBox(height: 72),
-          ],
-        ),
+          ),
+          Expanded(
+            child: vars.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text(e.toString())),
+              data: (payload) {
+                final list = ((payload['variables'] as List?) ?? [])
+                    .map((e) => (e as Map).cast<String, dynamic>())
+                    .toList();
+                return ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    Text(
+                      'Configuration injected into this project when it runs in the '
+                      '$_env environment. Mark sensitive values as secret — they are '
+                      'encrypted at rest and never shown again.',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 10),
+                    if (list.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        child: Text('No variables in this environment yet.'),
+                      )
+                    else
+                      for (final v in list)
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text('${v['key']}',
+                              style: const TextStyle(fontFamily: 'monospace')),
+                          subtitle: Text(
+                            (v['is_secret'] ?? false) as bool
+                                ? 'secret · encrypted'
+                                : '${v['value']}',
+                            style: const TextStyle(
+                                fontFamily: 'monospace', fontSize: 12.5),
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: () => _delete(context, v['id'] as int),
+                          ),
+                        ),
+                    const SizedBox(height: 72),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -10,7 +10,13 @@
 </style>
 
 <h1>Environment variables</h1>
-<p class="sub">Configuration for <strong>{{ project.name }}</strong>. These are injected into the app when it runs in preview. Mark sensitive values as secret — they're stored to inject but never shown again.</p>
+<p class="sub">Configuration for <strong>{{ project.name }}</strong>, per environment. These are injected into the app when it runs. Mark sensitive values as secret — they're encrypted at rest and never shown again.</p>
+
+<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+  {% for e in environments %}
+    <a class="btn {% if e.id == selected_env %}{% else %}ghost{% endif %}" href="?env={{ e.id }}" style="padding:6px 14px;font-size:13px">{{ e.label }}</a>
+  {% endfor %}
+</div>
 
 <div class="card" style="margin-bottom:16px">
   {% for v in vars %}
@@ -38,6 +44,8 @@
   <h2 style="margin-top:0">Add / update a variable</h2>
   <form method="post">{% csrf_token %}
     <input type="hidden" name="action" value="set">
+    <input type="hidden" name="environment" value="{{ selected_env }}">
+    <p class="muted" style="font-size:12.5px;margin-top:0">Saving to the <strong style="color:var(--ink2)">{{ selected_env }}</strong> environment.</p>
     <label>Key</label>
     <input name="key" placeholder="DATABASE_URL" required style="font-family:ui-monospace,monospace">
     <label>Value</label>
