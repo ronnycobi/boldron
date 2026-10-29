@@ -6,7 +6,11 @@
     <h1>{{ order.reference }}
       <span class="badge {% if order.status == 'paid' %}b-completed{% elif order.status == 'cancelled' or order.status == 'failed' %}b-failed{% elif order.status == 'refunded' %}b-cancelled{% else %}b-waiting_for_approval{% endif %}" style="font-size:12px;vertical-align:middle">{{ order.get_status_display }}</span>
     </h1>
-    <a class="btn ghost" href="{% url 'dashboard:store' project.id %}">← Store</a>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <a class="btn ghost" href="{% url 'dashboard:order_invoice' project.id order.id %}" target="_blank">Invoice →</a>
+      <a class="btn ghost" href="{% url 'dashboard:order_invoice' project.id order.id %}?format=pdf" target="_blank">PDF ↓</a>
+      <a class="btn ghost" href="{% url 'dashboard:store' project.id %}">← Store</a>
+    </div>
   </div>
   <p class="sub">Placed {{ order.created_at|date:"M j, Y H:i" }} · via {{ order.get_channel_display }} · {{ order.provider|default:"no payment method" }}</p>
 

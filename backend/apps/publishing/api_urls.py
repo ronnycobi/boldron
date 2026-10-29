@@ -12,6 +12,7 @@ urlpatterns = [
     path("stores/<slug:subdomain>/products/<slug:slug>", api.ProductDetailView.as_view(), name="product"),
     path("stores/<slug:subdomain>/checkout", api.CheckoutView.as_view(), name="checkout"),
     path("stores/<slug:subdomain>/orders/<str:reference>", api.OrderStatusView.as_view(), name="order"),
+    path("stores/<slug:subdomain>/orders/<str:reference>/invoice", api.OrderInvoiceView.as_view(), name="order-invoice"),
 
     # Merchant console (authenticated) — keyed by project, over the same engine.
     path("projects/<int:project_pk>/commerce/products/", m.ProductListCreateView.as_view(), name="admin-products"),

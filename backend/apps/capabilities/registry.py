@@ -55,7 +55,7 @@ _CATALOG = [
     Capability("crm", "CRM", "Business", AVAILABLE, "Contacts, leads, deals, activities."),
     Capability("payments", "Payments", "Business", AVAILABLE, "Checkout, manual/EFT payments and refunds today; card gateways (Stripe, PayFast) activate when connected."),
     Capability("subscriptions", "Subscriptions", "Business", PLANNED, "Recurring billing."),
-    Capability("invoicing", "Invoicing", "Business", PLANNED, "Invoices and receipts."),
+    Capability("invoicing", "Invoicing", "Business", AVAILABLE, "Real invoices and receipts generated from your orders — printable HTML and PDF, with honest paid/unpaid status."),
     Capability("tax", "Tax", "Business", PLANNED, "VAT/sales-tax on documents."),
     Capability("currency", "Multi-currency", "Business", PLANNED, "Prices and reporting per currency."),
     Capability("ecommerce", "E-commerce", "Business", AVAILABLE, "Products, cart, orders."),

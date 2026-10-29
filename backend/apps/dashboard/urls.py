@@ -29,6 +29,7 @@ urlpatterns = [
     path("projects/<int:pk>/content/", views.content, name="content"),
     path("projects/<int:pk>/store/", views.store, name="store"),
     path("projects/<int:pk>/store/orders/<int:order_id>/", views.order_detail, name="order_detail"),
+    path("projects/<int:pk>/store/orders/<int:order_id>/invoice/", views.order_invoice, name="order_invoice"),
     path("projects/<int:pk>/assets/", views.assets, name="assets"),
     path("projects/<int:pk>/assets/<int:asset_id>/raw", views.asset_raw, name="asset_raw"),
     path("projects/<int:pk>/preview/", views.preview, name="preview"),

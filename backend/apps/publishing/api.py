@@ -114,3 +114,22 @@ class OrderStatusView(APIView):
         if order is None:
             return Response({"detail": "Order not found."}, status=404)
         return Response(_order_json(order))
+
+
+class OrderInvoiceView(APIView):
+    """The invoice for an order (spec §24/§32): structured data by default, or a
+    printable HTML document with ?format=html. Reflects the real order + payments —
+    the same engine the web console renders from. Any channel can fetch it."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request, subdomain, reference):
+        from django.http import HttpResponse
+        from apps.publishing import invoicing
+        order = (Order.objects.prefetch_related("items", "payments")
+                 .filter(website__subdomain=subdomain, reference=reference).first())
+        if order is None:
+            return Response({"detail": "Order not found."}, status=404)
+        if request.GET.get("format") == "html":
+            return HttpResponse(invoicing.render_invoice_html(order), content_type="text/html")
+        return Response(invoicing.invoice_data(order))

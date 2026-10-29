@@ -956,6 +956,30 @@ def order_detail(request, pk, order_id):
 
 
 @login_required
+def order_invoice(request, pk, order_id):
+    """A real invoice/receipt for an order (spec §24/§32). HTML by default; add
+    ?format=pdf for a genuine PDF. Built from the order's recorded figures and
+    payments — nothing is fabricated."""
+    from django.http import HttpResponse
+    from apps.publishing import invoicing
+    from apps.publishing.models import Order
+    proj = get_object_or_404(
+        Project.objects.filter(organization__in=organizations_for(request.user)), pk=pk
+    )
+    order = get_object_or_404(
+        Order.objects.prefetch_related("items", "payments"),
+        pk=order_id, website__project=proj,
+    )
+    number = invoicing.invoice_number(order)
+    if request.GET.get("format") == "pdf":
+        pdf = invoicing.render_invoice_pdf(order)
+        resp = HttpResponse(pdf, content_type="application/pdf")
+        resp["Content-Disposition"] = f'inline; filename="{number}.pdf"'
+        return resp
+    return HttpResponse(invoicing.render_invoice_html(order), content_type="text/html")
+
+
+@login_required
 def content(request, pk):
     """Content management (spec §25): opt-in collections that generate real pages."""
     from apps.publishing import cms_service as cms
