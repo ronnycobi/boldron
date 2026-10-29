@@ -245,3 +245,23 @@ def by_group() -> list[tuple[str, list[MobileCapability]]]:
 
 def permission(permission_id: str) -> DevicePermission | None:
     return PERMISSIONS.get(permission_id)
+
+
+def capability_lines(ids) -> str:
+    """Readable "Name — summary" lines for the given capability ids, for an AI prompt."""
+    lines = []
+    for cid in ids:
+        c = get(cid)
+        if c:
+            lines.append(f"- {c.name} — {c.summary}")
+    return "\n".join(lines)
+
+
+def permission_lines(permission_ids) -> str:
+    """Readable "Name — rationale" lines for the given device-permission ids."""
+    lines = []
+    for pid in permission_ids:
+        p = permission(pid)
+        if p:
+            lines.append(f"- {p.name} — {p.rationale}")
+    return "\n".join(lines)

@@ -138,3 +138,73 @@ class MobileApiTests(TestCase):
     def test_plan_requires_auth(self):
         resp = self.client.get(reverse("mobile_api:plan"), {"brief": "x"})
         self.assertEqual(resp.status_code, 401)
+
+
+class PlanToGenerateTests(TestCase):
+    """The plan drives generation: a persisted mobile plan shapes the Mobile Agent's
+    screen-design prompt (DESCRIBE -> PLAN -> GENERATE)."""
+
+    def test_compact_plan_is_persistable_ids(self):
+        p = planner.compact_plan("a field app with photos, GPS and offline sync")
+        self.assertIn("camera", p["capabilities"])
+        self.assertIn("location", p["capabilities"])
+        self.assertIn("offline", p["capabilities"])
+        self.assertEqual(p["platforms"], ["ios", "android", "huawei"])
+        self.assertIn("camera", p["permissions"])
+        self.assertIn("location", p["permissions"])
+
+    def test_build_prompt_includes_planned_capabilities_and_permissions(self):
+        from apps.mobile.agent import _build_prompt
+        prompt = _build_prompt(
+            "Flutter", "", "", "", "a field app",
+            capabilities="- Camera — capture photos\n- Location / GPS — site checks",
+            permissions="- Camera — take photos\n- Location — verify a site")
+        self.assertIn("Planned mobile capabilities", prompt)
+        self.assertIn("Camera", prompt)
+        self.assertIn("Device permissions the app will use", prompt)
+
+    def test_build_persists_a_mobile_plan_on_the_project(self):
+        from apps.mobile import planner as mp
+        # The same call builds.create_project makes.
+        plan = mp.compact_plan("an app where workers photograph damage and capture GPS")
+        self.assertIn("camera", plan["capabilities"])
+        self.assertIn("location", plan["capabilities"])
+
+    def test_agent_prompt_is_driven_by_the_projects_mobile_plan(self):
+        import json
+        from unittest import mock
+        from apps.ai_providers.base import CompletionResponse, Usage
+        from apps.organizations.models import Organization
+        from apps.orchestrator.service import Orchestrator
+        from apps.project_context.models import ContextKind
+        from apps.project_context.services import ProjectContext
+        from apps.projects.models import Project
+
+        org = Organization.objects.create(name="PlanOrg")
+        project = Project.objects.create(
+            organization=org, name="FieldApp", technology={"mobile": "flutter"},
+            mobile_plan={"capabilities": ["camera", "location", "offline"],
+                         "platforms": ["ios", "android", "huawei"],
+                         "permissions": ["camera", "location"]})
+        ProjectContext(project).set(
+            ContextKind.REQUIREMENT, "r", title="R", content="field workers")
+
+        captured = {}
+
+        def _recording(request, provider=None):
+            captured["prompt"] = request.messages[0].content
+            return CompletionResponse(
+                text=json.dumps({"screens": [{"name": "Capture", "purpose": "Photo + GPS",
+                                              "route": "/capture", "components": ["Camera"]}]}),
+                model="claude-sonnet-5", provider="anthropic", usage=Usage(10, 20))
+
+        orch = Orchestrator()
+        task = orch.create_task(project=project, agent_key="mobile", input={})
+        with mock.patch("apps.model_router.router.gateway_complete", side_effect=_recording):
+            orch.run_task(task)
+
+        prompt = captured["prompt"]
+        self.assertIn("Camera", prompt)             # planned capability reached the AI
+        self.assertIn("Location / GPS", prompt)
+        self.assertIn("Offline & sync", prompt)
+        self.assertIn("Device permissions", prompt)  # permission flow instruction

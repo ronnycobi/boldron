@@ -90,6 +90,25 @@ def capability_ids(brief: str) -> list[str]:
     return [i for i in ids if caps.get(i) is not None]
 
 
+def compact_plan(brief: str, *, platforms=None) -> dict:
+    """A lean, persistable plan for a project: capability + platform + permission ids.
+    Stored on Project.mobile_plan so the Mobile Agent can drive screen design from it."""
+    ids = capability_ids(brief)
+    perm_ids: list[str] = []
+    for cid in ids:
+        c = caps.get(cid)
+        if not c:
+            continue
+        for p in c.permissions:
+            if p not in perm_ids:
+                perm_ids.append(p)
+    return {
+        "capabilities": ids,
+        "platforms": _normalise_platforms(platforms),
+        "permissions": perm_ids,
+    }
+
+
 def _normalise_platforms(platforms) -> list[str]:
     if not platforms:
         return list(_ALL_PLATFORMS)

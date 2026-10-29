@@ -197,6 +197,7 @@ def create_and_start_build(organization, brief, user) -> Project:
     stack), seed its workspace and requirement context, and start the build.
     Returns the new Project."""
     from apps.capabilities.analysis import capability_ids
+    from apps.mobile import planner as mobile_planner
     project = Project.objects.create(
         organization=organization,
         name=name_from_brief(brief),
@@ -206,6 +207,8 @@ def create_and_start_build(organization, brief, user) -> Project:
         # The app's capability map — what the brief implies it needs. Persisted so
         # later changes reuse these capabilities instead of rebuilding them.
         capabilities=capability_ids(brief),
+        # The mobile plan drives the Mobile Agent's screen design (PLAN -> GENERATE).
+        mobile_plan=mobile_planner.compact_plan(brief),
     )
     project.ensure_default_workspace()
     ProjectContext(project).set(

@@ -34,7 +34,8 @@ SYSTEM_PROMPT = (
 )
 
 
-def _build_prompt(framework, requirements, api, existing, brief):
+def _build_prompt(framework, requirements, api, existing, brief,
+                  capabilities="", permissions=""):
     parts = []
     if framework:
         parts.append(f"Target mobile framework: {framework}.")
@@ -42,6 +43,15 @@ def _build_prompt(framework, requirements, api, existing, brief):
         parts.append("Product brief:\n" + brief.strip())
     if requirements.strip():
         parts.append("Requirements:\n" + requirements.strip())
+    # The planned mobile capabilities — design screens that actually deliver these.
+    if capabilities.strip():
+        parts.append(
+            "Planned mobile capabilities (design screens and flows that deliver "
+            "each of these):\n" + capabilities.strip())
+    if permissions.strip():
+        parts.append(
+            "Device permissions the app will use (include the screens/flows where "
+            "each is requested, with a clear reason):\n" + permissions.strip())
     if api.strip():
         parts.append("Available API:\n" + api.strip())
     if existing.strip():
@@ -87,9 +97,17 @@ class MobileAgent(BaseAgent):
             if (e.data or {}).get("platform") == "mobile"
         )
 
+        # PLAN -> GENERATE: the persisted mobile plan drives the screen design.
+        from apps.mobile import capabilities as mobile_caps
+        plan = project.mobile_plan or {}
+        cap_text = mobile_caps.capability_lines(plan.get("capabilities", []))
+        perm_text = mobile_caps.permission_lines(plan.get("permissions", []))
+
         response = self.router.complete(
             RoutingRequest(complexity=TaskComplexity.MEDIUM, task_type="mobile"),
-            messages=[Message("user", _build_prompt(fw_name, requirements, api, existing, brief))],
+            messages=[Message("user", _build_prompt(
+                fw_name, requirements, api, existing, brief,
+                capabilities=cap_text, permissions=perm_text))],
             system=SYSTEM_PROMPT,
             max_tokens=3000,
         )
