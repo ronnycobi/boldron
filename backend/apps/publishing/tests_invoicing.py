@@ -82,6 +82,22 @@ class InvoiceDataTests(TestCase):
         from apps.capabilities.registry import get
         self.assertTrue(get("invoicing").is_available)
 
+    def test_tax_is_applied_and_itemised_on_the_invoice(self):
+        # Tax is a real, deterministic capability: a 15% rate on a 3000c order is
+        # exactly 450c, charged in the total and shown on the invoice.
+        from apps.capabilities.registry import get
+        self.assertTrue(get("tax").is_available)
+        shop.set_tax_rate(self.website, name="VAT", percent=15, user=self.owner)
+        order = shop.create_order(
+            self.website, items=[{"product_id": self.product.id, "quantity": 2}],
+            customer_name="Taxed", customer_email="t@example.com")
+        self.assertEqual(order.tax_cents, 450)
+        self.assertEqual(order.total_cents, 3450)
+        d = invoicing.invoice_data(order)
+        self.assertEqual(d["tax_cents"], 450)
+        self.assertEqual(d["tax_label"], "VAT")
+        self.assertIn("VAT", invoicing.render_invoice_html(order))
+
 
 class InvoiceSurfaceTests(TestCase):
     def setUp(self):
