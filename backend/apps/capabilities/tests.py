@@ -12,13 +12,13 @@ class RegistryTests(SimpleTestCase):
 
     def test_planned_capabilities_are_not_marked_available(self):
         # The guardrail: things we don't offer yet must be PLANNED.
-        for cid in ("subscriptions", "sms", "stripe", "whatsapp"):
+        for cid in ("sms", "stripe", "whatsapp", "slack"):
             self.assertEqual(get(cid).status, PLANNED, cid)
 
     def test_real_capabilities_are_available(self):
         for cid in ("auth", "database", "email", "security", "audit", "export",
                     "git", "backups", "files", "payments", "analytics", "invoicing",
-                    "tax", "monitoring", "domains", "mobile_publishing"):
+                    "tax", "monitoring", "domains", "mobile_publishing", "subscriptions"):
             self.assertEqual(get(cid).status, AVAILABLE, cid)
 
     def test_grouped(self):
@@ -72,20 +72,19 @@ class RequirementsAnalysisTests(_TC):
 
     def test_honest_built_vs_coming_split(self):
         from apps.capabilities.analysis import analyze
-        a = analyze("a subscription SaaS with recurring billing and SMS alerts")
-        # subscriptions + analytics are planned, not built — never faked.
-        subs = next(i for g in a["groups"] for i in g["items"] if i["id"] == "subscriptions")
-        self.assertFalse(subs["available"])
-        self.assertIn("Subscriptions", a["planned_names"])
+        a = analyze("a store that sends SMS alerts to customers")
+        # SMS is planned, not built — never faked.
+        sms = next(i for g in a["groups"] for i in g["items"] if i["id"] == "sms")
+        self.assertFalse(sms["available"])
         self.assertIn("SMS", a["planned_names"])
         self.assertEqual(a["total"], a["available_count"] + a["planned_count"])
 
     def test_summary_from_persisted_ids(self):
         from apps.capabilities.analysis import summary
-        s = summary(["auth", "database", "subscriptions", "not-a-real-id"])
+        s = summary(["auth", "database", "sms", "not-a-real-id"])
         self.assertEqual(s["total"], 3)  # unknown id dropped
         self.assertEqual(s["available_count"], 2)
-        self.assertEqual(s["planned_count"], 1)  # subscriptions still planned
+        self.assertEqual(s["planned_count"], 1)  # sms still planned
 
 
 class InferenceCoverageTests(_TC):

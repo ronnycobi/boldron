@@ -19,6 +19,7 @@ from rest_framework.views import APIView
 
 from apps.projects.access import project_for_read, require_manageable_project
 from apps.publishing import ecommerce_service as shop
+from apps.publishing import subscriptions as subs
 from apps.publishing.models import DiscountCode, Order, Product
 
 
@@ -346,3 +347,94 @@ class SalesSummaryView(_StoreView):
         self.manage = False
         website = self.store(request, project_pk)
         return Response(shop.sales_summary(website))
+
+
+# --- Subscriptions (recurring billing) --------------------------------------
+
+def _plan_dict(p) -> dict:
+    return {
+        "id": p.id, "name": p.name, "amount_cents": p.amount_cents,
+        "amount_display": p.amount_display, "currency": p.currency,
+        "interval": p.interval, "active": p.active,
+    }
+
+
+def _subscription_dict(s) -> dict:
+    return {
+        "id": s.id, "plan": s.plan.name, "plan_id": s.plan_id,
+        "customer_name": s.customer_name, "customer_email": s.customer_email,
+        "status": s.status, "renewals": s.renewals,
+        "current_period_end": s.current_period_end.isoformat(),
+        "amount_display": s.plan.amount_display, "interval": s.plan.interval,
+    }
+
+
+class PlanListCreateView(_StoreView):
+    def get(self, request, project_pk):
+        self.manage = False
+        website = self.store(request, project_pk)
+        return Response([_plan_dict(p) for p in website.plans.all()])
+
+    def post(self, request, project_pk):
+        self.manage = True
+        website = self.store(request, project_pk)
+        d = request.data
+        try:
+            plan = subs.create_plan(
+                website, name=d.get("name", ""), amount_cents=d.get("amount_cents", 0),
+                interval=d.get("interval", "monthly"), currency=d.get("currency", "USD"),
+                user=request.user)
+        except subs.SubscriptionError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(_plan_dict(plan), status=status.HTTP_201_CREATED)
+
+
+class SubscriptionListCreateView(_StoreView):
+    """GET lists a store's subscriptions; POST subscribes a customer to a plan and
+    opens the first (real, unpaid) billing cycle."""
+
+    def get(self, request, project_pk):
+        self.manage = False
+        website = self.store(request, project_pk)
+        return Response({
+            "overview": subs.overview(website),
+            "subscriptions": [_subscription_dict(s)
+                              for s in website.subscriptions.select_related("plan")[:200]],
+        })
+
+    def post(self, request, project_pk):
+        self.manage = True
+        website = self.store(request, project_pk)
+        plan = website.plans.filter(pk=request.data.get("plan_id"), active=True).first()
+        if plan is None:
+            return Response({"detail": "Unknown or inactive plan."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        try:
+            sub, order = subs.subscribe(
+                plan, customer_name=request.data.get("customer_name", ""),
+                customer_email=request.data.get("customer_email", ""), user=request.user)
+        except subs.SubscriptionError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"subscription": _subscription_dict(sub),
+                         "first_cycle_order": order.reference},
+                        status=status.HTTP_201_CREATED)
+
+
+class SubscriptionCancelView(_StoreView):
+    def post(self, request, project_pk, pk):
+        self.manage = True
+        website = self.store(request, project_pk)
+        sub = get_object_or_404(website.subscriptions, pk=pk)
+        subs.cancel(sub, user=request.user)
+        return Response(_subscription_dict(sub))
+
+
+class SubscriptionRenewView(_StoreView):
+    """Open any due billing cycles for this store now (the same work the scheduled
+    command does). Returns how many real cycle orders were opened."""
+
+    def post(self, request, project_pk):
+        self.manage = True
+        website = self.store(request, project_pk)
+        opened = subs.renew_due(website=website)
+        return Response({"opened": opened})

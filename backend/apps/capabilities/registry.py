@@ -54,7 +54,10 @@ _CATALOG = [
     # Business
     Capability("crm", "CRM", "Business", AVAILABLE, "Contacts, leads, deals, activities."),
     Capability("payments", "Payments", "Business", AVAILABLE, "Checkout, manual/EFT payments and refunds today; card gateways (Stripe, PayFast) activate when connected."),
-    Capability("subscriptions", "Subscriptions", "Business", PLANNED, "Recurring billing."),
+    Capability("subscriptions", "Subscriptions", "Business", AVAILABLE,
+               "Recurring plans billed every interval. Each cycle is a real, payable, invoiceable "
+               "order; the merchant confirms manual/EFT renewals today, and card auto-renewal "
+               "activates when a gateway is connected."),
     Capability("invoicing", "Invoicing", "Business", AVAILABLE, "Real invoices and receipts generated from your orders — printable HTML and PDF, with honest paid/unpaid status."),
     Capability("tax", "Tax", "Business", AVAILABLE, "VAT/sales-tax rates applied deterministically at checkout and itemised on invoices."),
     Capability("currency", "Multi-currency", "Business", PLANNED, "Prices and reporting per currency."),

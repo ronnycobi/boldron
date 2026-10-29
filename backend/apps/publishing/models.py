@@ -698,6 +698,77 @@ class Payment(models.Model):
         return f"{self.provider} {self.amount_cents / 100:.2f} ({self.status})"
 
 
+class SubscriptionPlan(models.Model):
+    """A recurring plan a store offers (spec §24). The money is deterministic —
+    a fixed amount charged every interval. Nothing here auto-charges a card; a
+    renewal becomes a real Order that is settled like any other payment."""
+
+    INTERVALS = [("weekly", "Weekly"), ("monthly", "Monthly"), ("yearly", "Yearly")]
+
+    website = models.ForeignKey(Website, on_delete=models.CASCADE, related_name="plans")
+    name = models.CharField(max_length=120)
+    amount_cents = models.PositiveIntegerField(default=0)
+    currency = models.CharField(max_length=3, default="USD")
+    interval = models.CharField(max_length=10, choices=INTERVALS, default="monthly")
+    active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.name} ({self.amount_display}/{self.interval})"
+
+    @property
+    def amount_display(self) -> str:
+        return f"{self.currency} {self.amount_cents / 100:.2f}"
+
+
+class Subscription(models.Model):
+    """A customer's ongoing subscription to a plan (spec §24). Status reflects REAL
+    billing state: a renewal is 'past_due' until its order is actually paid; it never
+    optimistically shows active/paid. Card auto-renewal is gated on a connected
+    gateway — until then renewals are settled as manual payments, like any order."""
+
+    STATUS = [("active", "Active"), ("past_due", "Past due"),
+              ("cancelled", "Cancelled"), ("expired", "Expired")]
+
+    website = models.ForeignKey(Website, on_delete=models.CASCADE, related_name="subscriptions")
+    plan = models.ForeignKey(SubscriptionPlan, on_delete=models.PROTECT, related_name="subscriptions")
+    customer_name = models.CharField(max_length=255, blank=True)
+    customer_email = models.EmailField(blank=True)
+    status = models.CharField(max_length=12, choices=STATUS, default="active")
+    current_period_start = models.DateTimeField(default=timezone.now)
+    current_period_end = models.DateTimeField()
+    renewals = models.PositiveIntegerField(default=0)   # settled billing cycles
+    created_at = models.DateTimeField(default=timezone.now)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["website", "status", "current_period_end"])]
+
+    def __str__(self):
+        return f"{self.customer_email or self.customer_name} → {self.plan.name} ({self.status})"
+
+
+class SubscriptionInvoice(models.Model):
+    """Links one billing cycle of a subscription to the real Order that bills it, so
+    every cycle has a genuine, payable, invoiceable order behind it (no fake dues)."""
+
+    subscription = models.ForeignKey(Subscription, on_delete=models.CASCADE, related_name="cycles")
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name="subscription_cycle")
+    period_start = models.DateTimeField()
+    period_end = models.DateTimeField()
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.subscription_id} cycle → {self.order.reference}"
+
+
 class PublishCheck(models.Model):
     """One publish-readiness check result (spec §12, §41)."""
 
