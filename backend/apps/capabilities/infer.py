@@ -34,6 +34,7 @@ _RULES = [
     ("analytics", r"\banalytics|report|metric|insight|track\b"),
     ("seo", r"\bseo|search engine|rank|google|discoverab|sitemap|marketing (site|website)|landing page|blog\b"),
     ("jobs", r"\bbackground|scheduled|batch|import|long[- ]running|queue|async|csv\b"),
+    ("monitoring", r"\buptime|health check|monitor|downtime|incident|status page\b"),
     ("ai", r"\bai |chatbot|assistant|recommend|semantic|ask questions\b"),
     ("git", r"\bgithub|gitlab|repository|existing (code|project)\b"),
 ]

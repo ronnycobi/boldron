@@ -71,7 +71,9 @@ _CATALOG = [
     Capability("domains", "Custom domains", "Infrastructure", PLANNED, "Your own domain + SSL."),
     Capability("backups", "Backups", "Infrastructure", AVAILABLE, "Create restore points and roll back."),
     Capability("environments", "Environments", "Infrastructure", AVAILABLE, "Dev/staging workspaces."),
-    Capability("monitoring", "Monitoring", "Infrastructure", PLANNED, "Health, errors and uptime."),
+    Capability("monitoring", "Monitoring", "Infrastructure", AVAILABLE,
+               "Real health probes of the site we host — uptime %, response time and incidents. "
+               "Remote-server metrics and continuous external probing activate with a connected probe network."),
     # Cross-cutting
     Capability("security", "Security", "Protect", AVAILABLE, "Secret + injection scanning on every change."),
     Capability("audit", "Audit log", "Protect", AVAILABLE, "A record of who changed what."),

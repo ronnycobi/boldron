@@ -12,12 +12,13 @@ class RegistryTests(SimpleTestCase):
 
     def test_planned_capabilities_are_not_marked_available(self):
         # The guardrail: things we don't offer yet must be PLANNED.
-        for cid in ("subscriptions", "monitoring", "domains", "sms"):
+        for cid in ("subscriptions", "sms", "mobile_publishing", "stripe"):
             self.assertEqual(get(cid).status, PLANNED, cid)
 
     def test_real_capabilities_are_available(self):
         for cid in ("auth", "database", "email", "security", "audit", "export",
-                    "git", "backups", "files", "payments", "analytics", "invoicing", "tax"):
+                    "git", "backups", "files", "payments", "analytics", "invoicing",
+                    "tax", "monitoring"):
             self.assertEqual(get(cid).status, AVAILABLE, cid)
 
     def test_grouped(self):
@@ -95,3 +96,7 @@ class InferenceCoverageTests(_TC):
     def test_batch_work_infers_jobs(self):
         from apps.capabilities.analysis import capability_ids
         self.assertIn("jobs", capability_ids("an app that processes large CSV imports in the background"))
+
+    def test_uptime_brief_infers_monitoring(self):
+        from apps.capabilities.analysis import capability_ids
+        self.assertIn("monitoring", capability_ids("a status page that tracks uptime and incidents"))
