@@ -1244,18 +1244,47 @@ class CapabilityEngineWebTests(TestCase):
 
     def test_analyze_endpoint_returns_honest_plan(self):
         r = self.client.get(reverse("dashboard:analyze"),
-                            {"brief": "online store with payments and email"})
+                            {"brief": "a subscription SaaS with recurring billing and analytics"})
         self.assertEqual(r.status_code, 200)
         d = r.json()
         self.assertGreater(d["available_count"], 0)
-        self.assertIn("Payments", d["planned_names"])      # coming, not faked
-        self.assertIn("E-commerce", d["available_names"])  # built
+        self.assertIn("Analytics", d["planned_names"])     # coming, not faked
+        self.assertIn("Subscriptions", d["planned_names"])
 
     def test_project_page_shows_capability_map(self):
         p = Project.objects.create(
             organization=self.org, name="Shop",
-            capabilities=["auth", "database", "ecommerce", "payments", "email"])
+            capabilities=["auth", "database", "ecommerce", "analytics", "email"])
         html = self.client.get(reverse("dashboard:project", args=[p.id])).content.decode()
         self.assertIn("What this app includes", html)
         self.assertIn("E-commerce", html)
-        self.assertIn("COMING", html)  # payments shown honestly as coming
+        self.assertIn("COMING", html)  # analytics shown honestly as coming
+
+
+class PaymentsSurfaceTests(TestCase):
+    """The project Payments page + mobile API — real ledger, honest providers."""
+
+    def setUp(self):
+        from apps.publishing.models import Website
+        self.user = User.objects.create_user(email="pay@x.com", password="pw12345678")
+        self.org = Organization.objects.create(name="PaySurfOrg")
+        self.org.add_member(self.user, role=Role.OWNER)
+        self.project = Project.objects.create(organization=self.org, name="Store")
+        self.website = Website.objects.create(project=self.project, subdomain="pays-x")
+        self.client.force_login(self.user)
+
+    def test_payments_page_renders_providers_honestly(self):
+        html = self.client.get(reverse("dashboard:payments", args=[self.project.id])).content.decode()
+        self.assertIn("Payment methods", html)
+        self.assertIn("Transaction history", html)
+        self.assertIn("Not connected", html)  # Stripe/PayFast gated, shown honestly
+
+    def test_payments_api(self):
+        from apps.accounts.api import issue_tokens
+        auth = {"HTTP_AUTHORIZATION": f"Bearer {issue_tokens(self.user)['access']}"}
+        resp = self.client.get(reverse("projects:payments", args=[self.project.id]), **auth)
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertIn("providers", body)
+        self.assertIn("transactions", body)
+        self.assertIn("summary", body)

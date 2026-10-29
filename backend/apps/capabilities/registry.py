@@ -53,7 +53,7 @@ _CATALOG = [
     Capability("jobs", "Background jobs", "Application", PLANNED, "Async and scheduled work."),
     # Business
     Capability("crm", "CRM", "Business", AVAILABLE, "Contacts, leads, deals, activities."),
-    Capability("payments", "Payments", "Business", PLANNED, "Checkout and payment processing."),
+    Capability("payments", "Payments", "Business", AVAILABLE, "Checkout, manual/EFT payments and refunds today; card gateways (Stripe, PayFast) activate when connected."),
     Capability("subscriptions", "Subscriptions", "Business", PLANNED, "Recurring billing."),
     Capability("invoicing", "Invoicing", "Business", PLANNED, "Invoices and receipts."),
     Capability("tax", "Tax", "Business", PLANNED, "VAT/sales-tax on documents."),

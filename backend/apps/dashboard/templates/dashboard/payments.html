@@ -1,0 +1,56 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}Payments · {{ project.name }} · {{ app_name }}{% endblock %}
+{% block crumb %}<a href="{% url 'dashboard:project' project.id %}">{{ project.name }}</a> · Payments{% endblock %}
+{% block content %}
+<style>
+  .pm-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:4px 0 20px}
+  .pm-sum .c{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--panel)}
+  .pm-sum .k{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+  .pm-sum .v{font-weight:800;font-size:22px;margin-top:4px}
+  .pm-prov{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+  .pm-prov:last-child{border-bottom:0}
+</style>
+
+<h1>Payments</h1>
+<p class="sub">Connected payment methods and your transaction history for <strong>{{ project.name }}</strong>. Confirm or refund a payment from its order.</p>
+
+<div class="pm-sum">
+  <div class="c"><div class="k">Orders</div><div class="v">{{ overview.summary.orders }}</div></div>
+  <div class="c"><div class="k">Paid</div><div class="v">{{ overview.summary.paid_orders }}</div></div>
+  <div class="c"><div class="k">Awaiting</div><div class="v">{{ overview.summary.awaiting }}</div></div>
+  <div class="c"><div class="k">Collected</div><div class="v" style="font-size:18px">{{ overview.summary.succeeded_cents|floatformat:0|default:0 }}<span class="muted" style="font-size:12px"> ¢</span></div></div>
+</div>
+
+<div class="card" style="margin-bottom:18px">
+  <h2 style="margin-top:0">Payment methods</h2>
+  <p class="muted" style="font-size:13px;margin:0 0 6px">A method is active only when it's genuinely connected. Card gateways activate once their keys are configured on this deployment — nothing is shown as connected unless it is.</p>
+  {% for p in overview.providers %}
+  <div class="pm-prov">
+    <strong>{{ p.name }}</strong>
+    {% if p.available %}<span class="badge b-completed">Active</span>{% else %}<span class="badge b-waiting_for_approval">Not connected</span>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">Transaction history</h2>
+  {% if overview.transactions %}
+  <div style="overflow-x:auto">
+    <table>
+      <tr><th>Order</th><th>Method</th><th>Amount</th><th>Status</th><th>When</th></tr>
+      {% for t in overview.transactions %}
+      <tr>
+        <td><a href="{% url 'dashboard:order_detail' project.id t.order_id %}" style="color:var(--ink)">{{ t.reference }}</a></td>
+        <td class="muted">{{ t.provider }}{% if t.method %} · {{ t.method }}{% endif %}</td>
+        <td>{{ t.amount_display }}</td>
+        <td><span class="badge b-{% if t.status == 'succeeded' %}completed{% elif t.status == 'failed' %}failed{% elif t.status == 'refunded' %}cancelled{% else %}pending{% endif %}">{{ t.status|title }}</span></td>
+        <td class="muted">{{ t.created_at|slice:":10" }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% else %}
+  <p class="empty">No transactions yet. They appear here as your store takes orders.</p>
+  {% endif %}
+</div>
+{% endblock %}

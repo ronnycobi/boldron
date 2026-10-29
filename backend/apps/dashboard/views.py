@@ -1948,6 +1948,20 @@ def org_ai(request):
 
 
 @login_required
+def project_payments(request, pk):
+    """Payments surface (spec §24): connected providers (honest, env-gated), the
+    transaction history, and a real money summary. Read-only; confirming and
+    refunding happen on the order itself."""
+    from apps.publishing.ecommerce_service import payment_overview
+
+    proj = get_object_or_404(
+        Project.objects.filter(organization__in=organizations_for(request.user)), pk=pk)
+    return render(request, "dashboard/payments.html",
+                  {"active": "projects", "project": proj,
+                   "overview": payment_overview(proj)})
+
+
+@login_required
 def project_files(request, pk):
     """A project's files & media (spec §17). Any member can upload and view;
     deleting is for the uploader or a manager. Private files are served only to

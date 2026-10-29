@@ -1833,3 +1833,51 @@ class PublishUITests(TestCase):
         self.assertContains(r, "Hosting targets")
         self.assertContains(r, "Not configured")
         self.assertContains(r, "Custom domains")
+
+
+from django.test import TestCase as _PayTC  # noqa: E402
+
+
+class PaymentOverviewTests(_PayTC):
+    """The payments surface (spec §24): honest providers + real transaction ledger."""
+
+    def setUp(self):
+        from apps.organizations.models import Organization
+        from apps.projects.models import Project
+        from apps.publishing.models import Website
+        self.org = Organization.objects.create(name="PayOrg")
+        self.project = Project.objects.create(organization=self.org, name="Shop")
+        self.website = Website.objects.create(project=self.project, subdomain="pay-x")
+
+    def _order(self, status="paid", total=5000):
+        from apps.publishing.models import Order
+        import secrets
+        return Order.objects.create(
+            website=self.website, reference=f"ORD-{secrets.token_hex(3)}",
+            total_cents=total, currency="USD", status=status, provider="manual")
+
+    def test_providers_honest_manual_available_cards_gated(self):
+        from apps.publishing.ecommerce_service import payment_overview
+        ov = payment_overview(self.project)
+        provs = {p["key"]: p["available"] for p in ov["providers"]}
+        self.assertTrue(provs["manual"])        # real, offline-friendly
+        self.assertFalse(provs["stripe"])       # gated — no key in tests
+        self.assertFalse(provs["payfast"])
+
+    def test_transaction_history_and_summary(self):
+        from apps.publishing.ecommerce_service import payment_overview
+        from apps.publishing.models import Payment
+        o = self._order(total=5000)
+        Payment.objects.create(order=o, provider="manual", method="manual",
+                               amount_cents=5000, currency="USD", status="succeeded")
+        self._order(status="awaiting_payment")
+        ov = payment_overview(self.project)
+        self.assertEqual(len(ov["transactions"]), 1)
+        self.assertEqual(ov["transactions"][0]["status"], "succeeded")
+        self.assertEqual(ov["summary"]["succeeded_cents"], 5000)
+        self.assertEqual(ov["summary"]["paid_orders"], 1)
+        self.assertEqual(ov["summary"]["awaiting"], 1)
+
+    def test_payments_capability_now_available(self):
+        from apps.capabilities.registry import get
+        self.assertTrue(get("payments").is_available)

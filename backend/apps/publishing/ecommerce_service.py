@@ -502,3 +502,49 @@ def _email_buyer(order, subject: str, text: str) -> bool:
                                to=order.customer_email, text=text))
     except Exception:
         return False
+
+
+def payment_overview(project) -> dict:
+    """Payments surface for a project (spec §24): connected providers (honest,
+    env-gated), the transaction ledger, and a real money summary. Reads the
+    Payment records — no figure here is fabricated."""
+    from apps.publishing.models import Order, Payment
+    from apps.publishing.payments import provider_status
+
+    payments = list(
+        Payment.objects.filter(order__website__project=project)
+        .select_related("order")[:100]
+    )
+    orders = Order.objects.filter(website__project=project)
+
+    def _cents(status):
+        total = 0
+        for p in payments:
+            if p.status == status:
+                total += p.amount_cents
+        return total
+
+    txns = [{
+        "id": p.id,
+        "reference": p.order.reference,
+        "order_id": p.order_id,
+        "provider": p.provider,
+        "method": p.method,
+        "amount_cents": p.amount_cents,
+        "amount_display": f"{p.currency} {p.amount_cents / 100:.2f}",
+        "currency": p.currency,
+        "status": p.status,
+        "created_at": p.created_at.isoformat(),
+    } for p in payments]
+
+    return {
+        "providers": provider_status(),
+        "transactions": txns,
+        "summary": {
+            "orders": orders.count(),
+            "paid_orders": orders.filter(status="paid").count(),
+            "awaiting": orders.filter(status="awaiting_payment").count(),
+            "succeeded_cents": _cents("succeeded"),
+            "refunded_cents": _cents("refunded"),
+        },
+    }

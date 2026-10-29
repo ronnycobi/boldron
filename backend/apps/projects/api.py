@@ -240,6 +240,18 @@ class AnalyzeView(APIView):
         return Response(analyze(request.data.get("brief", "") or ""))
 
 
+class ProjectPaymentsView(APIView):
+    """Payments surface for a project (spec §24): connected providers (honest),
+    transaction history and a money summary. Same data as web."""
+
+    def get(self, request, pk):
+        from apps.projects.access import project_for_read
+        from apps.publishing.ecommerce_service import payment_overview
+
+        project = project_for_read(request.user, pk)
+        return Response(payment_overview(project))
+
+
 class ProjectRepositoryView(APIView):
     """Real local git state for the project (read-only)."""
 
