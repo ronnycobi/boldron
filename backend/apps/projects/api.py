@@ -240,6 +240,31 @@ class AnalyzeView(APIView):
         return Response(analyze(request.data.get("brief", "") or ""))
 
 
+class ProjectAnalyticsView(APIView):
+    """Real analytics for a project (spec §22): traffic (visitors, page views,
+    sources, conversions) and, for stores, revenue & orders. Figures come from
+    real page-view and order records — never fabricated."""
+
+    def get(self, request, pk):
+        from apps.projects.access import project_for_read
+        from apps.publishing import analytics as an
+
+        project = project_for_read(request.user, pk)
+        website = getattr(project, "website", None)
+        try:
+            days = max(7, min(90, int(request.query_params.get("days", 30))))
+        except (TypeError, ValueError):
+            days = 30
+        if website is None:
+            return Response({"has_site": False, "traffic": None, "commerce": None})
+        return Response({
+            "has_site": True,
+            "days": days,
+            "traffic": an.summary(website, days=days),
+            "commerce": an.commerce_summary(website, days=days),
+        })
+
+
 class ProjectPaymentsView(APIView):
     """Payments surface for a project (spec §24): connected providers (honest),
     transaction history and a money summary. Same data as web."""

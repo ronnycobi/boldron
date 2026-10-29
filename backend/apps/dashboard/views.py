@@ -763,9 +763,12 @@ def analytics(request, pk):
         days = 30
     data = an.summary(website, days=days) if website else None
     peak = max((p["views"] for p in data["series"]), default=0) if data else 0
+    commerce = an.commerce_summary(website, days=days) if website else None
+    rev_peak = max((p["revenue_cents"] for p in commerce["series"]), default=0) if commerce else 0
     return render(request, "dashboard/analytics.html", {
         "active": "projects", "project": proj, "website": website,
         "data": data, "days": days, "peak": peak or 1,
+        "commerce": commerce, "rev_peak": rev_peak or 1,
     })
 
 

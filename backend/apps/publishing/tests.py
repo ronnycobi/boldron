@@ -1881,3 +1881,39 @@ class PaymentOverviewTests(_PayTC):
     def test_payments_capability_now_available(self):
         from apps.capabilities.registry import get
         self.assertTrue(get("payments").is_available)
+
+
+class CommerceAnalyticsTests(_PayTC):
+    """Real revenue/order analytics — only paid orders count, never estimated."""
+
+    def setUp(self):
+        from apps.organizations.models import Organization
+        from apps.projects.models import Project
+        from apps.publishing.models import Website
+        self.org = Organization.objects.create(name="AnOrg")
+        self.project = Project.objects.create(organization=self.org, name="Shop")
+        self.website = Website.objects.create(project=self.project, subdomain="an-x")
+
+    def test_none_without_a_store(self):
+        from apps.publishing.analytics import commerce_summary
+        self.assertIsNone(commerce_summary(self.website, days=30))
+
+    def test_counts_only_paid_revenue(self):
+        import secrets
+        from apps.publishing.analytics import commerce_summary
+        from apps.publishing.models import Order, Product
+        Product.objects.create(website=self.website, name="Chair",
+                               price_cents=5000, currency="USD", slug="chair")
+        Order.objects.create(website=self.website, reference=f"O-{secrets.token_hex(3)}",
+                             total_cents=5000, currency="USD", status="paid")
+        Order.objects.create(website=self.website, reference=f"O-{secrets.token_hex(3)}",
+                             total_cents=9000, currency="USD", status="awaiting_payment")
+        c = commerce_summary(self.website, days=30)
+        self.assertEqual(c["paid_orders"], 1)
+        self.assertEqual(c["orders"], 2)
+        self.assertEqual(c["revenue_cents"], 5000)  # the unpaid 9000 is excluded
+        self.assertEqual(c["aov_cents"], 5000)
+
+    def test_analytics_capability_available(self):
+        from apps.capabilities.registry import get
+        self.assertTrue(get("analytics").is_available)

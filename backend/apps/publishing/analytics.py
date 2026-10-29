@@ -110,3 +110,53 @@ def summary(website, *, days: int = 30) -> dict:
         "series": series,
         "bot_views": qs.filter(device="bot").count(),
     }
+
+
+def commerce_summary(website, *, days: int = 30) -> dict | None:
+    """Real revenue + order metrics for a store over the period (spec §22).
+
+    Revenue counts only orders actually paid (confirmed money), never pending or
+    fabricated. Returns None when the site has no store (no products)."""
+    from datetime import timedelta
+
+    from django.db.models import Count, Sum
+    from django.utils import timezone
+
+    from apps.publishing.models import Order, Product
+
+    if not Product.objects.filter(website=website).exists():
+        return None
+
+    since = timezone.now().date() - timedelta(days=days - 1)
+    orders = Order.objects.filter(website=website, created_at__date__gte=since)
+    paid = orders.filter(status="paid")
+
+    revenue_cents = paid.aggregate(s=Sum("total_cents"))["s"] or 0
+    paid_count = paid.count()
+    currency = (website.products.values_list("currency", flat=True).first() or "USD")
+
+    per_day = {
+        r["created_at__date"]: r["rev"] or 0
+        for r in paid.values("created_at__date").annotate(rev=Sum("total_cents"))
+    }
+    orders_per_day = {
+        r["created_at__date"]: r["n"]
+        for r in paid.values("created_at__date").annotate(n=Count("id"))
+    }
+    series = []
+    for i in range(days):
+        d = since + timedelta(days=i)
+        series.append({
+            "day": d,
+            "revenue_cents": per_day.get(d, 0),
+            "orders": orders_per_day.get(d, 0),
+        })
+
+    return {
+        "orders": orders.count(),
+        "paid_orders": paid_count,
+        "revenue_cents": revenue_cents,
+        "currency": currency,
+        "aov_cents": (revenue_cents // paid_count) if paid_count else 0,
+        "series": series,
+    }

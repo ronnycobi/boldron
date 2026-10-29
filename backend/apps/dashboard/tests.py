@@ -1244,21 +1244,21 @@ class CapabilityEngineWebTests(TestCase):
 
     def test_analyze_endpoint_returns_honest_plan(self):
         r = self.client.get(reverse("dashboard:analyze"),
-                            {"brief": "a subscription SaaS with recurring billing and analytics"})
+                            {"brief": "a subscription SaaS with recurring billing and SMS alerts"})
         self.assertEqual(r.status_code, 200)
         d = r.json()
         self.assertGreater(d["available_count"], 0)
-        self.assertIn("Analytics", d["planned_names"])     # coming, not faked
+        self.assertIn("SMS", d["planned_names"])           # coming, not faked
         self.assertIn("Subscriptions", d["planned_names"])
 
     def test_project_page_shows_capability_map(self):
         p = Project.objects.create(
             organization=self.org, name="Shop",
-            capabilities=["auth", "database", "ecommerce", "analytics", "email"])
+            capabilities=["auth", "database", "ecommerce", "subscriptions", "email"])
         html = self.client.get(reverse("dashboard:project", args=[p.id])).content.decode()
         self.assertIn("What this app includes", html)
         self.assertIn("E-commerce", html)
-        self.assertIn("COMING", html)  # analytics shown honestly as coming
+        self.assertIn("COMING", html)  # subscriptions shown honestly as coming
 
 
 class PaymentsSurfaceTests(TestCase):
@@ -1288,3 +1288,34 @@ class PaymentsSurfaceTests(TestCase):
         self.assertIn("providers", body)
         self.assertIn("transactions", body)
         self.assertIn("summary", body)
+
+
+class AnalyticsSurfaceTests(TestCase):
+    def setUp(self):
+        from apps.publishing.models import Website
+        self.user = User.objects.create_user(email="an@x.com", password="pw12345678")
+        self.org = Organization.objects.create(name="AnSurfOrg")
+        self.org.add_member(self.user, role=Role.OWNER)
+        self.project = Project.objects.create(organization=self.org, name="Store")
+        self.website = Website.objects.create(project=self.project, subdomain="ansurf-x")
+        self.client.force_login(self.user)
+
+    def test_analytics_api_returns_traffic_and_commerce(self):
+        from apps.accounts.api import issue_tokens
+        from apps.publishing.models import Product
+        Product.objects.create(website=self.website, name="P", price_cents=100,
+                               currency="USD", slug="p")
+        auth = {"HTTP_AUTHORIZATION": f"Bearer {issue_tokens(self.user)['access']}"}
+        resp = self.client.get(reverse("projects:analytics", args=[self.project.id]), **auth)
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertTrue(body["has_site"])
+        self.assertIn("traffic", body)
+        self.assertIsNotNone(body["commerce"])  # store present
+
+    def test_analytics_page_shows_revenue_when_store(self):
+        from apps.publishing.models import Product
+        Product.objects.create(website=self.website, name="P", price_cents=100,
+                               currency="USD", slug="p")
+        html = self.client.get(reverse("dashboard:analytics", args=[self.project.id])).content.decode()
+        self.assertIn("Revenue &amp; orders", html)

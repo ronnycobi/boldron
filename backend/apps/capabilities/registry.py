@@ -60,7 +60,7 @@ _CATALOG = [
     Capability("currency", "Multi-currency", "Business", PLANNED, "Prices and reporting per currency."),
     Capability("ecommerce", "E-commerce", "Business", AVAILABLE, "Products, cart, orders."),
     # Growth
-    Capability("analytics", "Analytics", "Growth", PLANNED, "Usage, conversions and revenue."),
+    Capability("analytics", "Analytics", "Growth", AVAILABLE, "Real visitors, page views, traffic sources, conversions and (for stores) revenue."),
     Capability("seo", "SEO", "Growth", PLANNED, "Discoverability for public pages."),
     Capability("forms", "Forms", "Growth", AVAILABLE, "Capture input and leads."),
     Capability("campaigns", "Email campaigns", "Growth", PLANNED, "Marketing email sends."),

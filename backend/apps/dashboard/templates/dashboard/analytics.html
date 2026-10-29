@@ -37,6 +37,27 @@
     </div>
   </div>
 
+  {% if commerce %}
+  <h2>Revenue &amp; orders</h2>
+  <div class="cards" style="margin-bottom:14px">
+    <div class="card stat"><div class="k">Revenue (paid)</div><div class="v grad" style="font-size:24px">{{ commerce.currency }} {% widthratio commerce.revenue_cents 100 1 %}</div></div>
+    <div class="card stat"><div class="k">Paid orders</div><div class="v">{{ commerce.paid_orders }}</div></div>
+    <div class="card stat"><div class="k">All orders</div><div class="v">{{ commerce.orders }}</div></div>
+    <div class="card stat"><div class="k">Avg order</div><div class="v" style="font-size:22px">{{ commerce.currency }} {% widthratio commerce.aov_cents 100 1 %}</div></div>
+  </div>
+  <div class="card" style="margin-bottom:4px">
+    <h2 style="margin-top:0">Revenue per day</h2>
+    <p class="muted" style="font-size:12.5px;margin:-4px 0 10px">Paid orders only — real money received, never pending or estimated.</p>
+    <div style="display:flex;align-items:flex-end;gap:2px;height:120px;overflow-x:auto">
+      {% for p in commerce.series %}
+      <div title="{{ p.day|date:'M j' }}: {{ commerce.currency }} {% widthratio p.revenue_cents 100 1 %} ({{ p.orders }})"
+           style="flex:1;min-width:4px;background:var(--grad);border-radius:2px 2px 0 0;
+                  height:{% widthratio p.revenue_cents rev_peak 100 %}%;min-height:1px"></div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
   <div class="row">
     <div class="card">
       <h2 style="margin-top:0">Top pages</h2>
