@@ -48,7 +48,7 @@ _CATALOG = [
     Capability("search", "Search", "Application", AVAILABLE, "Find records across your app."),
     Capability("dashboard", "Dashboards", "Application", AVAILABLE, "Metrics and overviews."),
     Capability("email", "Email", "Application", AVAILABLE, "Transactional and notification email."),
-    Capability("files", "File storage", "Application", PLANNED, "Uploads, downloads and previews."),
+    Capability("files", "File storage", "Application", AVAILABLE, "Private and public uploads, images, documents, with thumbnails."),
     Capability("sms", "SMS", "Application", PLANNED, "Text-message notifications."),
     Capability("jobs", "Background jobs", "Application", PLANNED, "Async and scheduled work."),
     # Business

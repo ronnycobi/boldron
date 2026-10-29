@@ -72,8 +72,10 @@ class ApiClient {
     required String field,
     required String filePath,
     String filename = 'upload.jpg',
+    Map<String, dynamic> fields = const {},
   }) async {
     final form = FormData.fromMap({
+      ...fields,
       field: await MultipartFile.fromFile(filePath, filename: filename),
     });
     return _send(() => _dio.post(path, data: form));

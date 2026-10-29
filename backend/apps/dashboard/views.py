@@ -1948,6 +1948,43 @@ def org_ai(request):
 
 
 @login_required
+def project_files(request, pk):
+    """A project's files & media (spec §17). Any member can upload and view;
+    deleting is for the uploader or a manager. Private files are served only to
+    members; public files get an unguessable shareable link."""
+    from apps.files import service as files_svc
+    from apps.files.models import StoredFile
+
+    proj = get_object_or_404(
+        Project.objects.filter(organization__in=organizations_for(request.user)), pk=pk)
+    can_manage = proj.organization_id in _manageable_ids(request.user)
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "upload":
+            try:
+                files_svc.store(
+                    request.FILES.get("file"), organization=proj.organization,
+                    project=proj, uploaded_by=request.user,
+                    is_public=request.POST.get("is_public") == "on")
+                messages.success(request, "File uploaded.")
+            except files_svc.FileError as exc:
+                messages.error(request, str(exc))
+        elif action == "delete":
+            sf = get_object_or_404(StoredFile, pk=request.POST.get("file", 0), project=proj)
+            if can_manage or sf.uploaded_by_id == request.user.id:
+                files_svc.delete_file(sf)
+                messages.success(request, "File deleted.")
+            else:
+                messages.error(request, "You can only delete files you uploaded.")
+        return redirect("dashboard:files", pk=pk)
+
+    files = [files_svc.public_dict(f, request=request) for f in proj.stored_files.all()]
+    return render(request, "dashboard/files.html",
+                  {"active": "projects", "project": proj, "files": files})
+
+
+@login_required
 def project_environment(request, pk):
     """A project's environment variables (spec §20). Members view; owners/admins
     edit. Values set here are really injected into the project's preview run."""

@@ -21,6 +21,7 @@ const List<_Area> _areas = [
   (icon: Icons.phone_iphone, label: 'Mobile releases', path: 'releases'),
   (icon: Icons.settings_backup_restore, label: 'Backups', path: 'backups'),
   (icon: Icons.key_outlined, label: 'Environment', path: 'environment'),
+  (icon: Icons.folder_outlined, label: 'Files', path: 'files'),
   (icon: Icons.auto_awesome_outlined, label: 'AI', path: 'ai'),
   (icon: Icons.source_outlined, label: 'Repository', path: 'repository'),
 ];
