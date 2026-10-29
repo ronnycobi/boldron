@@ -87,3 +87,40 @@ class NotificationFeedView(APIView):
             if len(items) >= limit:
                 break
         return Response({"notifications": items, "push_available": False})
+
+
+class SmsStatusView(APIView):
+    """Honest SMS readiness: which gateways are connected (env-gated). In an
+    environment with no SMS credentials every provider reads not-available — the
+    truth, never a fake 'SMS enabled'."""
+
+    def get(self, request):
+        from apps.notifications import sms
+        return Response({
+            "configured": sms.is_configured(),
+            "providers": sms.provider_status(),
+        })
+
+
+class SmsSendView(APIView):
+    """Send one SMS through a connected gateway. Refuses with 503 when none is
+    configured — it never reports a message as sent that was not dispatched."""
+
+    def post(self, request):
+        from apps.notifications import sms
+        org_id = request.data.get("organization")
+        organization = None
+        if org_id:
+            organization = organizations_for(request.user).filter(pk=org_id).first()
+            if organization is None:
+                return Response({"detail": "Unknown organization."}, status=400)
+        try:
+            log = sms.send_sms(to=request.data.get("to", ""),
+                               text=request.data.get("text", ""),
+                               organization=organization)
+        except sms.SmsError as exc:
+            # No provider connected / provider rejected — honest failure, not a fake send.
+            code = 503 if not sms.is_configured() else 400
+            return Response({"detail": str(exc)}, status=code)
+        return Response({"id": log.id, "status": log.status, "provider": log.provider},
+                        status=201)

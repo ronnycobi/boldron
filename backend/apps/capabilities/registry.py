@@ -49,7 +49,10 @@ _CATALOG = [
     Capability("dashboard", "Dashboards", "Application", AVAILABLE, "Metrics and overviews."),
     Capability("email", "Email", "Application", AVAILABLE, "Transactional and notification email."),
     Capability("files", "File storage", "Application", AVAILABLE, "Private and public uploads, images, documents, with thumbnails."),
-    Capability("sms", "SMS", "Application", PLANNED, "Text-message notifications."),
+    Capability("sms", "SMS", "Application", PLANNED,
+               "Text-message notifications. The delivery engine is built (Twilio / Africa's Talking) "
+               "and activates when you connect a gateway's credentials — until then it stays off, "
+               "never faking a send."),
     Capability("jobs", "Background jobs", "Application", AVAILABLE, "Long-running work (reports, exports, batches) runs off-request with real queued/running/done status."),
     # Business
     Capability("crm", "CRM", "Business", AVAILABLE, "Contacts, leads, deals, activities."),
