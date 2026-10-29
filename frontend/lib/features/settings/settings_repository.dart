@@ -84,6 +84,13 @@ class SettingsRepository {
         .map((e) => (e as Map).cast<String, dynamic>())
         .toList();
   }
+
+  /// Honest SMS readiness — which gateways are connected (env-gated). In an
+  /// environment with no SMS credentials every provider reads not-available.
+  Future<Map<String, dynamic>> smsStatus() async {
+    final data = await _api.get('sms/status/');
+    return (data as Map).cast<String, dynamic>();
+  }
 }
 
 final settingsRepositoryProvider = Provider<SettingsRepository>(
@@ -92,6 +99,10 @@ final settingsRepositoryProvider = Provider<SettingsRepository>(
 
 final integrationsProvider = FutureProvider<List<Map<String, dynamic>>>(
   (ref) => ref.watch(settingsRepositoryProvider).integrations(),
+);
+
+final smsStatusProvider = FutureProvider<Map<String, dynamic>>(
+  (ref) => ref.watch(settingsRepositoryProvider).smsStatus(),
 );
 
 final settingsOverviewProvider = FutureProvider<Map<String, dynamic>>(
