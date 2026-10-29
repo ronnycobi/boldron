@@ -219,10 +219,29 @@ def _managed_tags(meta: dict) -> str:
         lines.append(f'<meta name="description" content="{e(meta["description"])}">')
     if meta.get("canonical"):
         lines.append(f'<link rel="canonical" href="{e(meta["canonical"])}">')
-    if meta.get("og_title"):
-        lines.append(f'<meta property="og:title" content="{e(meta["og_title"])}">')
-    if meta.get("og_description"):
-        lines.append(f'<meta property="og:description" content="{e(meta["og_description"])}">')
+    og_title = meta.get("og_title") or meta.get("title")
+    og_desc = meta.get("og_description") or meta.get("description")
+    if og_title:
+        lines.append('<meta property="og:type" content="website">')
+        lines.append(f'<meta property="og:title" content="{e(og_title)}">')
+        lines.append('<meta name="twitter:card" content="summary_large_image">')
+        lines.append(f'<meta name="twitter:title" content="{e(og_title)}">')
+    if og_desc:
+        lines.append(f'<meta property="og:description" content="{e(og_desc)}">')
+        lines.append(f'<meta name="twitter:description" content="{e(og_desc)}">')
+    # Structured data (schema.org JSON-LD) — a real WebPage node search engines
+    # and rich results can read. Built from the page's own metadata, not faked.
+    if meta.get("title"):
+        import json as _json
+        node = {"@context": "https://schema.org", "@type": "WebPage",
+                "name": meta["title"]}
+        if meta.get("description"):
+            node["description"] = meta["description"]
+        if meta.get("canonical"):
+            node["url"] = meta["canonical"]
+        lines.append(
+            '<script type="application/ld+json">'
+            + _json.dumps(node, ensure_ascii=False) + "</script>")
     return "".join(l + "\n" for l in lines)
 
 

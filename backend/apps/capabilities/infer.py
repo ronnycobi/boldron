@@ -32,6 +32,8 @@ _RULES = [
     ("ecommerce", r"\bshop|store|e-?commerce|product|cart|order|inventory\b"),
     ("jobs", r"\bschedule|cron|background|queue|recurring job\b"),
     ("analytics", r"\banalytics|report|metric|insight|track\b"),
+    ("seo", r"\bseo|search engine|rank|google|discoverab|sitemap|marketing (site|website)|landing page|blog\b"),
+    ("jobs", r"\bbackground|scheduled|batch|import|long[- ]running|queue|async|csv\b"),
     ("ai", r"\bai |chatbot|assistant|recommend|semantic|ask questions\b"),
     ("git", r"\bgithub|gitlab|repository|existing (code|project)\b"),
 ]

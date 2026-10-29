@@ -1917,3 +1917,35 @@ class CommerceAnalyticsTests(_PayTC):
     def test_analytics_capability_available(self):
         from apps.capabilities.registry import get
         self.assertTrue(get("analytics").is_available)
+
+
+class SeoStructuredDataTests(_PayTC):
+    """SEO metadata injection now includes real structured data (spec §16)."""
+
+    def test_apply_meta_emits_jsonld_og_and_twitter(self):
+        from apps.publishing.seo import apply_meta_to_html
+        html = "<html><head></head><body><h1>Hi</h1></body></html>"
+        out = apply_meta_to_html(html, {
+            "title": "Acme Builders", "description": "We build things.",
+            "canonical": "https://acme.test/",
+        })
+        self.assertIn('<title>Acme Builders</title>', out)
+        self.assertIn('property="og:type" content="website"', out)
+        self.assertIn('name="twitter:card"', out)
+        self.assertIn('application/ld+json', out)
+        self.assertIn('"@type": "WebPage"', out)
+        self.assertIn('"name": "Acme Builders"', out)
+
+    def test_apply_meta_is_idempotent(self):
+        from apps.publishing.seo import apply_meta_to_html
+        html = "<html><head></head><body></body></html>"
+        meta = {"title": "T", "description": "D"}
+        once = apply_meta_to_html(html, meta)
+        twice = apply_meta_to_html(once, meta)
+        # Re-applying replaces the managed block, never duplicates the title.
+        self.assertEqual(twice.count("<title>"), 1)
+        self.assertEqual(twice.count("managed:seo -->"), 2)  # open + close marker
+
+    def test_seo_capability_available(self):
+        from apps.capabilities.registry import get
+        self.assertTrue(get("seo").is_available)

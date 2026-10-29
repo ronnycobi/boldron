@@ -61,7 +61,7 @@ _CATALOG = [
     Capability("ecommerce", "E-commerce", "Business", AVAILABLE, "Products, cart, orders."),
     # Growth
     Capability("analytics", "Analytics", "Growth", AVAILABLE, "Real visitors, page views, traffic sources, conversions and (for stores) revenue."),
-    Capability("seo", "SEO", "Growth", PLANNED, "Discoverability for public pages."),
+    Capability("seo", "SEO", "Growth", AVAILABLE, "Titles, meta, canonical, Open Graph, structured data, sitemap.xml and robots.txt — generated from your site."),
     Capability("forms", "Forms", "Growth", AVAILABLE, "Capture input and leads."),
     Capability("campaigns", "Email campaigns", "Growth", PLANNED, "Marketing email sends."),
     # Infrastructure

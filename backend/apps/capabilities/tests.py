@@ -85,3 +85,13 @@ class RequirementsAnalysisTests(_TC):
         self.assertEqual(s["total"], 3)  # unknown id dropped
         self.assertEqual(s["available_count"], 2)
         self.assertEqual(s["planned_count"], 1)  # subscriptions still planned
+
+
+class InferenceCoverageTests(_TC):
+    def test_marketing_site_infers_seo(self):
+        from apps.capabilities.analysis import capability_ids
+        self.assertIn("seo", capability_ids("a marketing website that ranks on Google"))
+
+    def test_batch_work_infers_jobs(self):
+        from apps.capabilities.analysis import capability_ids
+        self.assertIn("jobs", capability_ids("an app that processes large CSV imports in the background"))
