@@ -66,8 +66,10 @@ _CATALOG = [
     Capability("campaigns", "Email campaigns", "Growth", PLANNED, "Marketing email sends."),
     # Infrastructure
     Capability("hosting", "Hosting", "Infrastructure", AVAILABLE, "Preview and deploy your app."),
-    Capability("mobile_publishing", "App store publishing", "Infrastructure", PLANNED,
-               "Prepare and release mobile apps to Google Play, App Store and AppGallery."),
+    Capability("mobile_publishing", "App store publishing", "Infrastructure", AVAILABLE,
+               "Prepare mobile releases for Google Play, App Store and AppGallery — store listing, "
+               "screenshots, signing references, readiness checks and approvals. Live submission "
+               "activates when you connect your store credentials; nothing is submitted without them."),
     Capability("domains", "Custom domains", "Infrastructure", AVAILABLE,
                "Connect your own domain and verify ownership with real DNS checks; the verified "
                "domain serves your site. Automatic SSL activates once the domain is routed to live hosting."),

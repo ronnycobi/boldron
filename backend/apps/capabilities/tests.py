@@ -12,13 +12,13 @@ class RegistryTests(SimpleTestCase):
 
     def test_planned_capabilities_are_not_marked_available(self):
         # The guardrail: things we don't offer yet must be PLANNED.
-        for cid in ("subscriptions", "sms", "mobile_publishing", "stripe"):
+        for cid in ("subscriptions", "sms", "stripe", "whatsapp"):
             self.assertEqual(get(cid).status, PLANNED, cid)
 
     def test_real_capabilities_are_available(self):
         for cid in ("auth", "database", "email", "security", "audit", "export",
                     "git", "backups", "files", "payments", "analytics", "invoicing",
-                    "tax", "monitoring", "domains"):
+                    "tax", "monitoring", "domains", "mobile_publishing"):
             self.assertEqual(get(cid).status, AVAILABLE, cid)
 
     def test_grouped(self):
@@ -104,3 +104,8 @@ class InferenceCoverageTests(_TC):
     def test_custom_domain_brief_infers_domains(self):
         from apps.capabilities.analysis import capability_ids
         self.assertIn("domains", capability_ids("I want to use my own custom domain with SSL"))
+
+    def test_mobile_brief_infers_app_store_publishing(self):
+        from apps.capabilities.analysis import capability_ids
+        self.assertIn("mobile_publishing",
+                      capability_ids("publish my app to the Google Play store and App Store"))
