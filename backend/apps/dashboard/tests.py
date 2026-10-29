@@ -1263,6 +1263,16 @@ class CapabilityEngineWebTests(TestCase):
         html = self.client.get(reverse("dashboard:mobile_plan")).content.decode()
         self.assertNotIn("Your mobile app plan", html)
 
+    def test_project_intelligence_page_renders(self):
+        p = Project.objects.create(
+            organization=self.org, name="IntelApp", description="an online store",
+            capabilities=["auth", "database", "ecommerce", "sms"])
+        html = self.client.get(
+            reverse("dashboard:project_intelligence", args=[p.id])).content.decode()
+        self.assertIn("Project intelligence", html)
+        self.assertIn("E-commerce", html)       # built capability
+        self.assertIn("COMING", html)            # SMS shown honestly as coming
+
     def test_project_page_shows_capability_map(self):
         p = Project.objects.create(
             organization=self.org, name="Shop",

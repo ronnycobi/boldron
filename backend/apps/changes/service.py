@@ -49,7 +49,11 @@ def build_plan(change: ChangeRequest, router=None) -> ChangeRequest:
     approval, so schema risk surfaces at the change gate.
     """
     twin = ProjectContext(change.project).digest(kinds=_TWIN_KINDS, max_chars=4000)
-    plan = plan_change(change.description, twin, router=router)
+    # Consult the full Project Intelligence (spec §14) so the plan is project-aware
+    # (capabilities, change history, every knowledge area) — not just the schema twin.
+    from apps.project_context.intelligence import intelligence_digest
+    context = twin + "\n\n" + intelligence_digest(change.project, max_chars=2000)
+    plan = plan_change(change.description, context, router=router)
     change.plan = plan
     change.requires_approval = plan.get("requires_approval", True)
     change.estimate = _estimate(plan)

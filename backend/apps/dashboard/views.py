@@ -2366,6 +2366,20 @@ def set_theme(request):
 
 
 @login_required
+def project_intelligence(request, pk):
+    """The project's structured intelligence (spec §14): the knowledge the platform
+    keeps about this app — requirements, data, APIs, UI, mobile, capabilities,
+    change history. Composed read-only from existing sources; customer-safe."""
+    from apps.project_context.intelligence import build_intelligence
+    proj = get_object_or_404(
+        Project.objects.filter(organization__in=organizations_for(request.user)), pk=pk)
+    return render(request, "dashboard/project_intelligence.html", {
+        "active": "projects", "project": proj,
+        "intel": build_intelligence(proj),
+    })
+
+
+@login_required
 def mobile_plan(request):
     """Mobile app planner (spec §5/§48): describe a mobile app, see the honest plan —
     capabilities (generated vs gated), device permissions, and target platforms —

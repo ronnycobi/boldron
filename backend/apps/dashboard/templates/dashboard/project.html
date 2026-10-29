@@ -15,6 +15,7 @@
       <a class="btn ghost" href="{% url 'dashboard:jobs' project.id %}">Jobs →</a>
       <a class="btn ghost" href="{% url 'dashboard:project_ai' project.id %}">AI →</a>
       <a class="btn ghost" href="{% url 'dashboard:project_repository' project.id %}">Repository →</a>
+      <a class="btn ghost" href="{% url 'dashboard:project_intelligence' project.id %}">Intelligence →</a>
     </div>
   </div>
   <p class="sub">{{ project.organization.name }} · {{ project.get_mode_display }}

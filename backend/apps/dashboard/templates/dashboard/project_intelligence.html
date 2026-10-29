@@ -1,0 +1,67 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}{{ project.name }} · Intelligence · {{ app_name }}{% endblock %}
+{% block crumb %}Build / Projects / {{ project.name }} / Intelligence{% endblock %}
+{% block content %}
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+    <h1>Project intelligence</h1>
+    <a class="btn ghost" href="{% url 'dashboard:project' project.id %}">← {{ project.name }}</a>
+  </div>
+  <p class="sub">What {{ app_name }} knows about <strong>{{ project.name }}</strong> — consulted before any
+    change so modifications extend your app instead of breaking it.</p>
+
+  <div class="card">
+    <h2 style="margin-top:0">Capabilities</h2>
+    <div>
+      {% for name in intel.capabilities.built %}<span class="chip">{{ name }}</span>{% endfor %}
+      {% for name in intel.capabilities.coming %}<span class="chip" style="opacity:.6">{{ name }} <span class="muted" style="font-size:9.5px">COMING</span></span>{% endfor %}
+    </div>
+    <p class="muted" style="font-size:12.5px;margin:10px 0 0">{{ intel.capabilities.built_count }} built · {{ intel.capabilities.coming_count }} coming</p>
+  </div>
+
+  {% if intel.mobile.platforms %}
+  <div class="card">
+    <h2 style="margin-top:0">Mobile</h2>
+    <div>{% for p in intel.mobile.platforms %}<span class="chip" style="background:var(--brandsoft);border-color:var(--brandline)">{{ p }}</span>{% endfor %}</div>
+    {% if intel.mobile.count %}<p class="muted" style="font-size:12.5px;margin:10px 0 0">{{ intel.mobile.count }} mobile screen(s) designed</p>{% endif %}
+  </div>
+  {% endif %}
+
+  <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(320px,1fr))">
+    {% for area in intel.areas %}
+      {% if area.count %}
+      <div class="card">
+        <div style="display:flex;align-items:baseline;justify-content:space-between">
+          <h2 style="margin:0;font-size:15px">{{ area.label }}</h2>
+          <span class="muted" style="font-size:12px">{{ area.count }}</span>
+        </div>
+        <table style="margin-top:8px">
+          {% for it in area.items|slice:":8" %}
+          <tr><td style="width:36%"><strong>{{ it.title }}</strong></td><td class="muted">{{ it.summary|default:"—" }}</td></tr>
+          {% endfor %}
+        </table>
+      </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  <h2>Change history</h2>
+  <div class="card">
+    {% if intel.change_history %}
+    <table>
+      <tr><th>Change</th><th>Status</th></tr>
+      {% for c in intel.change_history %}
+      <tr><td>{{ c.description }}</td><td><span class="badge b-{{ c.status }}">{{ c.status }}</span></td></tr>
+      {% endfor %}
+    </table>
+    {% else %}<p class="empty" style="margin:0">No changes recorded yet.</p>{% endif %}
+  </div>
+
+  {% if intel.version_history %}
+  <h2>Restore points</h2>
+  <div class="card">
+    <table>
+      {% for v in intel.version_history %}<tr><td class="strong">{{ v.label }}</td><td class="muted">{{ v.created_at }}</td></tr>{% endfor %}
+    </table>
+  </div>
+  {% endif %}
+{% endblock %}

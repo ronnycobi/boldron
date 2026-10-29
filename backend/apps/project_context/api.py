@@ -84,3 +84,14 @@ class ContextDigestView(APIView):
         kinds = request.query_params.getlist("kind") or None
         digest = ProjectContext(project).digest(kinds=kinds)
         return Response({"project": project.id, "digest": digest})
+
+
+class ProjectIntelligenceView(APIView):
+    """The structured Project Intelligence (spec §14): the knowledge the AI consults
+    before a significant change, and the web + mobile UIs render. Read-only,
+    tenant-isolated, customer-safe (no internal stack / agents / infra)."""
+
+    def get(self, request, project_pk):
+        from apps.project_context.intelligence import build_intelligence
+        project = project_for_read(request.user, project_pk)
+        return Response(build_intelligence(project))

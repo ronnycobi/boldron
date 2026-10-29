@@ -25,6 +25,7 @@ urlpatterns = [
     path("projects/<int:pk>/jobs/", views.project_jobs, name="jobs"),
     path("projects/<int:pk>/ai/", views.project_ai, name="project_ai"),
     path("projects/<int:pk>/repository/", views.project_repository, name="project_repository"),
+    path("projects/<int:pk>/intelligence/", views.project_intelligence, name="project_intelligence"),
     path("projects/<int:pk>/monitoring/", views.monitoring, name="monitoring"),
     path("projects/<int:pk>/operations/", views.site_operations, name="operations"),
     path("projects/<int:pk>/content/", views.content, name="content"),
