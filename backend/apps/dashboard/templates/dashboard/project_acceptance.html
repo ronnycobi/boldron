@@ -1,0 +1,81 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}{{ project.name }} · Acceptance · {{ app_name }}{% endblock %}
+{% block crumb %}Build / Projects / {{ project.name }} / Acceptance{% endblock %}
+{% block content %}
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+    <h1>Acceptance criteria
+      {% if summary.accepted %}<span class="badge b-completed" style="font-size:12px;vertical-align:middle">accepted</span>
+      {% else %}<span class="badge b-waiting_for_approval" style="font-size:12px;vertical-align:middle">not yet met</span>{% endif %}
+    </h1>
+    <a class="btn ghost" href="{% url 'dashboard:project' project.id %}">← {{ project.name }}</a>
+  </div>
+  <p class="sub">The testable conditions each requirement of <strong>{{ project.name }}</strong> must meet.
+    A criterion is only marked met when a person verifies it — {{ app_name }} never claims acceptance it can't evidence.</p>
+
+  <div class="card">
+    <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:baseline">
+      <div><strong style="font-size:20px">{{ summary.met }}</strong> <span class="muted">of {{ summary.total }} met</span></div>
+      {% if summary.pending %}<div class="muted">{{ summary.pending }} pending</div>{% endif %}
+      {% if summary.failed %}<div class="badge b-failed">{{ summary.failed }} not met</div>{% endif %}
+      {% if summary.waived %}<div class="muted">{{ summary.waived }} waived</div>{% endif %}
+    </div>
+    {% if summary.total %}
+    <div style="margin-top:10px;height:9px;border-radius:99px;background:var(--line);overflow:hidden">
+      <div style="height:100%;width:{{ summary.met_pct }}%;background:var(--ok,#2e9e5b)"></div>
+    </div>
+    {% endif %}
+    {% if can_manage %}
+    <form method="post" style="margin-top:14px;display:inline">{% csrf_token %}
+      <input type="hidden" name="action" value="import">
+      <button class="btn" type="submit">Import from requirements</button>
+    </form>
+    {% endif %}
+  </div>
+
+  {% if can_manage %}
+  <details class="card" style="margin-bottom:12px">
+    <summary style="cursor:pointer;font-weight:700;list-style:none">+ Add a criterion</summary>
+    <form method="post" style="margin-top:12px">{% csrf_token %}
+      <input type="hidden" name="action" value="add">
+      <label>Requirement (optional)</label>
+      <select name="requirement">
+        <option value="">— none —</option>
+        {% for r in requirements %}<option value="{{ r.id }}">{{ r.title }}</option>{% endfor %}
+      </select>
+      <label>Criterion</label>
+      <input name="statement" placeholder="e.g. A guest can complete checkout without an account" required>
+      <div style="margin-top:10px"><button class="btn" type="submit">Add criterion</button></div>
+    </form>
+  </details>
+  {% endif %}
+
+  {% for g in grouped %}
+  <div class="card">
+    <h2 style="margin:0 0 4px;font-size:15px">{{ g.title }}</h2>
+    {% for c in g.items %}
+    <div style="padding:10px 0;border-top:1px solid var(--line)">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
+        <div style="flex:1 1 60%">
+          <span class="badge b-{% if c.status == 'met' %}completed{% elif c.status == 'failed' %}failed{% elif c.status == 'waived' %}idle{% else %}waiting_for_approval{% endif %}">{{ c.get_status_display }}</span>
+          <span style="margin-left:6px">{{ c.statement }}</span>
+          {% if c.verified_by %}<div class="muted" style="font-size:11.5px;margin-top:3px">Verified by {{ c.verified_by.email }} · {{ c.verified_at|date:"M j, H:i" }}{% if c.note %} — {{ c.note }}{% endif %}</div>{% endif %}
+        </div>
+        {% if can_manage %}
+        <form method="post" style="display:flex;gap:4px;align-items:center">{% csrf_token %}
+          <input type="hidden" name="action" value="verify">
+          <input type="hidden" name="criterion" value="{{ c.id }}">
+          <select name="status">
+            {% for val, label in statuses %}<option value="{{ val }}" {% if val == c.status %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+          <button class="btn ghost" type="submit" style="padding:4px 10px">Save</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% empty %}
+  <div class="card"><p class="empty" style="margin:0">No acceptance criteria yet.
+    {% if can_manage %}Import them from your requirements, or add one above.{% endif %}</p></div>
+  {% endfor %}
+{% endblock %}

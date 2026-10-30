@@ -1350,6 +1350,22 @@ class CapabilityEngineWebTests(TestCase):
         self.assertIn("Impact of", html)
         self.assertIn("E-commerce", html)   # ecommerce requires payments -> affected
 
+    def test_project_acceptance_page_renders_and_imports(self):
+        from apps.project_context.models import ContextKind
+        from apps.project_context.services import ProjectContext
+        p = Project.objects.create(organization=self.org, name="AcceptApp")
+        ProjectContext(p).add(ContextKind.REQUIREMENT, title="Checkout",
+                              content="Pay", data={"acceptance_criteria":
+                                                   ["Card payment succeeds"]})
+        # import via the page's POST action
+        self.client.post(reverse("dashboard:project_acceptance", args=[p.id]),
+                         {"action": "import"})
+        html = self.client.get(
+            reverse("dashboard:project_acceptance", args=[p.id])).content.decode()
+        self.assertIn("Acceptance criteria", html)
+        self.assertIn("Card payment succeeds", html)
+        self.assertIn("not yet met", html)   # honest: imported criteria are pending
+
     def test_project_page_shows_capability_map(self):
         p = Project.objects.create(
             organization=self.org, name="Shop",

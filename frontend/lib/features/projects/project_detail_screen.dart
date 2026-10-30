@@ -16,6 +16,7 @@ typedef _Area = ({IconData icon, String label, String path});
 const List<_Area> _areas = [
   (icon: Icons.tune, label: 'Request a change', path: 'changes'),
   (icon: Icons.hub_outlined, label: 'App graph', path: 'graph'),
+  (icon: Icons.checklist_outlined, label: 'Acceptance', path: 'acceptance'),
   (icon: Icons.forum_outlined, label: 'Comments', path: 'comments'),
   (icon: Icons.monitor_heart_outlined, label: 'Operations', path: 'operations'),
   (icon: Icons.verified_outlined, label: 'Tests', path: 'tests'),

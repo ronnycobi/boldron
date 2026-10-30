@@ -2464,6 +2464,62 @@ def project_incidents(request, pk):
 
 
 @login_required
+def project_acceptance(request, pk):
+    """A project's acceptance criteria (spec §3): the testable conditions each
+    requirement must meet, with an HONEST status. Members view; owners/admins
+    import, add and verify. The AI never marks a criterion met — a person does."""
+    from apps.acceptance import service as acc
+    from apps.acceptance.models import AcceptanceCriterion, CriterionStatus
+    from apps.project_context.models import ContextKind
+    proj = get_object_or_404(
+        Project.objects.filter(organization__in=organizations_for(request.user)), pk=pk)
+    can_manage = proj.organization_id in _manageable_ids(request.user)
+
+    if request.method == "POST":
+        if not can_manage:
+            messages.error(request, "Owner or admin rights required.")
+            return redirect("dashboard:project_acceptance", pk=pk)
+        action = request.POST.get("action")
+        try:
+            if action == "import":
+                n = acc.import_from_requirements(proj, user=request.user)
+                messages.success(request, f"Imported {n} criteria from requirements."
+                                 if n else "No new criteria to import.")
+            elif action == "add":
+                requirement = None
+                req_id = request.POST.get("requirement")
+                if req_id:
+                    requirement = get_object_or_404(
+                        proj.context_entries, pk=req_id, kind=ContextKind.REQUIREMENT)
+                acc.add(proj, request.POST.get("statement", ""),
+                        requirement=requirement, user=request.user)
+                messages.success(request, "Criterion added.")
+            elif action == "verify":
+                crit = get_object_or_404(
+                    AcceptanceCriterion, pk=request.POST.get("criterion", 0), project=proj)
+                acc.verify(crit, request.POST.get("status", ""),
+                           note=request.POST.get("note", ""), user=request.user)
+        except acc.AcceptanceError as exc:
+            messages.error(request, str(exc))
+        return redirect("dashboard:project_acceptance", pk=pk)
+
+    # Group criteria by their requirement (with an "unlinked" bucket last).
+    crits = list(proj.acceptance_criteria.select_related("requirement", "verified_by"))
+    groups: dict = {}
+    for c in crits:
+        key = c.requirement_id or 0
+        groups.setdefault(key, {"title": c.requirement_title or "Other criteria",
+                                "items": []})["items"].append(c)
+    grouped = [groups[k] for k in sorted(groups, key=lambda k: (k == 0, k))]
+    requirements = proj.context_entries.filter(kind=ContextKind.REQUIREMENT)
+    return render(request, "dashboard/project_acceptance.html", {
+        "active": "projects", "project": proj, "can_manage": can_manage,
+        "summary": acc.summary(proj), "grouped": grouped,
+        "requirements": requirements, "statuses": CriterionStatus.choices,
+    })
+
+
+@login_required
 def project_compatibility(request, pk):
     """A project's browser & device compatibility report (spec §9): real static
     risks per target; live cross-browser/device runs are honestly gated."""
