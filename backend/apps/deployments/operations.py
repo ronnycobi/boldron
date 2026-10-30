@@ -92,16 +92,22 @@ def _quality(project):
     }
 
 
-def _status(uptime, deployments, jobs, quality) -> tuple[str, str]:
+def _incidents(project):
+    from apps.incidents.service import summary
+    return summary(project)
+
+
+def _status(uptime, deployments, jobs, quality, incidents) -> tuple[str, str]:
     """Overall production status — honest, derived from the real signals."""
-    # Down: monitoring says the served snapshot is down right now.
-    if uptime and uptime["current"] == "down":
+    # Down: monitoring says the served snapshot is down, or a critical incident is open.
+    if (uptime and uptime["current"] == "down") or incidents["critical_open"] > 0:
         return "down", "Down"
     degraded = (
         (deployments["latest_status"] == "failed")
         or jobs["failed"] > 0
         or quality["security_blocks"]
         or quality["tests"] == "failed"
+        or incidents["open"] > 0
     )
     if degraded:
         return "degraded", "Needs attention"
@@ -118,7 +124,8 @@ def operations_overview(project) -> dict:
     deployments = _deployments(project)
     jobs = _jobs(project)
     quality = _quality(project)
-    status, label = _status(uptime, deployments, jobs, quality)
+    incidents = _incidents(project)
+    status, label = _status(uptime, deployments, jobs, quality, incidents)
     return {
         "project": {"id": project.id, "name": project.name},
         "status": status,
@@ -129,6 +136,7 @@ def operations_overview(project) -> dict:
         "jobs": jobs,
         "storage": _storage(project),
         "quality": quality,
+        "incidents": incidents,
         "rollback": {
             "restore_points": project.backups.count(),
             "available": project.backups.exists(),

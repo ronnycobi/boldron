@@ -35,6 +35,8 @@
         <a href="{% url 'dashboard:project_tests' project.id %}"><span class="badge b-{% if opsview.quality.tests == 'passed' %}completed{% elif opsview.quality.tests == 'failed' %}failed{% else %}waiting_for_approval{% endif %}">{{ opsview.quality.tests }}</span></a></span>
       <span><span class="muted" style="font-size:12px">Security</span>
         <a href="{% url 'dashboard:project_security' project.id %}"><span class="badge b-{% if opsview.quality.security == 'clean' %}completed{% elif opsview.quality.security == 'blocked' %}failed{% else %}waiting_for_approval{% endif %}">{{ opsview.quality.security }}</span></a></span>
+      <span><span class="muted" style="font-size:12px">Incidents</span>
+        <a href="{% url 'dashboard:project_incidents' project.id %}"><span class="badge b-{% if opsview.incidents.open %}failed{% else %}completed{% endif %}">{{ opsview.incidents.open }} open</span></a></span>
       <span class="muted" style="font-size:12.5px;margin-left:auto">{{ opsview.rollback.restore_points }} restore point{{ opsview.rollback.restore_points|pluralize }} · roll back from the project page</span>
     </div>
     {% if opsview.quality.security_blocks %}<p class="muted" style="font-size:12px;margin:8px 0 0;color:#f5c454">A production deploy is blocked by high-severity security findings.</p>{% endif %}

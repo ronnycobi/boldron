@@ -113,4 +113,10 @@ def _fail(deployment: Deployment, message: str) -> Deployment:
     deployment.log = message
     deployment.completed_at = timezone.now()
     deployment.save(update_fields=["status", "log", "completed_at"])
+    # A real failed deploy opens a real incident (spec §20) — best-effort.
+    try:
+        from apps.incidents.service import auto_detect_from_deploy
+        auto_detect_from_deploy(deployment)
+    except Exception:
+        pass
     return deployment

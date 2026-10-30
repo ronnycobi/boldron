@@ -1,0 +1,79 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}{{ project.name }} · Incidents · {{ app_name }}{% endblock %}
+{% block crumb %}Build / Projects / {{ project.name }} / Incidents{% endblock %}
+{% block content %}
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+    <h1>Incidents
+      {% if summary.open %}<span class="badge b-failed" style="font-size:12px;vertical-align:middle">{{ summary.open }} open</span>
+      {% else %}<span class="badge b-completed" style="font-size:12px;vertical-align:middle">none open</span>{% endif %}
+    </h1>
+    <a class="btn ghost" href="{% url 'dashboard:operations' project.id %}">← Operations</a>
+  </div>
+  <p class="sub">Operational incidents for <strong>{{ project.name }}</strong>. A failed deploy opens one automatically; you can also open one. {{ app_name }} can analyse an incident, but only a person resolves it.</p>
+
+  {% if can_manage %}
+  <details class="card" style="margin-bottom:12px">
+    <summary style="cursor:pointer;font-weight:700;list-style:none">+ Open an incident</summary>
+    <form method="post" style="margin-top:12px">{% csrf_token %}
+      <input type="hidden" name="action" value="open">
+      <label>Title</label>
+      <input name="title" placeholder="e.g. Checkout returning errors" required>
+      <label>Severity</label>
+      <select name="severity">
+        <option value="critical">Critical</option>
+        <option value="high">High</option>
+        <option value="medium" selected>Medium</option>
+        <option value="low">Low</option>
+      </select>
+      <label>What was observed</label>
+      <textarea name="detail" rows="2" placeholder="Symptoms, error, when it started…"></textarea>
+      <div style="margin-top:10px"><button class="btn" type="submit">Open incident</button></div>
+    </form>
+  </details>
+  {% endif %}
+
+  {% for i in incidents %}
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
+      <div>
+        <strong>{{ i.title }}</strong>
+        <span class="badge b-{% if i.severity == 'critical' or i.severity == 'high' %}failed{% elif i.severity == 'medium' %}waiting_for_approval{% else %}idle{% endif %}" style="margin-left:6px;text-transform:capitalize">{{ i.severity }}</span>
+        <span class="badge b-{% if i.status == 'resolved' or i.status == 'closed' %}completed{% else %}waiting_for_approval{% endif %}" style="margin-left:4px">{{ i.get_status_display }}</span>
+      </div>
+      <span class="muted" style="font-size:12px">{{ i.get_source_display }} · {{ i.detected_at|date:"M j, H:i" }}{% if i.duration_seconds %} · resolved in {{ i.duration_seconds|floatformat:0 }}s{% endif %}</span>
+    </div>
+    {% if i.detail %}<p class="muted" style="font-size:13px;margin:8px 0 0;white-space:pre-line">{{ i.detail|truncatechars:300 }}</p>{% endif %}
+
+    <details style="margin-top:10px">
+      <summary style="cursor:pointer;font-size:12.5px;color:var(--ink2)">Timeline ({{ i.events.all|length }})</summary>
+      <table style="margin-top:8px">
+        {% for e in i.events.all %}
+        <tr>
+          <td class="muted" style="width:120px">{{ e.created_at|date:"M j, H:i" }}</td>
+          <td><span class="muted" style="text-transform:capitalize">{{ e.get_kind_display }}</span>{% if e.status %} → {{ e.status }}{% endif %}{% if e.message %}: {{ e.message }}{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </details>
+
+    {% if i.resolution %}<p style="margin:8px 0 0"><strong>Resolution:</strong> {{ i.resolution }}</p>{% endif %}
+    {% if i.postmortem %}<p class="muted" style="font-size:13px;margin:4px 0 0"><strong>Post-incident:</strong> {{ i.postmortem }}</p>{% endif %}
+
+    {% if can_manage %}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+      <form method="post" class="inline" style="display:flex;gap:6px;align-items:center">{% csrf_token %}
+        <input type="hidden" name="action" value="transition"><input type="hidden" name="incident" value="{{ i.id }}">
+        <select name="status" style="width:auto">
+          {% for val, label in statuses %}<option value="{{ val }}" {% if val == i.status %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+        <input name="resolution" placeholder="resolution (if resolving)" style="width:auto">
+        <button class="ghost" type="submit" style="padding:5px 12px;font-size:12px">Update</button>
+      </form>
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="analyze"><input type="hidden" name="incident" value="{{ i.id }}"><button class="ghost" type="submit" style="padding:5px 12px;font-size:12px">Analyse</button></form>
+    </div>
+    {% endif %}
+  </div>
+  {% empty %}
+  <div class="card"><p class="empty" style="margin:0">No incidents. A failed deploy will open one here automatically.</p></div>
+  {% endfor %}
+{% endblock %}

@@ -2380,6 +2380,54 @@ def set_theme(request):
 
 
 @login_required
+def project_incidents(request, pk):
+    """A project's incidents (spec §20): the lifecycle board + per-incident timeline
+    and actions. Members view; owners/admins open, note and transition. The AI can
+    analyse, but only a person resolves an incident."""
+    from apps.incidents import service as inc
+    from apps.incidents.models import Incident, IncidentStatus
+    proj = get_object_or_404(
+        Project.objects.filter(organization__in=organizations_for(request.user)), pk=pk)
+    can_manage = proj.organization_id in _manageable_ids(request.user)
+
+    if request.method == "POST":
+        if not can_manage:
+            messages.error(request, "Owner or admin rights required.")
+            return redirect("dashboard:project_incidents", pk=pk)
+        action = request.POST.get("action")
+        try:
+            if action == "open":
+                inc.open_incident(proj, title=request.POST.get("title", ""),
+                                  severity=request.POST.get("severity", "medium"),
+                                  detail=request.POST.get("detail", ""), user=request.user)
+                messages.success(request, "Incident opened.")
+            elif action == "transition":
+                incident = get_object_or_404(Incident, pk=request.POST.get("incident", 0), project=proj)
+                inc.transition(incident, request.POST.get("status", ""),
+                               note=request.POST.get("note", ""), user=request.user)
+                inc.set_resolution(incident, resolution=request.POST.get("resolution", ""),
+                                   postmortem=request.POST.get("postmortem", ""), user=request.user)
+                messages.success(request, "Incident updated.")
+            elif action == "note":
+                incident = get_object_or_404(Incident, pk=request.POST.get("incident", 0), project=proj)
+                inc.add_note(incident, request.POST.get("text", ""), user=request.user)
+            elif action == "analyze":
+                incident = get_object_or_404(Incident, pk=request.POST.get("incident", 0), project=proj)
+                inc.analyze(incident, user=request.user)
+                messages.success(request, "Analysis added — the incident stays open until you resolve it.")
+        except inc.IncidentError as exc:
+            messages.error(request, str(exc))
+        return redirect("dashboard:project_incidents", pk=pk)
+
+    incidents = list(proj.incidents.prefetch_related("events")[:50])
+    return render(request, "dashboard/project_incidents.html", {
+        "active": "projects", "project": proj, "can_manage": can_manage,
+        "incidents": incidents, "summary": inc.summary(proj),
+        "statuses": IncidentStatus.choices,
+    })
+
+
+@login_required
 def project_compatibility(request, pk):
     """A project's browser & device compatibility report (spec §9): real static
     risks per target; live cross-browser/device runs are honestly gated."""
