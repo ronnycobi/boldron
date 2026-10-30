@@ -6,6 +6,7 @@ from apps.deployments.api import (
     DeploymentListCreateView,
     DeploymentRunView,
     EnvironmentSummaryView,
+    OperationsView,
 )
 
 app_name = "deployments"
@@ -20,6 +21,11 @@ urlpatterns = [
         "projects/<int:project_pk>/environments/",
         EnvironmentSummaryView.as_view(),
         name="environments",
+    ),
+    path(
+        "projects/<int:project_pk>/operations/",
+        OperationsView.as_view(),
+        name="operations",
     ),
     path("deployments/<int:pk>/", DeploymentDetailView.as_view(), name="detail"),
     path(

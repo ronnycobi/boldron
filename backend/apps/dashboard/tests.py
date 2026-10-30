@@ -1263,6 +1263,14 @@ class CapabilityEngineWebTests(TestCase):
         html = self.client.get(reverse("dashboard:mobile_plan")).content.decode()
         self.assertNotIn("Your mobile app plan", html)
 
+    def test_operations_page_shows_health_overview(self):
+        p = Project.objects.create(organization=self.org, name="OpsApp")
+        html = self.client.get(
+            reverse("dashboard:operations", args=[p.id])).content.decode()
+        self.assertIn("Operations", html)
+        self.assertIn("Not deployed yet", html)     # honest status for a new project
+        self.assertIn("Uptime", html)               # composed health overview rendered
+
     def test_project_compatibility_page_renders(self):
         from unittest import mock
         p = Project.objects.create(organization=self.org, name="CompatApp")

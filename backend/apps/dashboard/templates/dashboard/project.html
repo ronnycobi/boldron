@@ -19,6 +19,7 @@
       <a class="btn ghost" href="{% url 'dashboard:project_tests' project.id %}">Tests →</a>
       <a class="btn ghost" href="{% url 'dashboard:project_security' project.id %}">Security →</a>
       <a class="btn ghost" href="{% url 'dashboard:project_compatibility' project.id %}">Compatibility →</a>
+      <a class="btn ghost" href="{% url 'dashboard:operations' project.id %}">Operations →</a>
     </div>
   </div>
   <p class="sub">{{ project.organization.name }} · {{ project.get_mode_display }}

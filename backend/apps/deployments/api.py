@@ -82,6 +82,17 @@ class DeploymentDetailView(APIView):
         return Response(DeploymentSerializer(deployment).data)
 
 
+class OperationsView(APIView):
+    """The Operations Center (spec §10): a composed, customer-safe health view of a
+    project's live app — status, uptime, traffic, deploys, jobs, storage, quality
+    gates and restore points. Read-only; no infrastructure detail is exposed."""
+
+    def get(self, request, project_pk):
+        from apps.deployments.operations import operations_overview
+        project = project_for_read(request.user, project_pk)
+        return Response(operations_overview(project))
+
+
 class EnvironmentSummaryView(APIView):
     """The deploy screen: each environment with its latest deployment (status,
     URL, when), newest first. Read-only aggregation over real deployments."""

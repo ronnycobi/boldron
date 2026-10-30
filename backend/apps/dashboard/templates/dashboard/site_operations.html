@@ -3,10 +3,42 @@
 {% block crumb %}Build / Projects / {{ project.name }} / Operations{% endblock %}
 {% block content %}
   <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
-    <h1>Operations</h1>
+    <h1>Operations
+      <span class="badge b-{% if opsview.status == 'healthy' %}completed{% elif opsview.status == 'down' or opsview.status == 'degraded' %}failed{% else %}idle{% endif %}" style="font-size:12px;vertical-align:middle">● {{ opsview.status_label }}</span>
+    </h1>
     <a class="btn ghost" href="{% url 'dashboard:publish_center' project.id %}">← Release Center</a>
   </div>
-  <p class="sub">{{ project.name }} · {{ app_name }} watches your live site and suggests improvements.</p>
+  <p class="sub">A live health view of {{ project.name }}. Every figure comes from a real record; where there's no signal it reads "—", never a fake green.</p>
+
+  <!-- Operations Center (spec §10): composed runtime health, customer-safe -->
+  <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(170px,1fr));margin-bottom:8px">
+    <div class="card stat"><div class="k">Uptime</div>
+      <div class="v" style="font-size:22px">{% if opsview.uptime.uptime_pct is not None %}{{ opsview.uptime.uptime_pct }}%{% else %}—{% endif %}</div>
+      <div class="muted" style="font-size:11px">{% if opsview.uptime %}{{ opsview.uptime.incidents }} incident{{ opsview.uptime.incidents|pluralize }}{% else %}not monitored yet{% endif %}</div></div>
+    <div class="card stat"><div class="k">Response</div>
+      <div class="v" style="font-size:22px">{% if opsview.uptime.avg_response_ms is not None %}{{ opsview.uptime.avg_response_ms }}ms{% else %}—{% endif %}</div></div>
+    <div class="card stat"><div class="k">Traffic 30d</div>
+      <div class="v" style="font-size:22px">{% if opsview.traffic %}{{ opsview.traffic.pageviews }}{% else %}—{% endif %}</div>
+      <div class="muted" style="font-size:11px">{% if opsview.traffic %}{{ opsview.traffic.visitors }} visitor{{ opsview.traffic.visitors|pluralize }}{% endif %}</div></div>
+    <div class="card stat"><div class="k">Deploys</div>
+      <div class="v" style="font-size:22px">{{ opsview.deployments.total }}</div>
+      <div class="muted" style="font-size:11px">{% if opsview.deployments.latest_status %}last: {{ opsview.deployments.latest_status }}{% else %}none{% endif %}</div></div>
+    <div class="card stat"><div class="k">Jobs</div>
+      <div class="v" style="font-size:22px">{{ opsview.jobs.running|add:opsview.jobs.queued }}</div>
+      <div class="muted" style="font-size:11px">{{ opsview.jobs.failed }} failed</div></div>
+    <div class="card stat"><div class="k">Storage</div>
+      <div class="v" style="font-size:22px">{{ opsview.storage.display }}</div></div>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center">
+      <span><span class="muted" style="font-size:12px">Tests</span>
+        <a href="{% url 'dashboard:project_tests' project.id %}"><span class="badge b-{% if opsview.quality.tests == 'passed' %}completed{% elif opsview.quality.tests == 'failed' %}failed{% else %}waiting_for_approval{% endif %}">{{ opsview.quality.tests }}</span></a></span>
+      <span><span class="muted" style="font-size:12px">Security</span>
+        <a href="{% url 'dashboard:project_security' project.id %}"><span class="badge b-{% if opsview.quality.security == 'clean' %}completed{% elif opsview.quality.security == 'blocked' %}failed{% else %}waiting_for_approval{% endif %}">{{ opsview.quality.security }}</span></a></span>
+      <span class="muted" style="font-size:12.5px;margin-left:auto">{{ opsview.rollback.restore_points }} restore point{{ opsview.rollback.restore_points|pluralize }} · roll back from the project page</span>
+    </div>
+    {% if opsview.quality.security_blocks %}<p class="muted" style="font-size:12px;margin:8px 0 0;color:#f5c454">A production deploy is blocked by high-severity security findings.</p>{% endif %}
+  </div>
 
   {% if not website %}
   <div class="card"><p class="empty">Publish your site to get operational insights.</p></div>
