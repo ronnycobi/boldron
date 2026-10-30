@@ -15,6 +15,7 @@ typedef _Area = ({IconData icon, String label, String path});
 /// route lives in the router under /projects/:id/<path>).
 const List<_Area> _areas = [
   (icon: Icons.tune, label: 'Request a change', path: 'changes'),
+  (icon: Icons.forum_outlined, label: 'Comments', path: 'comments'),
   (icon: Icons.monitor_heart_outlined, label: 'Operations', path: 'operations'),
   (icon: Icons.verified_outlined, label: 'Tests', path: 'tests'),
   (icon: Icons.shield_outlined, label: 'Security', path: 'security'),
