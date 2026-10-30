@@ -1,0 +1,39 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}{{ project.name }} · Comments · {{ app_name }}{% endblock %}
+{% block crumb %}Build / Projects / {{ project.name }} / Comments{% endblock %}
+{% block content %}
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+    <h1>Comments</h1>
+    <a class="btn ghost" href="{% url 'dashboard:project' project.id %}">← {{ project.name }}</a>
+  </div>
+  <p class="sub">Discuss <strong>{{ project.name }}</strong> with your team. Mention a teammate with <code>@handle</code> to notify them.</p>
+
+  <div class="card">
+    {% for c in comments %}
+    <div style="padding:12px 0;border-bottom:1px solid var(--line)">
+      <div style="display:flex;justify-content:space-between;gap:8px">
+        <strong>{{ c.author.display_name|default:"Unknown" }}</strong>
+        <span class="muted" style="font-size:12px">{{ c.created_at|date:"M j, H:i" }}</span>
+      </div>
+      <p style="margin:6px 0 0;white-space:pre-line">{{ c.body }}</p>
+      {% with ms=c.mentions.all %}{% if ms %}
+      <div class="muted" style="font-size:12px;margin-top:4px">mentioned
+        {% for m in ms %}<span class="chip">@{{ m.user.display_name }}</span>{% endfor %}</div>
+      {% endif %}{% endwith %}
+    </div>
+    {% empty %}
+    <p class="empty" style="margin:0">No comments yet. Start the conversation below.</p>
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <form method="post">{% csrf_token %}
+      <label>Add a comment</label>
+      <textarea name="body" rows="3" placeholder="Write a comment… use @handle to mention a teammate" required></textarea>
+      {% if members %}
+      <p class="muted" style="font-size:12px;margin:6px 0 0">Team: {% for m in members %}<span class="chip" title="{{ m.name }}">@{{ m.handle }}</span>{% endfor %}</p>
+      {% endif %}
+      <div style="margin-top:10px"><button class="btn" type="submit">Post comment</button></div>
+    </form>
+  </div>
+{% endblock %}

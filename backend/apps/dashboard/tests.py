@@ -1263,6 +1263,15 @@ class CapabilityEngineWebTests(TestCase):
         html = self.client.get(reverse("dashboard:mobile_plan")).content.decode()
         self.assertNotIn("Your mobile app plan", html)
 
+    def test_comments_page_posts_and_renders(self):
+        p = Project.objects.create(organization=self.org, name="CmtApp")
+        self.client.post(reverse("dashboard:project_comments", args=[p.id]),
+                         {"body": "First comment on the project"})
+        html = self.client.get(
+            reverse("dashboard:project_comments", args=[p.id])).content.decode()
+        self.assertIn("Comments", html)
+        self.assertIn("First comment on the project", html)
+
     def test_incidents_page_renders_and_opens(self):
         p = Project.objects.create(organization=self.org, name="IncApp")
         # Opening an incident via the page records it on the lifecycle board.

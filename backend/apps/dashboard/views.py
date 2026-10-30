@@ -2382,6 +2382,30 @@ def set_theme(request):
 
 
 @login_required
+def project_comments(request, pk):
+    """A project's comment thread (spec §4): members discuss and @mention each other.
+    Any member can post; a @handle resolves only to a member of the same org."""
+    from apps.comments import service as comments
+    proj = get_object_or_404(
+        Project.objects.filter(organization__in=organizations_for(request.user)), pk=pk)
+
+    if request.method == "POST":
+        try:
+            comments.post_comment(proj, request.user, request.POST.get("body", ""))
+        except comments.CommentError as exc:
+            messages.error(request, str(exc))
+        return redirect("dashboard:project_comments", pk=pk)
+
+    members = [{"name": m.user.display_name,
+                "handle": (m.user.email or "").split("@", 1)[0]}
+               for m in comments._org_members(proj.organization) if m.user]
+    return render(request, "dashboard/project_comments.html", {
+        "active": "projects", "project": proj,
+        "comments": comments.comments_for(proj), "members": members,
+    })
+
+
+@login_required
 def project_incidents(request, pk):
     """A project's incidents (spec §20): the lifecycle board + per-incident timeline
     and actions. Members view; owners/admins open, note and transition. The AI can
