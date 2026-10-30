@@ -85,6 +85,13 @@ class SettingsRepository {
         .toList();
   }
 
+  /// The integration marketplace: every connectable service grouped by category,
+  /// with its real honest status (connected / available / connect / planned).
+  Future<Map<String, dynamic>> marketplace() async {
+    final data = await _api.get('settings/marketplace/');
+    return (data as Map).cast<String, dynamic>();
+  }
+
   /// Honest SMS readiness — which gateways are connected (env-gated). In an
   /// environment with no SMS credentials every provider reads not-available.
   Future<Map<String, dynamic>> smsStatus() async {
@@ -99,6 +106,10 @@ final settingsRepositoryProvider = Provider<SettingsRepository>(
 
 final integrationsProvider = FutureProvider<List<Map<String, dynamic>>>(
   (ref) => ref.watch(settingsRepositoryProvider).integrations(),
+);
+
+final marketplaceProvider = FutureProvider<Map<String, dynamic>>(
+  (ref) => ref.watch(settingsRepositoryProvider).marketplace(),
 );
 
 final smsStatusProvider = FutureProvider<Map<String, dynamic>>(
