@@ -95,3 +95,21 @@ class ProjectIntelligenceView(APIView):
         from apps.project_context.intelligence import build_intelligence
         project = project_for_read(request.user, project_pk)
         return Response(build_intelligence(project))
+
+
+class ApplicationGraphView(APIView):
+    """The Application Graph (spec §4): the node+edge model of the application.
+    Read-only, tenant-isolated, customer-safe. With ?node=<id> it instead returns
+    that node's Dependency Intelligence (spec §5) — what it depends on and what
+    depends on it."""
+
+    def get(self, request, project_pk):
+        from apps.project_context.graph import build_graph, dependency_report
+        project = project_for_read(request.user, project_pk)
+        node_id = request.query_params.get("node")
+        if node_id:
+            report = dependency_report(project, node_id)
+            if report is None:
+                return Response({"detail": "Unknown node."}, status=404)
+            return Response(report)
+        return Response(build_graph(project))

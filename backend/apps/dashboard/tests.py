@@ -1329,6 +1329,27 @@ class CapabilityEngineWebTests(TestCase):
         self.assertIn("E-commerce", html)       # built capability
         self.assertIn("COMING", html)            # SMS shown honestly as coming
 
+    def test_project_graph_page_renders(self):
+        p = Project.objects.create(
+            organization=self.org, name="GraphApp", description="an online store",
+            capabilities=["auth", "database", "ecommerce", "payments"],
+            mobile_plan={"platforms": ["ios"]})
+        html = self.client.get(
+            reverse("dashboard:project_graph", args=[p.id])).content.decode()
+        self.assertIn("Application graph", html)
+        self.assertIn("E-commerce", html)
+        self.assertIn("iOS", html)
+
+    def test_project_graph_dependency_drilldown(self):
+        p = Project.objects.create(
+            organization=self.org, name="GraphApp2",
+            capabilities=["auth", "database", "ecommerce", "payments"])
+        html = self.client.get(
+            reverse("dashboard:project_graph", args=[p.id]) + "?node=cap:payments"
+        ).content.decode()
+        self.assertIn("Impact of", html)
+        self.assertIn("E-commerce", html)   # ecommerce requires payments -> affected
+
     def test_project_page_shows_capability_map(self):
         p = Project.objects.create(
             organization=self.org, name="Shop",

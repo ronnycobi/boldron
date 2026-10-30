@@ -1,0 +1,69 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}{{ project.name }} · App graph · {{ app_name }}{% endblock %}
+{% block crumb %}Build / Projects / {{ project.name }} / App graph{% endblock %}
+{% block content %}
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+    <h1>Application graph</h1>
+    <a class="btn ghost" href="{% url 'dashboard:project' project.id %}">← {{ project.name }}</a>
+  </div>
+  <p class="sub">How the parts of <strong>{{ project.name }}</strong> connect — features, screens, data,
+    APIs and mobile apps, and what each one depends on. Select anything to see what would be
+    affected if it changed.</p>
+
+  <div class="card" style="display:flex;gap:18px;flex-wrap:wrap">
+    <div><strong>{{ graph.stats.nodes }}</strong> <span class="muted">parts</span></div>
+    <div><strong>{{ graph.stats.edges }}</strong> <span class="muted">connections</span></div>
+  </div>
+
+  {% if report %}
+  <div class="card" style="border-color:var(--brandline);background:var(--brandsoft)">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">
+      <h2 style="margin:0">Impact of <strong>{{ report.node.label }}</strong></h2>
+      <a class="btn ghost" href="{% url 'dashboard:project_graph' project.id %}">Clear selection</a>
+    </div>
+    <p class="muted" style="font-size:12.5px;margin:6px 0 14px">
+      Changing <strong>{{ report.node.label }}</strong> would affect
+      <strong>{{ report.impact_count }}</strong> other part{{ report.impact_count|pluralize }} of your app.</p>
+    <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr))">
+      <div class="card" style="margin:0">
+        <h3 style="margin:0 0 8px;font-size:13px">Affected if this changes</h3>
+        {% if report.dependents %}
+          {% for d in report.dependents %}<span class="chip">{{ d.label }}</span>{% endfor %}
+        {% else %}<p class="empty" style="margin:0">Nothing depends on this.</p>{% endif %}
+      </div>
+      <div class="card" style="margin:0">
+        <h3 style="margin:0 0 8px;font-size:13px">This depends on</h3>
+        {% if report.depends_on %}
+          {% for d in report.depends_on %}<span class="chip" style="opacity:.75">{{ d.label }}</span>{% endfor %}
+        {% else %}<p class="empty" style="margin:0">Self-contained — depends on nothing.</p>{% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(320px,1fr))">
+    {% for g in grouped %}
+    <div class="card">
+      <div style="display:flex;align-items:baseline;justify-content:space-between">
+        <h2 style="margin:0;font-size:15px">{{ g.label }}</h2>
+        <span class="muted" style="font-size:12px">{{ g.nodes|length }}</span>
+      </div>
+      <table style="margin-top:8px">
+        {% for n in g.nodes %}
+        <tr>
+          <td style="width:42%">
+            <a href="{% url 'dashboard:project_graph' project.id %}?node={{ n.id }}"
+               style="{% if n.id == selected %}font-weight:700{% endif %}">{{ n.label }}</a>
+            {% if n.available is False %}<span class="muted" style="font-size:9.5px"> COMING</span>{% endif %}
+          </td>
+          <td class="muted" style="font-size:12px">
+            {% if n.deps %}needs {% for d in n.deps %}{{ d }}{% if not forloop.last %}, {% endif %}{% endfor %}
+            {% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% endfor %}
+  </div>
+{% endblock %}

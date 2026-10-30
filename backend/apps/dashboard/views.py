@@ -2565,6 +2565,48 @@ def project_intelligence(request, pk):
 
 
 @login_required
+def project_graph(request, pk):
+    """The Application Graph (spec §4) + Dependency Intelligence (spec §5): the
+    node+edge model of this app and, when a node is selected, what depends on it.
+    Composed read-only from existing data; customer-safe."""
+    from apps.project_context.graph import build_graph, dependency_report
+    proj = get_object_or_404(
+        Project.objects.filter(organization__in=organizations_for(request.user)), pk=pk)
+    graph = build_graph(proj)
+    selected = request.GET.get("node")
+    report = dependency_report(proj, selected) if selected else None
+    # Group nodes by type for a readable, dependency-first layout.
+    _type_labels = {
+        "application": "Application", "feature": "Features",
+        "infrastructure": "Infrastructure & hosting", "integration": "Integrations",
+        "security": "Security & trust", "screen": "Web screens",
+        "mobile_screen": "Mobile screens", "api": "APIs", "entity": "Data entities",
+        "requirement": "Requirements", "business_rule": "Business rules",
+        "environment": "Environments", "mobile_platform": "Mobile platforms",
+    }
+    _order = list(_type_labels)
+    grouped = []
+    by_type: dict[str, list] = {}
+    for n in graph["nodes"]:
+        by_type.setdefault(n["type"], []).append(n)
+    # direct dependency targets per node, for the "depends on" hint on each row
+    deps_of: dict[str, list] = {}
+    labels = {n["id"]: n["label"] for n in graph["nodes"]}
+    _DEP_KINDS = {"requires", "uses", "runs_on", "part_of", "stored_in"}
+    for e in graph["edges"]:
+        if e["kind"] in _DEP_KINDS:
+            deps_of.setdefault(e["source"], []).append(labels.get(e["target"], e["target"]))
+    for t in _order:
+        if t in by_type:
+            rows = [{**n, "deps": deps_of.get(n["id"], [])} for n in by_type[t]]
+            grouped.append({"type": t, "label": _type_labels[t], "nodes": rows})
+    return render(request, "dashboard/project_graph.html", {
+        "active": "projects", "project": proj, "graph": graph,
+        "grouped": grouped, "selected": selected, "report": report,
+    })
+
+
+@login_required
 def mobile_plan(request):
     """Mobile app planner (spec §5/§48): describe a mobile app, see the honest plan —
     capabilities (generated vs gated), device permissions, and target platforms —
