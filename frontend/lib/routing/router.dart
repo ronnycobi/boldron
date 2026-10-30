@@ -15,6 +15,9 @@ import '../features/account/account_security_screen.dart';
 import '../features/backups/backups_screen.dart';
 import '../features/operations/incidents_screen.dart';
 import '../features/operations/operations_screen.dart';
+import '../features/quality/compatibility_screen.dart';
+import '../features/quality/security_screen.dart';
+import '../features/quality/tests_screen.dart';
 import '../features/billing/billing_screen.dart';
 import '../features/build/build_screen.dart';
 import '../features/changes/changes_screen.dart';
@@ -198,6 +201,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/projects/:id/incidents',
         builder: (_, s) => IncidentsScreen(projectId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/projects/:id/tests',
+        builder: (_, s) => TestsScreen(projectId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/projects/:id/security',
+        builder: (_, s) => ProjectSecurityScreen(projectId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/projects/:id/compatibility',
+        builder: (_, s) => CompatibilityScreen(projectId: _idParam(s, 'id')),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
