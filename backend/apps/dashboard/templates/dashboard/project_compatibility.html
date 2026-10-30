@@ -1,0 +1,77 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}{{ project.name }} · Compatibility · {{ app_name }}{% endblock %}
+{% block crumb %}Build / Projects / {{ project.name }} / Compatibility{% endblock %}
+{% block content %}
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+    <h1>Compatibility</h1>
+    <a class="btn ghost" href="{% url 'dashboard:project' project.id %}">← {{ project.name }}</a>
+  </div>
+  <p class="sub">{{ report.note }}</p>
+
+  <div class="card" style="margin-bottom:14px;border-color:rgba(245,196,84,.4);background:rgba(245,196,84,.06)">
+    <div style="display:flex;align-items:center;gap:8px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f5c454" stroke-width="2"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <strong style="color:#f5c454">Live cross-browser & device testing isn't connected</strong>
+    </div>
+    <p class="muted" style="font-size:12.5px;margin:6px 0 0">{{ report.live_testing.detail }}</p>
+  </div>
+
+  {% if report.analysed %}
+  <div class="row">
+    <div class="card">
+      <h2 style="margin-top:0">Browsers</h2>
+      <table>
+        {% for b in report.browsers %}
+        <tr>
+          <td class="strong" style="width:30%">{{ b.name }}</td>
+          <td>
+            {% if b.status == 'risk' %}
+              <span class="badge b-waiting_for_approval">⚠ {{ b.risks|length }} risk{{ b.risks|length|pluralize }}</span>
+            {% else %}
+              <span class="muted" style="font-size:12.5px">— not verified</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    <div class="card">
+      <h2 style="margin-top:0">Devices</h2>
+      <table>
+        {% for p in report.platforms %}
+        <tr>
+          <td class="strong" style="width:40%">{{ p.name }}</td>
+          <td>
+            {% if p.status == 'risk' %}
+              <span class="badge b-waiting_for_approval">⚠ {{ p.risks|length }} risk{{ p.risks|length|pluralize }}</span>
+            {% else %}
+              <span class="muted" style="font-size:12.5px">— not verified</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+  </div>
+
+  <h2>Compatibility risks</h2>
+  <div class="card">
+    {% if report.risks %}
+    <table>
+      <tr><th>Risk</th><th>Affects</th><th>Where</th></tr>
+      {% for r in report.risks %}
+      <tr>
+        <td>{{ r.message }}</td>
+        <td>{% for t in r.targets %}<span class="chip" style="text-transform:capitalize">{{ t }}</span>{% endfor %}</td>
+        <td class="muted"><code>{{ r.path }}</code></td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <p class="empty" style="margin:0">No compatibility risks found in static analysis. That isn't a pass — targets stay "not verified" until a live run on a connected test environment.</p>
+    {% endif %}
+  </div>
+  {% else %}
+  <p class="empty">{{ report.note }}</p>
+  {% endif %}
+{% endblock %}

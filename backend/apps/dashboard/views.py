@@ -2377,6 +2377,19 @@ def set_theme(request):
 
 
 @login_required
+def project_compatibility(request, pk):
+    """A project's browser & device compatibility report (spec §9): real static
+    risks per target; live cross-browser/device runs are honestly gated."""
+    from apps.testing.compatibility import compatibility_report
+    proj = get_object_or_404(
+        Project.objects.filter(organization__in=organizations_for(request.user)), pk=pk)
+    return render(request, "dashboard/project_compatibility.html", {
+        "active": "projects", "project": proj,
+        "report": compatibility_report(proj),
+    })
+
+
+@login_required
 def project_security(request, pk):
     """A project's security scans (spec §8): real findings history + latest status.
     Members view; owners/admins run a scan. Production deploys are blocked on

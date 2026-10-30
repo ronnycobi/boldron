@@ -1263,6 +1263,17 @@ class CapabilityEngineWebTests(TestCase):
         html = self.client.get(reverse("dashboard:mobile_plan")).content.decode()
         self.assertNotIn("Your mobile app plan", html)
 
+    def test_project_compatibility_page_renders(self):
+        from unittest import mock
+        p = Project.objects.create(organization=self.org, name="CompatApp")
+        with mock.patch("apps.testing.compatibility._read_files",
+                        return_value={"m.dart": "FirebaseMessaging.instance"}):
+            html = self.client.get(
+                reverse("dashboard:project_compatibility", args=[p.id])).content.decode()
+        self.assertIn("Compatibility", html)
+        self.assertIn("HMS Push Kit", html)                 # the real Huawei risk
+        self.assertIn("isn't connected", html)              # honest live-testing gate
+
     def test_project_security_page_renders(self):
         from apps.security import ledger
         p = Project.objects.create(organization=self.org, name="SecApp")

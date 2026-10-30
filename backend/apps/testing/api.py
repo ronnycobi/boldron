@@ -59,6 +59,16 @@ class ProjectTestsView(APIView):
         return Response(_run_dict(run), status=201)
 
 
+class ProjectCompatibilityView(APIView):
+    """Browser & device compatibility report (spec §9): real static risks per target,
+    with live cross-browser/device runs honestly gated. Never fabricates a pass."""
+
+    def get(self, request, project_pk):
+        from apps.testing.compatibility import compatibility_report
+        project = project_for_read(request.user, project_pk)
+        return Response(compatibility_report(project))
+
+
 class TestRunFixView(APIView):
     """Propose a fix for a failed run (spec §7): analyses the real failure and creates
     a change request in the safe-change pipeline. Never claims the run is fixed."""
