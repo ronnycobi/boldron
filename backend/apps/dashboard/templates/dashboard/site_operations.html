@@ -42,6 +42,21 @@
     {% if opsview.quality.security_blocks %}<p class="muted" style="font-size:12px;margin:8px 0 0;color:#f5c454">A production deploy is blocked by high-severity security findings.</p>{% endif %}
   </div>
 
+  {% if alerts %}
+  <div class="card">
+    <h2 style="margin-top:0">Recent alerts</h2>
+    <table>
+      {% for a in alerts %}
+      <tr>
+        <td style="width:120px" class="muted">{{ a.created_at|date:"M j, H:i" }}</td>
+        <td><span class="badge b-{% if a.severity == 'critical' or a.severity == 'high' %}failed{% elif a.severity == 'medium' %}waiting_for_approval{% else %}idle{% endif %}" style="text-transform:capitalize">{{ a.severity }}</span> {{ a.message }}</td>
+        <td class="muted" style="text-align:right;font-size:12px">{% if a.emailed %}emailed {{ a.emailed }}{% else %}in-app{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+
   {% if not website %}
   <div class="card"><p class="empty">Publish your site to get operational insights.</p></div>
   {% else %}

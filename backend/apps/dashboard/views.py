@@ -700,12 +700,14 @@ def site_operations(request, pk):
 
     findings = ops.analyze(website) if website else []
     from apps.deployments.operations import operations_overview
+    from apps.notifications.alerts import recent as recent_alerts
     return render(request, "dashboard/site_operations.html", {
         "active": "projects", "project": proj, "can_manage": can_manage,
         "website": website, "findings": findings,
         "summary": ops.summary_line(findings) if website else "",
         # The composed Operations Center (spec §10): runtime health across the app.
         "opsview": operations_overview(proj),
+        "alerts": recent_alerts(proj, limit=8),
     })
 
 

@@ -89,6 +89,33 @@ class NotificationFeedView(APIView):
         return Response({"notifications": items, "push_available": False})
 
 
+class ProjectAlertsView(APIView):
+    """Operational alert history for a project + the org's email-alert preference
+    (spec §21). Owner/admin may toggle the preference."""
+
+    def get(self, request, project_pk):
+        from apps.projects.access import project_for_read
+        from apps.notifications.alerts import recent
+        from apps.notifications.models import AlertPreference
+        project = project_for_read(request.user, project_pk)
+        pref = AlertPreference.objects.filter(organization=project.organization).first()
+        return Response({
+            "email_enabled": pref.email_enabled if pref else True,
+            "alerts": [{
+                "id": a.id, "kind": a.kind, "severity": a.severity,
+                "message": a.message, "emailed": a.emailed,
+                "created_at": a.created_at.isoformat(),
+            } for a in recent(project)],
+        })
+
+    def post(self, request, project_pk):
+        from apps.projects.access import require_manageable_project
+        from apps.notifications.alerts import set_email_enabled
+        project = require_manageable_project(request.user, project_pk)
+        set_email_enabled(project.organization, bool(request.data.get("email_enabled", True)))
+        return Response({"email_enabled": bool(request.data.get("email_enabled", True))})
+
+
 class SmsStatusView(APIView):
     """Honest SMS readiness: which gateways are connected (env-gated). In an
     environment with no SMS credentials every provider reads not-available — the

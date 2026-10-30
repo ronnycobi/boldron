@@ -49,3 +49,44 @@ class SmsMessage(models.Model):
 
     def __str__(self):
         return f"SMS to {self.to} ({self.status})"
+
+
+class AlertPreference(models.Model):
+    """Org-level alerting preference (spec §21). Operational alerts email the org's
+    owners/admins by default; an org can turn that off here. Preference only — it
+    never fakes or suppresses the underlying event, which is always recorded."""
+
+    organization = models.OneToOneField(
+        "organizations.Organization", on_delete=models.CASCADE,
+        related_name="alert_preference")
+    email_enabled = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"alerts for {self.organization_id} (email={self.email_enabled})"
+
+
+class Alert(models.Model):
+    """A persistent record of an operational alert raised for a project (spec §21).
+
+    The Alert IS the in-app notification; `emailed` records whether a real email was
+    actually dispatched to recipients. Push is not attempted (no provider connected),
+    so it is honestly never reported as sent."""
+
+    SEVERITIES = [("critical", "Critical"), ("high", "High"),
+                  ("medium", "Medium"), ("low", "Low")]
+
+    project = models.ForeignKey(
+        "projects.Project", on_delete=models.CASCADE, related_name="alerts")
+    kind = models.CharField(max_length=40)       # deploy_failed, incident, security, …
+    severity = models.CharField(max_length=10, choices=SEVERITIES, default="medium")
+    message = models.CharField(max_length=300)
+    emailed = models.PositiveIntegerField(default=0)   # recipients the email reached
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["project", "-created_at"])]
+
+    def __str__(self):
+        return f"[{self.severity}] {self.kind}: {self.message[:40]}"

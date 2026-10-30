@@ -30,6 +30,12 @@ def open_incident(project, *, title, severity="medium", source="manual", detail=
         message=detail[:1000] or "Incident opened.", created_by=user)
     audit("incident.open", actor=user, organization=project.organization,
           target=f"incident:{incident.id}", summary=f"[{severity}] {title}")
+    # Raise an operational alert (spec §21) — notifies the org, best-effort.
+    try:
+        from apps.notifications.alerts import raise_alert
+        raise_alert(project, kind="incident", severity=severity, message=title)
+    except Exception:
+        pass
     return incident
 
 
