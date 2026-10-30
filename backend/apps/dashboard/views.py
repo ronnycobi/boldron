@@ -2377,6 +2377,34 @@ def set_theme(request):
 
 
 @login_required
+def project_security(request, pk):
+    """A project's security scans (spec §8): real findings history + latest status.
+    Members view; owners/admins run a scan. Production deploys are blocked on
+    high-severity findings."""
+    from apps.security import ledger
+    proj = get_object_or_404(
+        Project.objects.filter(organization__in=organizations_for(request.user)), pk=pk)
+    can_manage = proj.organization_id in _manageable_ids(request.user)
+
+    if request.method == "POST":
+        if not can_manage:
+            messages.error(request, "Owner or admin rights required.")
+            return redirect("dashboard:project_security", pk=pk)
+        scan = ledger.run_scan(proj, trigger="manual", user=request.user)
+        messages.success(request, f"Scan finished: {scan.get_status_display().lower()} — {scan.summary}")
+        return redirect("dashboard:project_security", pk=pk)
+
+    latest = ledger.latest_scan(proj)
+    return render(request, "dashboard/project_security.html", {
+        "active": "projects", "project": proj, "can_manage": can_manage,
+        "ok": ledger.security_ok(proj),
+        "latest": latest,
+        "findings": latest.findings.all()[:100] if latest else [],
+        "scans": proj.security_scans.all()[:25],
+    })
+
+
+@login_required
 def project_tests(request, pk):
     """A project's test runs (spec §8): real history + latest status + the tests the
     latest change requires. Members view; owners/admins can run the suite."""

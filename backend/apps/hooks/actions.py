@@ -5,8 +5,6 @@ fabricates a result: if there's nothing to check, the handler returns 'skip'.
 """
 from __future__ import annotations
 
-_SKIP_EXT = (".png", ".jpg", ".jpeg", ".gif", ".ico", ".pdf", ".zip", ".woff", ".woff2")
-
 
 def run_tests(project, config) -> tuple[str, str]:
     # Run through the ledger so every pre-deploy test run is recorded with its real
@@ -22,27 +20,18 @@ def run_tests(project, config) -> tuple[str, str]:
 
 
 def security_scan(project, config) -> tuple[str, str]:
-    from apps.repositories.service import repo_for_project
-    from apps.security.scanner import Severity, scan_files, summarize
-    repo = repo_for_project(project)
-    if not repo.is_initialized:
-        return "skip", "no repository"
-    files = {}
-    for rel in repo.list_files():
-        if rel.lower().endswith(_SKIP_EXT):
-            continue
-        try:
-            files[rel] = (repo.path / rel).read_text()
-        except (OSError, UnicodeDecodeError):
-            continue
-    if not files:
-        return "skip", "no code to scan"
-    findings = scan_files(files)
-    summary = summarize(findings)
-    high = summary.get(Severity.HIGH, 0)
-    if high:
-        return "fail", f"{high} high-severity finding(s)"
-    return "pass", f"scanned {len(files)} file(s), no high-severity findings"
+    # Scan through the ledger so every pre-deploy scan is recorded with its real
+    # findings (apps.security.ledger reuses the same scanner).
+    from apps.security.ledger import run_scan
+    from apps.security.models import SecurityScanStatus
+    scan = run_scan(project, trigger="pre_deploy")
+    if scan.status == SecurityScanStatus.SKIPPED:
+        return "skip", scan.summary
+    if scan.status == SecurityScanStatus.BLOCKED:
+        return "fail", scan.summary          # a HIGH finding blocks the deploy
+    if scan.status == SecurityScanStatus.ERROR:
+        return "fail", scan.summary
+    return "pass", scan.summary              # clean or non-blocking findings
 
 
 def manual_gate(project, config) -> tuple[str, str]:

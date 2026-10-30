@@ -1263,6 +1263,16 @@ class CapabilityEngineWebTests(TestCase):
         html = self.client.get(reverse("dashboard:mobile_plan")).content.decode()
         self.assertNotIn("Your mobile app plan", html)
 
+    def test_project_security_page_renders(self):
+        from apps.security import ledger
+        p = Project.objects.create(organization=self.org, name="SecApp")
+        ledger.run_scan(p, collector=lambda pr: {"app.py": 'import os\nos.system("x")\n'})
+        html = self.client.get(
+            reverse("dashboard:project_security", args=[p.id])).content.decode()
+        self.assertIn("Security", html)
+        self.assertIn("Findings", html)        # the high-severity finding is shown
+        self.assertIn("blocked", html.lower())
+
     def test_project_tests_page_renders(self):
         p = Project.objects.create(organization=self.org, name="QAApp")
         html = self.client.get(

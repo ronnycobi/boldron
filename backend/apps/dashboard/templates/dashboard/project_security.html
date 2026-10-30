@@ -1,0 +1,61 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}{{ project.name }} · Security · {{ app_name }}{% endblock %}
+{% block crumb %}Build / Projects / {{ project.name }} / Security{% endblock %}
+{% block content %}
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+    <h1>Security
+      {% if latest %}
+        <span class="badge b-{% if latest.status == 'clean' %}completed{% elif latest.status == 'blocked' or latest.status == 'error' %}failed{% else %}waiting_for_approval{% endif %}" style="font-size:12px;vertical-align:middle">{{ latest.get_status_display }}</span>
+      {% endif %}
+    </h1>
+    <div style="display:flex;gap:8px">
+      {% if can_manage %}<form method="post">{% csrf_token %}<button class="btn" type="submit">▶ Run scan</button></form>{% endif %}
+      <a class="btn ghost" href="{% url 'dashboard:project' project.id %}">← {{ project.name }}</a>
+    </div>
+  </div>
+  <p class="sub">Code scanning for <strong>{{ project.name }}</strong>. {{ app_name }} checks the app's code for secrets, injection, XSS and unsafe configuration, and records the real findings — a project with no code is shown as skipped, never a fake pass. Production deploys are blocked on high-severity findings.</p>
+
+  <div class="card" style="margin-bottom:4px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="width:10px;height:10px;border-radius:99px;background:{% if ok %}var(--ok){% else %}var(--fail){% endif %}"></span>
+      <strong>{% if ok %}No high-severity findings{% else %}Needs attention{% endif %}</strong>
+      {% if latest %}<span class="muted" style="margin-left:auto;font-size:12.5px">{{ latest.summary }} · {{ latest.created_at|date:"M j, H:i" }}</span>{% endif %}
+    </div>
+    {% if latest.blocks_deploy %}
+    <p class="muted" style="font-size:12.5px;margin:8px 0 0">A production deploy is blocked until the high-severity findings are resolved.</p>
+    {% endif %}
+  </div>
+
+  {% if findings %}
+  <div class="card">
+    <h2 style="margin-top:0">Findings <span class="muted" style="font-weight:400;font-size:13px">· {{ latest.high }} high · {{ latest.medium }} medium · {{ latest.low }} low</span></h2>
+    <table>
+      <tr><th>Severity</th><th>Issue</th><th>Where</th></tr>
+      {% for f in findings %}
+      <tr>
+        <td><span class="badge b-{% if f.severity == 'high' %}failed{% elif f.severity == 'medium' %}waiting_for_approval{% else %}idle{% endif %}" style="text-transform:capitalize">{{ f.severity }}</span></td>
+        <td>{{ f.message }} <span class="muted" style="font-size:11.5px">· {{ f.category }}</span></td>
+        <td class="muted"><code>{{ f.path }}:{{ f.line }}</code></td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+
+  <h2>Scan history</h2>
+  <div class="card">
+    {% if scans %}
+    <table>
+      <tr><th>When</th><th>Trigger</th><th>Result</th><th>Detail</th></tr>
+      {% for s in scans %}
+      <tr>
+        <td class="muted">{{ s.created_at|date:"M j, H:i" }}</td>
+        <td class="muted" style="text-transform:capitalize">{{ s.get_trigger_display }}</td>
+        <td><span class="badge b-{% if s.status == 'clean' %}completed{% elif s.status == 'blocked' or s.status == 'error' %}failed{% else %}waiting_for_approval{% endif %}">{{ s.get_status_display }}</span></td>
+        <td class="muted">{{ s.summary }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}<p class="empty" style="margin:0">No scans yet.{% if can_manage %} Run one above.{% endif %}</p>{% endif %}
+  </div>
+{% endblock %}
