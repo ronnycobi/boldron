@@ -169,7 +169,13 @@
           <span class="nm">{{ o.name }}</span>
           <span class="pl">{% if o.plan %}{{ o.plan|title }}{% endif %}{% if o.credits_pct is not None %} · {{ o.credits_pct }}%{% endif %}</span>
         </div>
-        {% if o.credits_pct is not None %}<div class="bar u-bar"><i style="width:{{ o.credits_pct }}%"></i></div>{% else %}<div style="margin-bottom:12px"></div>{% endif %}
+        {% if o.credits_pct is not None %}<div class="bar u-bar"><i style="width:{{ o.credits_pct }}%"></i></div>{% else %}<div style="margin-bottom:6px"></div>{% endif %}
+        <div class="muted" style="font-size:11.5px;margin-bottom:12px;display:flex;gap:10px;flex-wrap:wrap">
+          {% if o.credits_pct is not None %}<span>AI credits {{ o.credits_pct }}%</span>{% else %}<span>AI credits: unlimited</span>{% endif %}
+          <span>· {{ o.projects|default:0 }} project{{ o.projects|default:0|pluralize }}</span>
+          <span>· {{ o.members }} member{{ o.members|pluralize }}</span>
+          <span>· {{ o.storage|default:"0 B" }} storage</span>
+        </div>
         {% endfor %}
         <a href="{% url 'dashboard:usage' %}" style="font-size:12.5px;font-weight:600">Full usage →</a>
       </div>

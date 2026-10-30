@@ -117,6 +117,16 @@ class UsageSummaryView(APIView):
         )
 
 
+class UsageOverviewView(APIView):
+    """The org's composed usage meters (spec §17): AI credits used %, storage,
+    projects and members — real figures only, no fabricated percentages."""
+
+    def get(self, request, org_pk):
+        from apps.credits.usage import usage_overview
+        org = _member_org(request.user, org_pk)
+        return Response(usage_overview(org))
+
+
 class InvoiceListView(APIView):
     """Billing history: the org's invoices, most recent first (real records)."""
 

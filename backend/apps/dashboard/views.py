@@ -284,6 +284,16 @@ def overview(request):
     from apps.settings import service as _settings
     usage = _settings.organization_status(user)
     alerts = _settings.alerts_for(user)
+    # Enrich each org row with storage + project meters (spec §17) for a prominent
+    # usage panel. Real figures only — no fabricated limits.
+    from apps.credits.usage import usage_overview
+    _orgs_by_id = {o.id: o for o in orgs}
+    for row in usage:
+        org = _orgs_by_id.get(row["id"])
+        if org is not None:
+            ov = usage_overview(org)
+            row["storage"] = ov["storage"]["display"]
+            row["projects"] = ov["projects"]
 
     # Recent activity across the user's organizations (real audit events).
     from apps.audit.models import AuditEvent

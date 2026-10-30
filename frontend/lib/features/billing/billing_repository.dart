@@ -17,6 +17,12 @@ class BillingRepository {
     return (data as Map).cast<String, dynamic>();
   }
 
+  /// The composed usage meters (AI credits %, storage, projects, members).
+  Future<Map<String, dynamic>> usageOverview(int orgId) async {
+    final data = await _api.get('orgs/$orgId/usage/overview/');
+    return (data as Map).cast<String, dynamic>();
+  }
+
   Future<List<Map<String, dynamic>>> invoices(int orgId) async {
     final data = await _api.get('orgs/$orgId/invoices/');
     return (data as List).map((e) => (e as Map).cast<String, dynamic>()).toList();
@@ -40,4 +46,9 @@ final billingProvider =
 final usageSummaryProvider =
     FutureProvider.family<Map<String, dynamic>, int>((ref, orgId) {
   return ref.watch(billingRepositoryProvider).usageSummary(orgId);
+});
+
+final usageOverviewProvider =
+    FutureProvider.family<Map<String, dynamic>, int>((ref, orgId) {
+  return ref.watch(billingRepositoryProvider).usageOverview(orgId);
 });

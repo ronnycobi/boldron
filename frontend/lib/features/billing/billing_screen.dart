@@ -26,6 +26,12 @@ class BillingScreen extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              // Prominent usage meters (spec §17) — real figures only.
+              ref.watch(usageOverviewProvider(orgId)).maybeWhen(
+                    data: (o) => _UsageMeters(overview: o),
+                    orElse: () => const SizedBox.shrink(),
+                  ),
+              const SizedBox(height: 12),
               PanelCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -134,4 +140,63 @@ class BillingScreen extends ConsumerWidget {
       }
     }
   }
+}
+
+/// The §17 usage meters: AI credits % (where there's an allowance) plus honest
+/// counts for storage, projects and members — no fabricated limits.
+class _UsageMeters extends StatelessWidget {
+  final Map<String, dynamic> overview;
+  const _UsageMeters({required this.overview});
+
+  @override
+  Widget build(BuildContext context) {
+    final credits = (overview['credits'] as Map?)?.cast<String, dynamic>() ?? {};
+    final storage = (overview['storage'] as Map?)?.cast<String, dynamic>() ?? {};
+    final pct = credits['used_pct'];
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Usage', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(child: Text(pct == null ? 'AI credits' : 'AI credits used')),
+                Text(pct == null ? 'unlimited' : '$pct%'),
+              ],
+            ),
+            if (pct != null) ...[
+              const SizedBox(height: 4),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(99),
+                child: LinearProgressIndicator(
+                    value: (pct as int) / 100, minHeight: 8),
+              ),
+            ],
+            const Divider(height: 20),
+            Wrap(
+              spacing: 16,
+              runSpacing: 8,
+              children: [
+                _metric(context, 'Projects', '${overview['projects'] ?? 0}'),
+                _metric(context, 'Members', '${overview['members'] ?? 0}'),
+                _metric(context, 'Storage', '${storage['display'] ?? '0 B'}'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _metric(BuildContext context, String label, String value) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(value, style: Theme.of(context).textTheme.titleMedium),
+          Text(label, style: Theme.of(context).textTheme.bodySmall),
+        ],
+      );
 }
