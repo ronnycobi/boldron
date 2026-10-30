@@ -13,6 +13,8 @@ import '../features/auth/register_screen.dart';
 import '../features/auth/welcome_screen.dart';
 import '../features/account/account_security_screen.dart';
 import '../features/backups/backups_screen.dart';
+import '../features/operations/incidents_screen.dart';
+import '../features/operations/operations_screen.dart';
 import '../features/billing/billing_screen.dart';
 import '../features/build/build_screen.dart';
 import '../features/changes/changes_screen.dart';
@@ -186,6 +188,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/projects/:id/backups',
         builder: (_, s) => BackupsScreen(projectId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/projects/:id/operations',
+        builder: (_, s) => OperationsScreen(projectId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/projects/:id/incidents',
+        builder: (_, s) => IncidentsScreen(projectId: _idParam(s, 'id')),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
