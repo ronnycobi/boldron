@@ -50,6 +50,15 @@ class IntegrationStatusView(APIView):
         return Response(integration_status())
 
 
+class MarketplaceView(APIView):
+    """The integration marketplace (spec §12): every connectable service grouped by
+    category, each with its real honest status. Read-only; secrets are never exposed."""
+
+    def get(self, request):
+        from apps.settings.marketplace import marketplace
+        return Response(marketplace())
+
+
 class SettingsSearchView(APIView):
     """Search settings sections across all scopes (?q=). Web route names are
     stripped — mobile navigates by scope+key."""

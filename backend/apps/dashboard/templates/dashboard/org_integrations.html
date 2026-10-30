@@ -2,25 +2,39 @@
 {% block title %}Integrations · {{ app_name }}{% endblock %}
 {% block crumb %}Settings · Integrations{% endblock %}
 {% block content %}
-<h1>Integrations</h1>
-<p class="sub">Connectors the platform supports. A connector is active only once its credentials are configured on this deployment — nothing is shown as connected unless it genuinely is.</p>
-
-<div class="card">
-  {% for it in integrations %}
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)">
-    <div>
-      <strong>{{ it.provider }}</strong>
-      <div class="muted" style="font-size:12px">{{ it.actions|join:", " }}</div>
-    </div>
-    {% if it.configured %}
-      <span class="badge b-completed">Connected</span>
-    {% else %}
-      <span class="badge b-waiting_for_approval">Not connected</span>
-    {% endif %}
-  </div>
-  {% empty %}
-    <p class="muted">No connectors are available on this deployment.</p>
-  {% endfor %}
-  <p class="muted" style="font-size:12px;margin:12px 0 0">Connector credentials are set via the environment by your operator. Once a credential is present, the connector shows as connected here.</p>
+<div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">
+  <h1>Integrations</h1>
+  <span class="muted" style="font-size:12.5px">{{ market.connected }} connected · {{ market.usable }} of {{ market.total }} usable</span>
 </div>
+<p class="sub">Connect external services to your apps. A service shows as connected only once its credentials are genuinely configured on this deployment — nothing is marked connected unless it really is.</p>
+
+{% for g in market.groups %}
+<div class="card">
+  <div class="muted" style="font-size:10.5px;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:4px">{{ g.category }}</div>
+  {% for it in g.items %}
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)">
+    <div style="min-width:0">
+      <strong>{{ it.name }}</strong>
+      <div class="muted" style="font-size:12.5px">{{ it.description }}</div>
+      {% if it.status == 'connect' and it.credential_env %}
+        <div class="muted" style="font-size:11px;margin-top:2px">Set <code>{{ it.credential_env|join:"</code>, <code>" }}</code> to connect.</div>
+      {% endif %}
+    </div>
+    <div style="flex:none">
+      {% if it.status == 'connected' %}
+        <span class="badge b-completed">Connected</span>
+      {% elif it.status == 'available' %}
+        <span class="badge b-completed" style="opacity:.75">Available</span>
+      {% elif it.status == 'connect' %}
+        <span class="badge b-waiting_for_approval">Connect</span>
+      {% else %}
+        <span class="badge b-idle">Coming</span>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endfor %}
+
+<p class="muted" style="font-size:12px;margin:4px 0 0">Credentials are set via the environment by your operator; a service becomes connected automatically once its credential is present. "Available" services work today with no connection needed.</p>
 {% endblock %}

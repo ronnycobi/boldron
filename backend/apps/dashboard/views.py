@@ -2651,15 +2651,15 @@ def org_developer(request):
 
 @login_required
 def org_integrations(request):
-    """Integrations (spec §23): the connectors the platform supports and whether
-    each is configured. Honest — 'configured' reflects a real credential, never a
-    fabricated connection. Connector credentials are operator (environment)
+    """Integration marketplace (spec §12): every connectable service grouped by
+    category with its real honest status. 'Connected' reflects a genuine credential
+    or backend, never a fabricated connection; credentials are operator (environment)
     configuration, so this is read-only."""
-    from apps.tools.connectors import connector_status
+    from apps.settings.marketplace import marketplace
 
     return render(request, "dashboard/org_integrations.html", {
         "active": "integrations",
-        "integrations": connector_status(),
+        "market": marketplace(),
     })
 
 
