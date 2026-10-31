@@ -2520,6 +2520,19 @@ def project_acceptance(request, pk):
 
 
 @login_required
+def project_health(request, pk):
+    """A project's composed Health Score (spec §30): one honest signal built from
+    the real security, test, incident, acceptance and deployment ledgers. Read-only
+    and customer-safe — a project with no signal scores 'unknown', never a fake 100."""
+    from apps.health.score import health_score
+    proj = get_object_or_404(
+        Project.objects.filter(organization__in=organizations_for(request.user)), pk=pk)
+    return render(request, "dashboard/project_health.html", {
+        "active": "projects", "project": proj, "health": health_score(proj),
+    })
+
+
+@login_required
 def project_rules(request, pk):
     """A project's formal business rules (spec §12-13): categorised policies with
     an honest enforced/documented split and a draft→active→retired lifecycle.

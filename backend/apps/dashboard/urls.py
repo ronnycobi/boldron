@@ -27,6 +27,7 @@ urlpatterns = [
     path("projects/<int:pk>/repository/", views.project_repository, name="project_repository"),
     path("projects/<int:pk>/intelligence/", views.project_intelligence, name="project_intelligence"),
     path("projects/<int:pk>/graph/", views.project_graph, name="project_graph"),
+    path("projects/<int:pk>/health/", views.project_health, name="project_health"),
     path("projects/<int:pk>/acceptance/", views.project_acceptance, name="project_acceptance"),
     path("projects/<int:pk>/rules/", views.project_rules, name="project_rules"),
     path("projects/<int:pk>/tests/", views.project_tests, name="project_tests"),

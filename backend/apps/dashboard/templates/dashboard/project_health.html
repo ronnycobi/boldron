@@ -1,0 +1,53 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}{{ project.name }} · Health · {{ app_name }}{% endblock %}
+{% block crumb %}Build / Projects / {{ project.name }} / Health{% endblock %}
+{% block content %}
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+    <h1>Project health</h1>
+    <a class="btn ghost" href="{% url 'dashboard:project' project.id %}">← {{ project.name }}</a>
+  </div>
+  <p class="sub">One honest signal for <strong>{{ project.name }}</strong>, composed from your real
+    security, test, incident, acceptance and deployment records. Nothing is inferred — a check with
+    no evidence yet shows as unknown, not green.</p>
+
+  <div class="card" style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+    <div style="text-align:center;min-width:120px">
+      <div style="font-size:44px;font-weight:800;line-height:1">
+        {% if health.score is None %}<span class="muted">—</span>{% else %}{{ health.score }}{% endif %}
+      </div>
+      <span class="badge b-{% if health.band == 'good' %}completed{% elif health.band == 'fair' %}waiting_for_approval{% elif health.band == 'poor' %}failed{% else %}idle{% endif %}">{{ health.band }}</span>
+    </div>
+    <div style="flex:1 1 320px">
+      <p style="margin:0;font-size:15px;font-weight:600">{{ health.headline }}</p>
+      <p class="muted" style="font-size:12.5px;margin:6px 0 0">Based on {{ health.measured }} measured signal{{ health.measured|pluralize }} of {{ health.pillars|length }}.</p>
+    </div>
+  </div>
+
+  <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">
+    {% for p in health.pillars %}
+    <div class="card">
+      <div style="display:flex;align-items:baseline;justify-content:space-between">
+        <h2 style="margin:0;font-size:15px">{{ p.label }}</h2>
+        <span class="badge b-{% if p.status == 'good' %}completed{% elif p.status == 'fair' %}waiting_for_approval{% elif p.status == 'poor' %}failed{% else %}idle{% endif %}">{{ p.status }}</span>
+      </div>
+      <p class="muted" style="font-size:13px;margin:8px 0 0">{{ p.detail }}</p>
+      {% if p.score is not None %}
+      <div style="margin-top:10px;height:7px;border-radius:99px;background:var(--line);overflow:hidden">
+        <div style="height:100%;width:{{ p.score }}%;background:{% if p.status == 'good' %}var(--ok,#2e9e5b){% elif p.status == 'fair' %}#c99a00{% else %}#c0392b{% endif %}"></div>
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if health.attention %}
+  <h2>What to look at</h2>
+  <div class="card">
+    <table>
+      {% for p in health.attention %}
+      <tr><td style="width:30%"><strong>{{ p.label }}</strong></td><td class="muted">{{ p.detail }}</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+{% endblock %}

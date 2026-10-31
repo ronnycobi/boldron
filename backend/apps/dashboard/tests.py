@@ -1393,6 +1393,16 @@ class CapabilityEngineWebTests(TestCase):
                               {"action": "evaluate", "facts": '{"total": 1500}'})
         self.assertContains(ev, "free_shipping")
 
+    def test_project_health_page_renders(self):
+        from apps.security import ledger
+        p = Project.objects.create(organization=self.org, name="HealthApp")
+        ledger.run_scan(p, collector=lambda pr: {"app.py": 'import os\nos.system("x")\n'})
+        html = self.client.get(
+            reverse("dashboard:project_health", args=[p.id])).content.decode()
+        self.assertIn("Project health", html)
+        self.assertIn("Security", html)
+        self.assertIn("high-severity", html)  # real finding surfaced honestly
+
     def test_project_page_shows_capability_map(self):
         p = Project.objects.create(
             organization=self.org, name="Shop",
