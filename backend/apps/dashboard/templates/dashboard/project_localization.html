@@ -1,0 +1,87 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}{{ project.name }} · Languages · {{ app_name }}{% endblock %}
+{% block crumb %}Build / Projects / {{ project.name }} / Languages{% endblock %}
+{% block content %}
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+    <h1>Languages</h1>
+    <a class="btn ghost" href="{% url 'dashboard:project' project.id %}">← {{ project.name }}</a>
+  </div>
+  <p class="sub">Offer <strong>{{ project.name }}</strong> in more than one language. Strings without a
+    translation fall back to the default and are shown as missing — {{ app_name }} never marks a string
+    translated when it isn't.</p>
+
+  <div class="card">
+    <h2 style="margin-top:0;font-size:15px">Languages</h2>
+    {% for l in locales %}
+      <span class="chip">{{ l.name }} <span class="muted" style="font-size:10px">{{ l.code }}</span>{% if l.is_default %} · default{% endif %}{% if l.rtl %} · RTL{% endif %}</span>
+    {% empty %}<p class="muted" style="margin:0">No languages yet.</p>{% endfor %}
+    {% if can_manage %}
+    <form method="post" style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap;align-items:end">{% csrf_token %}
+      <input type="hidden" name="action" value="add_locale">
+      <div><label>Code</label><input name="code" placeholder="fr" style="width:90px" required></div>
+      <div><label>Name (optional)</label><input name="name" placeholder="French"></div>
+      <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" name="default" style="width:auto"> default</label>
+      <button class="btn" type="submit">Add language</button>
+    </form>
+    {% endif %}
+  </div>
+
+  {% if coverage %}
+  <div class="card">
+    <h2 style="margin-top:0;font-size:15px">Translation coverage</h2>
+    <table>
+      {% for c in coverage %}
+      <tr>
+        <td style="width:24%"><strong>{{ c.name }}</strong> <span class="muted">{{ c.code }}</span></td>
+        <td style="width:50%">
+          <div style="height:7px;border-radius:99px;background:var(--line);overflow:hidden">
+            <div style="height:100%;width:{{ c.percent }}%;background:{% if c.percent == 100 %}var(--ok,#2e9e5b){% elif c.percent >= 50 %}#c99a00{% else %}#c0392b{% endif %}"></div>
+          </div>
+        </td>
+        <td class="muted">{{ c.translated }}/{{ c.total }} ({{ c.percent }}%){% if c.missing %} · {{ c.missing }} missing{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+
+  {% if can_manage %}
+  <details class="card" style="margin-bottom:12px">
+    <summary style="cursor:pointer;font-weight:700;list-style:none">+ Add a string</summary>
+    <form method="post" style="margin-top:12px">{% csrf_token %}
+      <input type="hidden" name="action" value="add_string">
+      <label>Key</label><input name="key" placeholder="cart.checkout" required>
+      <label>Source text ({{ default|default:"default" }})</label><input name="source_text" placeholder="Checkout" required>
+      <label>Note for translators (optional)</label><input name="description">
+      <div style="margin-top:10px"><button class="btn" type="submit">Add string</button></div>
+    </form>
+  </details>
+  {% endif %}
+
+  <div class="card">
+    <h2 style="margin-top:0;font-size:15px">Strings</h2>
+    {% for row in strings %}
+    <div style="padding:10px 0;border-top:1px solid var(--line)">
+      <div><code>{{ row.obj.key }}</code> <span class="muted" style="margin-left:6px">{{ row.obj.source_text }}</span></div>
+      {% if non_default %}
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
+        {% for code, value in row.values %}
+        {% if can_manage %}
+        <form method="post" style="display:flex;gap:4px;align-items:center">{% csrf_token %}
+          <input type="hidden" name="action" value="translate">
+          <input type="hidden" name="string" value="{{ row.obj.id }}">
+          <input type="hidden" name="locale" value="{{ code }}">
+          <span class="muted" style="font-size:11px;min-width:24px">{{ code }}</span>
+          <input name="value" value="{{ value }}" placeholder="—" style="width:150px{% if not value %};border-color:#c0392b55{% endif %}">
+          <button class="btn ghost" type="submit" style="padding:3px 8px">Save</button>
+        </form>
+        {% else %}
+        <span class="muted" style="font-size:12px">{{ code }}: {{ value|default:"— missing" }}</span>
+        {% endif %}
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% empty %}<p class="empty" style="margin:8px 0 0">No strings yet.</p>{% endfor %}
+  </div>
+{% endblock %}

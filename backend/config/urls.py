@@ -42,6 +42,7 @@ urlpatterns = [
     path("api/v1/", include("apps.flags.urls")),
     path("api/v1/", include("apps.explain.urls")),
     path("api/v1/", include("apps.policies.urls")),
+    path("api/v1/", include("apps.localization.urls")),
     path("api/v1/", include("apps.backups.urls")),
     path("api/v1/", include("apps.tools.urls")),
     path("api/v1/", include("apps.developer.urls")),

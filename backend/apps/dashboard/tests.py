@@ -1464,6 +1464,25 @@ class CapabilityEngineWebTests(TestCase):
         self.assertIn("Freeze production", html)
         self.assertIn("Built-in guardrails", html)   # real gates surfaced too
 
+    def test_project_localization_page_add_and_translate(self):
+        p = Project.objects.create(organization=self.org, name="I18nApp")
+        self.client.post(reverse("dashboard:project_localization", args=[p.id]),
+                         {"action": "add_locale", "code": "en"})
+        self.client.post(reverse("dashboard:project_localization", args=[p.id]),
+                         {"action": "add_locale", "code": "fr"})
+        self.client.post(reverse("dashboard:project_localization", args=[p.id]),
+                         {"action": "add_string", "key": "hi", "source_text": "Hello"})
+        from apps.localization.models import TranslationString
+        s = TranslationString.objects.get(project=p, key="hi")
+        self.client.post(reverse("dashboard:project_localization", args=[p.id]),
+                         {"action": "translate", "string": s.id, "locale": "fr",
+                          "value": "Bonjour"})
+        html = self.client.get(
+            reverse("dashboard:project_localization", args=[p.id])).content.decode()
+        self.assertIn("Languages", html)
+        self.assertIn("Bonjour", html)
+        self.assertIn("coverage", html.lower())
+
     def test_project_page_shows_capability_map(self):
         p = Project.objects.create(
             organization=self.org, name="Shop",

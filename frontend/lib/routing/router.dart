@@ -24,6 +24,7 @@ import '../features/explain/explain_screen.dart';
 import '../features/flags/flags_screen.dart';
 import '../features/graph/graph_screen.dart';
 import '../features/health/health_screen.dart';
+import '../features/localization/localization_screen.dart';
 import '../features/policies/policies_screen.dart';
 import '../features/rules/rules_screen.dart';
 import '../features/quality/tests_screen.dart';
@@ -230,6 +231,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/projects/:id/flags',
         builder: (_, s) => FlagsScreen(projectId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/projects/:id/localization',
+        builder: (_, s) => LocalizationScreen(projectId: _idParam(s, 'id')),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,

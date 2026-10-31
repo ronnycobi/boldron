@@ -2715,6 +2715,62 @@ def project_policies(request, pk):
 
 
 @login_required
+def project_localization(request, pk):
+    """A project's localization (spec §17-18): the languages the app is offered in,
+    the translatable strings, and honest coverage. Members view; owners/admins add
+    locales/strings and set translations. A missing translation is shown as such,
+    never as if it were translated."""
+    from apps.localization import service
+    from apps.localization.models import ProjectLocale, TranslationString
+    proj = get_object_or_404(
+        Project.objects.filter(organization__in=organizations_for(request.user)), pk=pk)
+    can_manage = proj.organization_id in _manageable_ids(request.user)
+
+    if request.method == "POST":
+        if not can_manage:
+            messages.error(request, "Owner or admin rights required.")
+            return redirect("dashboard:project_localization", pk=pk)
+        action = request.POST.get("action")
+        try:
+            if action == "add_locale":
+                service.add_locale(proj, code=request.POST.get("code", ""),
+                                   name=request.POST.get("name", ""),
+                                   make_default=bool(request.POST.get("default")),
+                                   user=request.user)
+                messages.success(request, "Language added.")
+            elif action == "set_default":
+                loc = get_object_or_404(ProjectLocale, pk=request.POST.get("locale", 0), project=proj)
+                service.set_default_locale(loc, user=request.user)
+            elif action == "add_string":
+                service.add_string(proj, key=request.POST.get("key", ""),
+                                   source_text=request.POST.get("source_text", ""),
+                                   description=request.POST.get("description", ""),
+                                   user=request.user)
+                messages.success(request, "String added.")
+            elif action == "translate":
+                s = get_object_or_404(TranslationString, pk=request.POST.get("string", 0), project=proj)
+                service.set_translation(s, request.POST.get("locale", ""),
+                                        request.POST.get("value", ""), user=request.user)
+        except service.LocalizationError as exc:
+            messages.error(request, str(exc))
+        return redirect("dashboard:project_localization", pk=pk)
+
+    default = service.default_code(proj)
+    non_default = [l for l in proj.locales.all() if l.code != default]
+    # rows: each string with its per-locale translation value for the editor
+    strings = []
+    for s in proj.translation_strings.prefetch_related("translations")[:300]:
+        tr = {t.locale: t.value for t in s.translations.all()}
+        strings.append({"obj": s, "values": [(l.code, tr.get(l.code, "")) for l in non_default]})
+    return render(request, "dashboard/project_localization.html", {
+        "active": "projects", "project": proj, "can_manage": can_manage,
+        "summary": service.summary(proj), "locales": list(proj.locales.all()),
+        "non_default": non_default, "coverage": service.coverage(proj),
+        "strings": strings, "default": default,
+    })
+
+
+@login_required
 def project_health(request, pk):
     """A project's composed Health Score (spec §30): one honest signal built from
     the real security, test, incident, acceptance and deployment ledgers. Read-only
