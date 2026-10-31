@@ -1,0 +1,103 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}{{ project.name }} · Business rules · {{ app_name }}{% endblock %}
+{% block crumb %}Build / Projects / {{ project.name }} / Business rules{% endblock %}
+{% block content %}
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+    <h1>Business rules</h1>
+    <a class="btn ghost" href="{% url 'dashboard:project' project.id %}">← {{ project.name }}</a>
+  </div>
+  <p class="sub">The policies <strong>{{ project.name }}</strong> runs on. A rule with a machine-readable
+    definition is <strong>enforced</strong> — {{ app_name }} evaluates it deterministically; a rule
+    without one is <strong>documented</strong> policy, honestly flagged as not auto-applied.</p>
+
+  <div class="card">
+    <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:baseline">
+      <div><strong style="font-size:20px">{{ summary.active }}</strong> <span class="muted">active</span></div>
+      <div class="badge b-completed">{{ summary.enforced }} enforced</div>
+      {% if summary.documented %}<div class="muted">{{ summary.documented }} documented</div>{% endif %}
+      {% if summary.draft %}<div class="muted">{{ summary.draft }} draft</div>{% endif %}
+      {% if summary.retired %}<div class="muted">{{ summary.retired }} retired</div>{% endif %}
+    </div>
+    {% if can_manage %}
+    <form method="post" style="margin-top:14px;display:inline">{% csrf_token %}
+      <input type="hidden" name="action" value="import">
+      <button class="btn" type="submit">Import from project memory</button>
+    </form>
+    {% endif %}
+  </div>
+
+  {# Test the active, enforced rules against sample facts — a real evaluation. #}
+  <details class="card" {% if evaluation %}open{% endif %}>
+    <summary style="cursor:pointer;font-weight:700;list-style:none">Test rules against facts</summary>
+    <form method="post" style="margin-top:12px">{% csrf_token %}
+      <input type="hidden" name="action" value="evaluate">
+      <label>Facts (JSON)</label>
+      <textarea name="facts" rows="3" placeholder='{"total": 1500, "country": "ZA"}'>{{ facts_input }}</textarea>
+      <div style="margin-top:10px"><button class="btn" type="submit">Evaluate</button></div>
+    </form>
+    {% if evaluation %}
+    <div style="margin-top:12px">
+      {% if evaluation.fired %}
+        <p class="muted" style="font-size:12.5px;margin:0 0 6px">{{ evaluation.fired_count }} rule(s) fired:</p>
+        {% for f in evaluation.fired %}
+          <div style="padding:6px 0;border-top:1px solid var(--line)">
+            <strong>{{ f.name }}</strong> → <code>{{ f.outcome }}</code>
+            {% if f.params %}<span class="muted" style="font-size:12px"> {{ f.params }}</span>{% endif %}
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="empty" style="margin:0">No active enforced rule fired for those facts.</p>
+      {% endif %}
+    </div>
+    {% endif %}
+  </details>
+
+  {% if can_manage %}
+  <details class="card" style="margin-bottom:12px">
+    <summary style="cursor:pointer;font-weight:700;list-style:none">+ Add a rule</summary>
+    <form method="post" style="margin-top:12px">{% csrf_token %}
+      <input type="hidden" name="action" value="add">
+      <label>Name</label>
+      <input name="name" placeholder="e.g. Free shipping over R1000" required>
+      <label>Category</label>
+      <select name="category">
+        {% for val, label in categories %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+      </select>
+      <label>Description</label>
+      <textarea name="description" rows="2" placeholder="What the policy is, in plain language."></textarea>
+      <label>Definition (JSON, optional — makes the rule enforced)</label>
+      <textarea name="definition" rows="3" placeholder='{"when": [{"fact": "total", "op": "gte", "value": 1000}], "then": {"outcome": "free_shipping"}}'></textarea>
+      <div style="margin-top:10px"><button class="btn" type="submit">Add rule</button></div>
+    </form>
+  </details>
+  {% endif %}
+
+  {% for r in rules %}
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
+      <div style="flex:1 1 55%">
+        <strong>{{ r.name }}</strong>
+        <span class="badge b-{% if r.status == 'active' %}completed{% elif r.status == 'retired' %}idle{% else %}waiting_for_approval{% endif %}" style="margin-left:6px">{{ r.get_status_display }}</span>
+        {% if r.is_enforceable %}<span class="badge b-completed" style="margin-left:2px">enforced</span>
+        {% else %}<span class="badge b-idle" style="margin-left:2px">documented</span>{% endif %}
+        <span class="muted" style="font-size:11.5px;margin-left:4px">{{ r.get_category_display }}</span>
+        {% if r.description %}<p class="muted" style="font-size:13px;margin:6px 0 0">{{ r.description }}</p>{% endif %}
+        {% if r.definition %}<pre style="font-size:11.5px;margin:8px 0 0;white-space:pre-wrap;color:var(--muted)">{{ r.definition }}</pre>{% endif %}
+      </div>
+      {% if can_manage %}
+      <form method="post" style="display:flex;gap:4px;align-items:center">{% csrf_token %}
+        <input type="hidden" name="action" value="status">
+        <input type="hidden" name="rule" value="{{ r.id }}">
+        <select name="status">
+          {% for val, label in statuses %}<option value="{{ val }}" {% if val == r.status %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+        <button class="btn ghost" type="submit" style="padding:4px 10px">Save</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  {% empty %}
+  <div class="card"><p class="empty" style="margin:0">No business rules yet.
+    {% if can_manage %}Import the ones in project memory, or add one above.{% endif %}</p></div>
+  {% endfor %}
+{% endblock %}

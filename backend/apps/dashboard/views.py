@@ -2520,6 +2520,76 @@ def project_acceptance(request, pk):
 
 
 @login_required
+def project_rules(request, pk):
+    """A project's formal business rules (spec §12-13): categorised policies with
+    an honest enforced/documented split and a draft→active→retired lifecycle.
+    Members view and test rules against facts; owners/admins import, add and
+    change status. Enforcement is deterministic — never invented."""
+    import json
+
+    from apps.business_rules import service as rules
+    from apps.business_rules.engine import evaluate
+    from apps.business_rules.models import BusinessRule, RuleCategory, RuleStatus
+    from apps.project_context.models import ContextKind
+    proj = get_object_or_404(
+        Project.objects.filter(organization__in=organizations_for(request.user)), pk=pk)
+    can_manage = proj.organization_id in _manageable_ids(request.user)
+    evaluation = None
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        # Evaluating rules is a read — any member may test the rule set.
+        if action == "evaluate":
+            try:
+                facts = json.loads(request.POST.get("facts") or "{}")
+                if not isinstance(facts, dict):
+                    raise ValueError
+                evaluation = evaluate(proj, facts)
+            except (ValueError, json.JSONDecodeError):
+                messages.error(request, "Facts must be a JSON object, e.g. {\"total\": 1500}.")
+        elif not can_manage:
+            messages.error(request, "Owner or admin rights required.")
+            return redirect("dashboard:project_rules", pk=pk)
+        else:
+            try:
+                if action == "import":
+                    n = rules.import_from_context(proj, user=request.user)
+                    messages.success(request, f"Imported {n} rule(s) from project memory."
+                                     if n else "No new rules to import.")
+                    return redirect("dashboard:project_rules", pk=pk)
+                elif action == "add":
+                    definition = {}
+                    raw = (request.POST.get("definition") or "").strip()
+                    if raw:
+                        definition = json.loads(raw)
+                    rules.create(
+                        proj, name=request.POST.get("name", ""),
+                        description=request.POST.get("description", ""),
+                        category=request.POST.get("category", "other"),
+                        definition=definition, priority=request.POST.get("priority") or 100,
+                        user=request.user)
+                    messages.success(request, "Rule added.")
+                    return redirect("dashboard:project_rules", pk=pk)
+                elif action == "status":
+                    rule = get_object_or_404(
+                        BusinessRule, pk=request.POST.get("rule", 0), project=proj)
+                    rules.set_status(rule, request.POST.get("status", ""), user=request.user)
+                    return redirect("dashboard:project_rules", pk=pk)
+            except json.JSONDecodeError:
+                messages.error(request, "The rule definition must be valid JSON.")
+            except rules.RuleError as exc:
+                messages.error(request, str(exc))
+
+    return render(request, "dashboard/project_rules.html", {
+        "active": "projects", "project": proj, "can_manage": can_manage,
+        "summary": rules.summary(proj),
+        "rules": list(proj.business_rules.all()),
+        "categories": RuleCategory.choices, "statuses": RuleStatus.choices,
+        "evaluation": evaluation, "facts_input": request.POST.get("facts", ""),
+    })
+
+
+@login_required
 def project_compatibility(request, pk):
     """A project's browser & device compatibility report (spec §9): real static
     risks per target; live cross-browser/device runs are honestly gated."""

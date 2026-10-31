@@ -20,6 +20,7 @@ import '../features/quality/compatibility_screen.dart';
 import '../features/quality/security_screen.dart';
 import '../features/acceptance/acceptance_screen.dart';
 import '../features/graph/graph_screen.dart';
+import '../features/rules/rules_screen.dart';
 import '../features/quality/tests_screen.dart';
 import '../features/billing/billing_screen.dart';
 import '../features/build/build_screen.dart';
@@ -219,6 +220,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/projects/:id/acceptance',
         builder: (_, s) => AcceptanceScreen(projectId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/projects/:id/rules',
+        builder: (_, s) => RulesScreen(projectId: _idParam(s, 'id')),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,

@@ -1366,6 +1366,33 @@ class CapabilityEngineWebTests(TestCase):
         self.assertIn("Card payment succeeds", html)
         self.assertIn("not yet met", html)   # honest: imported criteria are pending
 
+    def test_project_rules_page_import_and_evaluate(self):
+        from apps.project_context.models import ContextKind
+        from apps.project_context.services import ProjectContext
+        from apps.business_rules import service as rules
+        from apps.business_rules.models import RuleStatus
+        p = Project.objects.create(organization=self.org, name="RulesApp")
+        # a documented rule from project memory
+        ProjectContext(p).add(ContextKind.BUSINESS_RULE, title="Free shipping",
+                              content="Orders over R1000 ship free.")
+        self.client.post(reverse("dashboard:project_rules", args=[p.id]),
+                         {"action": "import"})
+        html = self.client.get(
+            reverse("dashboard:project_rules", args=[p.id])).content.decode()
+        self.assertIn("Business rules", html)
+        self.assertIn("Free shipping", html)
+        self.assertIn("documented", html)  # free text => honestly not auto-enforced
+
+        # an enforced rule, activated, then a real evaluation via the page
+        rule = rules.create(
+            p, name="Free ship", category="shipping",
+            definition={"when": [{"fact": "total", "op": "gte", "value": 1000}],
+                        "then": {"outcome": "free_shipping"}})
+        rules.set_status(rule, RuleStatus.ACTIVE)
+        ev = self.client.post(reverse("dashboard:project_rules", args=[p.id]),
+                              {"action": "evaluate", "facts": '{"total": 1500}'})
+        self.assertContains(ev, "free_shipping")
+
     def test_project_page_shows_capability_map(self):
         p = Project.objects.create(
             organization=self.org, name="Shop",

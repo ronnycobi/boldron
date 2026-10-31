@@ -178,6 +178,7 @@ INSTALLED_APPS = [
     "apps.incidents",
     "apps.comments",
     "apps.acceptance",
+    "apps.business_rules",
 ]
 
 # --- Auth redirects (server-rendered dashboard UI) --------------------------
