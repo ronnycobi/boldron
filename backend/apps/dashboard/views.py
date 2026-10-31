@@ -2863,6 +2863,68 @@ def project_compliance(request, pk):
 
 
 @login_required
+def project_data_quality(request, pk):
+    """A project's data quality (spec §9): datasets, the rules their data must
+    satisfy, and real check results. Members view and run checks; owners/admins
+    add datasets and rules. Results are true counts from the rows checked."""
+    import json
+
+    from apps.data_quality import service
+    from apps.data_quality.engine import CHECKS
+    from apps.data_quality.models import Dataset
+    proj = get_object_or_404(
+        Project.objects.filter(organization__in=organizations_for(request.user)), pk=pk)
+    can_manage = proj.organization_id in _manageable_ids(request.user)
+    last_check = None
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "check":
+            ds = get_object_or_404(Dataset, pk=request.POST.get("dataset", 0), project=proj)
+            try:
+                rows = json.loads(request.POST.get("rows") or "[]")
+                run = service.check(ds, rows, user=request.user)
+                last_check = {"dataset": ds.key, "run": run}
+            except (ValueError, json.JSONDecodeError):
+                messages.error(request, "Rows must be a JSON array of objects.")
+            except service.DataQualityError as exc:
+                messages.error(request, str(exc))
+        elif not can_manage:
+            messages.error(request, "Owner or admin rights required.")
+            return redirect("dashboard:project_data_quality", pk=pk)
+        else:
+            try:
+                if action == "add_dataset":
+                    service.add_dataset(proj, key=request.POST.get("key", ""),
+                                       name=request.POST.get("name", ""),
+                                       user=request.user)
+                    messages.success(request, "Dataset added.")
+                elif action == "add_rule":
+                    ds = get_object_or_404(Dataset, pk=request.POST.get("dataset", 0), project=proj)
+                    params = {}
+                    if request.POST.get("params", "").strip():
+                        params = json.loads(request.POST["params"])
+                    service.add_rule(ds, field=request.POST.get("field", ""),
+                                    check=request.POST.get("check", ""), params=params,
+                                    severity=request.POST.get("severity", "error"),
+                                    user=request.user)
+                    messages.success(request, "Rule added.")
+            except json.JSONDecodeError:
+                messages.error(request, "Params must be valid JSON.")
+            except service.DataQualityError as exc:
+                messages.error(request, str(exc))
+        if action != "check":
+            return redirect("dashboard:project_data_quality", pk=pk)
+
+    return render(request, "dashboard/project_data_quality.html", {
+        "active": "projects", "project": proj, "can_manage": can_manage,
+        "summary": service.summary(proj), "datasets": list(proj.datasets.prefetch_related("rules", "runs")),
+        "checks": [{"key": k, "label": v} for k, v in CHECKS.items()],
+        "last_check": last_check,
+    })
+
+
+@login_required
 def project_health(request, pk):
     """A project's composed Health Score (spec §30): one honest signal built from
     the real security, test, incident, acceptance and deployment ledgers. Read-only

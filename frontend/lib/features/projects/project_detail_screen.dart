@@ -21,6 +21,7 @@ const List<_Area> _areas = [
   (icon: Icons.translate_outlined, label: 'Languages', path: 'localization'),
   (icon: Icons.science_outlined, label: 'Experiments', path: 'experiments'),
   (icon: Icons.verified_user_outlined, label: 'Compliance', path: 'compliance'),
+  (icon: Icons.rule_folder_outlined, label: 'Data quality', path: 'data-quality'),
   (icon: Icons.hub_outlined, label: 'App graph', path: 'graph'),
   (icon: Icons.checklist_outlined, label: 'Acceptance', path: 'acceptance'),
   (icon: Icons.gavel_outlined, label: 'Business rules', path: 'rules'),

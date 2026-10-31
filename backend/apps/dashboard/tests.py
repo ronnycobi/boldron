@@ -1508,6 +1508,22 @@ class CapabilityEngineWebTests(TestCase):
         self.assertIn("platform-provided", html)  # auto-evidenced control shown
         self.assertIn("Pending", html)            # manual control honest-pending
 
+    def test_project_data_quality_page_create_and_check(self):
+        p = Project.objects.create(organization=self.org, name="DqApp")
+        self.client.post(reverse("dashboard:project_data_quality", args=[p.id]),
+                         {"action": "add_dataset", "key": "customers"})
+        from apps.data_quality.models import Dataset
+        ds = Dataset.objects.get(project=p, key="customers")
+        self.client.post(reverse("dashboard:project_data_quality", args=[p.id]),
+                         {"action": "add_rule", "dataset": ds.id,
+                          "field": "email", "check": "not_null"})
+        resp = self.client.post(reverse("dashboard:project_data_quality", args=[p.id]),
+                                {"action": "check", "dataset": ds.id,
+                                 "rows": '[{"email":"a@x.com"},{"email":""}]'})
+        html = resp.content.decode()
+        self.assertIn("Data quality", html)
+        self.assertIn("50%", html)   # 1 of 2 rows fails not_null -> real 50%
+
     def test_project_page_shows_capability_map(self):
         p = Project.objects.create(
             organization=self.org, name="Shop",

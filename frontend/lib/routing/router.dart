@@ -21,6 +21,7 @@ import '../features/quality/security_screen.dart';
 import '../features/acceptance/acceptance_screen.dart';
 import '../features/automations/automations_screen.dart';
 import '../features/compliance/compliance_screen.dart';
+import '../features/data_quality/data_quality_screen.dart';
 import '../features/experiments/experiments_screen.dart';
 import '../features/explain/explain_screen.dart';
 import '../features/flags/flags_screen.dart';
@@ -248,6 +249,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/projects/:id/compliance',
         builder: (_, s) => ComplianceScreen(projectId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/projects/:id/data-quality',
+        builder: (_, s) => DataQualityScreen(projectId: _idParam(s, 'id')),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,

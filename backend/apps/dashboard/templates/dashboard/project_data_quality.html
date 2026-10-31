@@ -1,0 +1,83 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}{{ project.name }} · Data quality · {{ app_name }}{% endblock %}
+{% block crumb %}Build / Projects / {{ project.name }} / Data quality{% endblock %}
+{% block content %}
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+    <h1>Data quality</h1>
+    <a class="btn ghost" href="{% url 'dashboard:project' project.id %}">← {{ project.name }}</a>
+  </div>
+  <p class="sub">Define the rules <strong>{{ project.name }}</strong>'s data should satisfy, then check real data
+    against them. Scores and issues are true counts from the rows checked — nothing is estimated.</p>
+
+  <div class="card" style="display:flex;gap:18px;flex-wrap:wrap;align-items:baseline">
+    <div><strong style="font-size:20px">{% if summary.avg_score is not None %}{{ summary.avg_score }}%{% else %}—{% endif %}</strong> <span class="muted">avg score</span></div>
+    <div class="muted">{{ summary.datasets }} dataset(s)</div>
+    <div class="muted">{{ summary.rules }} rule(s)</div>
+  </div>
+
+  {% if can_manage %}
+  <form method="post" class="card" style="display:flex;gap:6px;align-items:end;flex-wrap:wrap">{% csrf_token %}
+    <input type="hidden" name="action" value="add_dataset">
+    <div><label>New dataset (key)</label><input name="key" placeholder="customers" required></div>
+    <div><label>Name</label><input name="name" placeholder="Customers"></div>
+    <button class="btn" type="submit">Add dataset</button>
+  </form>
+  {% endif %}
+
+  {% if last_check %}
+  <div class="card" style="border-color:var(--brandline);background:var(--brandsoft)">
+    <strong>Check of {{ last_check.dataset }} — {% if last_check.run.score is not None %}{{ last_check.run.score }}%{% else %}no rules{% endif %}</strong>
+    <span class="muted" style="font-size:12px"> · {{ last_check.run.rows }} row(s) · {{ last_check.run.failing }} rule(s) failing</span>
+    <table style="margin-top:8px">
+      {% for r in last_check.run.results %}
+      <tr>
+        <td><code>{{ r.field }}</code> <span class="muted">{{ r.check }}</span></td>
+        <td><span class="badge b-{% if r.passed %}completed{% else %}failed{% endif %}">{% if r.passed %}pass{% else %}{{ r.violations }} bad{% endif %}</span></td>
+        <td class="muted" style="font-size:12px">{{ r.compliance }}% · {{ r.checked }} checked</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+
+  {% for ds in datasets %}
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">
+      <h2 style="margin:0;font-size:15px">{{ ds.name|default:ds.key }} <span class="muted" style="font-size:12px">{{ ds.key }}</span></h2>
+      {% with last=ds.runs.first %}{% if last and last.score is not None %}<span class="badge b-{% if last.score >= 90 %}completed{% elif last.score >= 60 %}waiting_for_approval{% else %}failed{% endif %}">{{ last.score }}%</span>{% endif %}{% endwith %}
+    </div>
+    <table style="margin-top:8px">
+      {% for r in ds.rules.all %}
+      <tr><td><code>{{ r.field }}</code></td><td>{{ r.check_type }}</td>
+        <td class="muted" style="font-size:12px">{{ r.params }}</td>
+        <td><span class="badge b-{% if r.severity == 'error' %}failed{% else %}idle{% endif %}">{{ r.severity }}</span></td></tr>
+      {% empty %}<tr><td class="muted">No rules yet.</td></tr>{% endfor %}
+    </table>
+    {% if can_manage %}
+    <details style="margin-top:10px"><summary style="cursor:pointer;font-weight:600;font-size:13px">+ Add rule</summary>
+      <form method="post" style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:end">{% csrf_token %}
+        <input type="hidden" name="action" value="add_rule">
+        <input type="hidden" name="dataset" value="{{ ds.id }}">
+        <div><label>Field</label><input name="field" placeholder="email" required></div>
+        <div><label>Check</label><select name="check">{% for c in checks %}<option value="{{ c.key }}">{{ c.key }}</option>{% endfor %}</select></div>
+        <div><label>Params (JSON)</label><input name="params" placeholder='{"pattern":"^[^@]+@[^@]+$"}' style="width:200px"></div>
+        <div><label>Severity</label><select name="severity"><option value="error">error</option><option value="warning">warning</option></select></div>
+        <button class="btn ghost" type="submit">Add</button>
+      </form>
+    </details>
+    {% endif %}
+    <details style="margin-top:8px"><summary style="cursor:pointer;font-weight:600;font-size:13px">▶ Check data against these rules</summary>
+      <form method="post" style="margin-top:8px">{% csrf_token %}
+        <input type="hidden" name="action" value="check">
+        <input type="hidden" name="dataset" value="{{ ds.id }}">
+        <label>Rows (JSON array)</label>
+        <textarea name="rows" rows="3" placeholder='[{"email":"a@x.com"},{"email":""}]'></textarea>
+        <div style="margin-top:8px"><button class="btn" type="submit">Run check</button></div>
+      </form>
+    </details>
+  </div>
+  {% empty %}
+  <div class="card"><p class="empty" style="margin:0">No datasets yet.
+    {% if can_manage %}Add one above.{% endif %}</p></div>
+  {% endfor %}
+{% endblock %}
