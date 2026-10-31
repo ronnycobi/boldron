@@ -2585,6 +2585,70 @@ def project_automations(request, pk):
 
 
 @login_required
+def project_flags(request, pk):
+    """A project's feature flags (spec §19): turn parts of the app on/off without a
+    redeploy, with optional percentage rollout and condition targeting. Members
+    view and test-evaluate; owners/admins create and toggle. Evaluation is
+    deterministic — no flag is shown on that the engine wouldn't enable."""
+    import json
+
+    from apps.flags import service
+    from apps.flags.models import FeatureFlag
+    proj = get_object_or_404(
+        Project.objects.filter(organization__in=organizations_for(request.user)), pk=pk)
+    can_manage = proj.organization_id in _manageable_ids(request.user)
+    evaluation = None
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "evaluate":
+            try:
+                context = json.loads(request.POST.get("context") or "{}")
+                if not isinstance(context, dict):
+                    raise ValueError
+                evaluation = service.evaluate_all(proj, context)
+            except (ValueError, json.JSONDecodeError):
+                messages.error(request, "Context must be a JSON object.")
+        elif not can_manage:
+            messages.error(request, "Owner or admin rights required.")
+            return redirect("dashboard:project_flags", pk=pk)
+        else:
+            try:
+                if action == "add":
+                    conditions = []
+                    if request.POST.get("conditions", "").strip():
+                        conditions = json.loads(request.POST["conditions"])
+                    service.create(
+                        proj, key=request.POST.get("key", ""),
+                        name=request.POST.get("name", ""),
+                        description=request.POST.get("description", ""),
+                        enabled=bool(request.POST.get("enabled")),
+                        rollout=request.POST.get("rollout") or 100,
+                        conditions=conditions, user=request.user)
+                    messages.success(request, "Flag created.")
+                    return redirect("dashboard:project_flags", pk=pk)
+                elif action == "toggle":
+                    flag = get_object_or_404(FeatureFlag, pk=request.POST.get("flag", 0), project=proj)
+                    service.toggle(flag, not flag.enabled, user=request.user)
+                    return redirect("dashboard:project_flags", pk=pk)
+                elif action == "archive":
+                    flag = get_object_or_404(FeatureFlag, pk=request.POST.get("flag", 0), project=proj)
+                    service.update(flag, archived=True, user=request.user)
+                    return redirect("dashboard:project_flags", pk=pk)
+            except json.JSONDecodeError:
+                messages.error(request, "Conditions must be valid JSON.")
+            except service.FlagError as exc:
+                messages.error(request, str(exc))
+
+    return render(request, "dashboard/project_flags.html", {
+        "active": "projects", "project": proj, "can_manage": can_manage,
+        "summary": service.summary(proj),
+        "flags": list(proj.feature_flags.filter(archived=False)),
+        "evaluation": evaluation, "context_input": request.POST.get("context", ""),
+    })
+
+
+@login_required
 def project_health(request, pk):
     """A project's composed Health Score (spec §30): one honest signal built from
     the real security, test, incident, acceptance and deployment ledgers. Read-only

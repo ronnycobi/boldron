@@ -28,6 +28,7 @@ urlpatterns = [
     path("projects/<int:pk>/intelligence/", views.project_intelligence, name="project_intelligence"),
     path("projects/<int:pk>/graph/", views.project_graph, name="project_graph"),
     path("projects/<int:pk>/health/", views.project_health, name="project_health"),
+    path("projects/<int:pk>/flags/", views.project_flags, name="project_flags"),
     path("projects/<int:pk>/acceptance/", views.project_acceptance, name="project_acceptance"),
     path("projects/<int:pk>/rules/", views.project_rules, name="project_rules"),
     path("projects/<int:pk>/automations/", views.project_automations, name="project_automations"),

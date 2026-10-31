@@ -1422,6 +1422,23 @@ class CapabilityEngineWebTests(TestCase):
                                 "facts": '{"title": "X"}'})
         self.assertContains(run, "done")
 
+    def test_project_flags_page_create_toggle_evaluate(self):
+        p = Project.objects.create(organization=self.org, name="FlagApp")
+        self.client.post(reverse("dashboard:project_flags", args=[p.id]),
+                         {"action": "add", "key": "new-ui", "rollout": "100"})
+        from apps.flags.models import FeatureFlag
+        flag = FeatureFlag.objects.get(project=p, key="new-ui")
+        self.assertFalse(flag.enabled)   # created off by default (honest)
+        # evaluate before toggling -> off
+        ev = self.client.post(reverse("dashboard:project_flags", args=[p.id]),
+                              {"action": "evaluate", "context": "{}"})
+        self.assertContains(ev, "new-ui")
+        # toggle on
+        self.client.post(reverse("dashboard:project_flags", args=[p.id]),
+                         {"action": "toggle", "flag": flag.id})
+        flag.refresh_from_db()
+        self.assertTrue(flag.enabled)
+
     def test_project_page_shows_capability_map(self):
         p = Project.objects.create(
             organization=self.org, name="Shop",

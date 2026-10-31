@@ -1,0 +1,89 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}{{ project.name }} · Feature flags · {{ app_name }}{% endblock %}
+{% block crumb %}Build / Projects / {{ project.name }} / Feature flags{% endblock %}
+{% block content %}
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+    <h1>Feature flags</h1>
+    <a class="btn ghost" href="{% url 'dashboard:project' project.id %}">← {{ project.name }}</a>
+  </div>
+  <p class="sub">Turn parts of <strong>{{ project.name }}</strong> on or off without a redeploy. A flag is
+    off unless enabled; an enabled flag can roll out to a percentage of users and/or target specific
+    conditions. Evaluation is deterministic — the same subject always gets the same answer.</p>
+
+  <div class="card" style="display:flex;gap:18px;flex-wrap:wrap;align-items:baseline">
+    <div><strong style="font-size:20px">{{ summary.on }}</strong> <span class="muted">on</span></div>
+    <div class="muted">{{ summary.off }} off</div>
+    <div class="muted">{{ summary.total }} total</div>
+    {% if summary.targeted %}<div class="muted">{{ summary.targeted }} targeted</div>{% endif %}
+  </div>
+
+  <details class="card" {% if evaluation is not None %}open{% endif %}>
+    <summary style="cursor:pointer;font-weight:700;list-style:none">Evaluate for a context</summary>
+    <form method="post" style="margin-top:12px">{% csrf_token %}
+      <input type="hidden" name="action" value="evaluate">
+      <label>Context (JSON)</label>
+      <textarea name="context" rows="2" placeholder='{"subject": "user-42", "plan": "pro"}'>{{ context_input }}</textarea>
+      <div style="margin-top:10px"><button class="btn" type="submit">Evaluate</button></div>
+    </form>
+    {% if evaluation is not None %}
+    <table style="margin-top:12px">
+      {% for key, on in evaluation.items %}
+      <tr><td style="width:60%"><code>{{ key }}</code></td>
+        <td><span class="badge b-{% if on %}completed{% else %}idle{% endif %}">{% if on %}on{% else %}off{% endif %}</span></td></tr>
+      {% empty %}<tr><td class="muted">No flags to evaluate.</td></tr>{% endfor %}
+    </table>
+    {% endif %}
+  </details>
+
+  {% if can_manage %}
+  <details class="card" style="margin-bottom:12px">
+    <summary style="cursor:pointer;font-weight:700;list-style:none">+ New flag</summary>
+    <form method="post" style="margin-top:12px">{% csrf_token %}
+      <input type="hidden" name="action" value="add">
+      <label>Key</label>
+      <input name="key" placeholder="e.g. new-checkout" required>
+      <label>Name</label>
+      <input name="name" placeholder="New checkout flow">
+      <label>Rollout %</label>
+      <input name="rollout" type="number" min="0" max="100" value="100">
+      <label>Targeting conditions (JSON list, optional)</label>
+      <textarea name="conditions" rows="2" placeholder='[{"fact": "plan", "op": "eq", "value": "pro"}]'></textarea>
+      <label style="display:flex;align-items:center;gap:6px;margin-top:8px"><input type="checkbox" name="enabled" style="width:auto"> Enabled</label>
+      <div style="margin-top:10px"><button class="btn" type="submit">Create flag</button></div>
+    </form>
+  </details>
+  {% endif %}
+
+  {% for f in flags %}
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
+      <div style="flex:1 1 55%">
+        <code style="font-size:13px">{{ f.key }}</code>
+        <span class="badge b-{% if f.enabled %}completed{% else %}idle{% endif %}" style="margin-left:6px">{% if f.enabled %}on{% else %}off{% endif %}</span>
+        {% if f.rollout < 100 %}<span class="badge b-waiting_for_approval" style="margin-left:2px">{{ f.rollout }}% rollout</span>{% endif %}
+        {% if f.conditions %}<span class="muted" style="font-size:11.5px;margin-left:4px">targeted</span>{% endif %}
+        {% if f.name %}<div style="margin-top:4px">{{ f.name }}</div>{% endif %}
+        {% if f.description %}<p class="muted" style="font-size:13px;margin:4px 0 0">{{ f.description }}</p>{% endif %}
+        {% if f.conditions %}<pre style="font-size:11.5px;margin:6px 0 0;white-space:pre-wrap;color:var(--muted)">{{ f.conditions }}</pre>{% endif %}
+      </div>
+      {% if can_manage %}
+      <div style="display:flex;gap:6px;align-items:center">
+        <form method="post">{% csrf_token %}
+          <input type="hidden" name="action" value="toggle">
+          <input type="hidden" name="flag" value="{{ f.id }}">
+          <button class="btn ghost" type="submit" style="padding:4px 10px">{% if f.enabled %}Turn off{% else %}Turn on{% endif %}</button>
+        </form>
+        <form method="post" onsubmit="return confirm('Archive this flag?')">{% csrf_token %}
+          <input type="hidden" name="action" value="archive">
+          <input type="hidden" name="flag" value="{{ f.id }}">
+          <button class="btn ghost" type="submit" style="padding:4px 10px">Archive</button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% empty %}
+  <div class="card"><p class="empty" style="margin:0">No feature flags yet.
+    {% if can_manage %}Create one above.{% endif %}</p></div>
+  {% endfor %}
+{% endblock %}
