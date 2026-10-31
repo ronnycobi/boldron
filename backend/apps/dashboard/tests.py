@@ -1524,6 +1524,24 @@ class CapabilityEngineWebTests(TestCase):
         self.assertIn("Data quality", html)
         self.assertIn("50%", html)   # 1 of 2 rows fails not_null -> real 50%
 
+    def test_project_performance_page_renders_with_real_samples(self):
+        p = Project.objects.create(organization=self.org, name="PerfApp")
+        from apps.performance import service
+        service.record_samples(p, [{"label": "GET /slow", "duration_ms": 900}] * 5)
+        service.set_budget(p, label="GET /slow", threshold_ms=300)
+        html = self.client.get(
+            reverse("dashboard:project_performance", args=[p.id])).content.decode()
+        self.assertIn("Performance", html)
+        self.assertIn("GET /slow", html)
+        self.assertIn("900ms", html)        # real measured p95
+        self.assertIn("over budget", html)
+
+    def test_project_performance_page_empty_is_honest(self):
+        p = Project.objects.create(organization=self.org, name="PerfEmpty")
+        html = self.client.get(
+            reverse("dashboard:project_performance", args=[p.id])).content.decode()
+        self.assertIn("No performance samples yet", html)
+
     def test_project_page_shows_capability_map(self):
         p = Project.objects.create(
             organization=self.org, name="Shop",

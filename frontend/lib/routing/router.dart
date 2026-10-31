@@ -28,6 +28,7 @@ import '../features/flags/flags_screen.dart';
 import '../features/graph/graph_screen.dart';
 import '../features/health/health_screen.dart';
 import '../features/localization/localization_screen.dart';
+import '../features/performance/performance_screen.dart';
 import '../features/policies/policies_screen.dart';
 import '../features/rules/rules_screen.dart';
 import '../features/quality/tests_screen.dart';
@@ -254,6 +255,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/projects/:id/data-quality',
         builder: (_, s) => DataQualityScreen(projectId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/projects/:id/performance',
+        builder: (_, s) => PerformanceScreen(projectId: _idParam(s, 'id')),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,

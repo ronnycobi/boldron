@@ -2925,6 +2925,36 @@ def project_data_quality(request, pk):
 
 
 @login_required
+def project_performance(request, pk):
+    """A project's performance intelligence (spec §41): real timing samples turned
+    into honest percentiles, slowest surfaces, and budget flags. Members view;
+    owners/admins set budgets. Nothing is synthetic — 'no data yet' until measured."""
+    from apps.performance import service
+    proj = get_object_or_404(
+        Project.objects.filter(organization__in=organizations_for(request.user)), pk=pk)
+    can_manage = proj.organization_id in _manageable_ids(request.user)
+
+    if request.method == "POST":
+        if not can_manage:
+            messages.error(request, "Owner or admin rights required.")
+            return redirect("dashboard:project_performance", pk=pk)
+        try:
+            service.set_budget(proj, label=request.POST.get("label", "*"),
+                               threshold_ms=request.POST.get("threshold_ms"),
+                               user=request.user)
+            messages.success(request, "Budget saved.")
+        except service.PerformanceError as exc:
+            messages.error(request, str(exc))
+        return redirect("dashboard:project_performance", pk=pk)
+
+    return render(request, "dashboard/project_performance.html", {
+        "active": "projects", "project": proj, "can_manage": can_manage,
+        "summary": service.summary(proj), "report": service.report(proj),
+        "budgets": list(proj.perf_budgets.all()),
+    })
+
+
+@login_required
 def project_health(request, pk):
     """A project's composed Health Score (spec §30): one honest signal built from
     the real security, test, incident, acceptance and deployment ledgers. Read-only

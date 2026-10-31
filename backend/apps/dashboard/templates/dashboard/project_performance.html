@@ -1,0 +1,56 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}{{ project.name }} · Performance · {{ app_name }}{% endblock %}
+{% block crumb %}Build / Projects / {{ project.name }} / Performance{% endblock %}
+{% block content %}
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+    <h1>Performance</h1>
+    <a class="btn ghost" href="{% url 'dashboard:project' project.id %}">← {{ project.name }}</a>
+  </div>
+  <p class="sub">How fast <strong>{{ project.name }}</strong> responds, from real timing samples over the last
+    {{ report.window_days }} days. Percentiles and budget flags are computed from measurements — nothing is
+    synthetic, and it stays empty until your app reports timings.</p>
+
+  <div class="card" style="display:flex;gap:22px;flex-wrap:wrap;align-items:baseline">
+    <div><strong style="font-size:20px">{% if report.overall.p95 is not None %}{{ report.overall.p95 }}ms{% else %}—{% endif %}</strong> <span class="muted">overall p95</span></div>
+    <div class="muted">{{ summary.samples }} sample(s)</div>
+    <div class="muted">{{ summary.labels }} surface(s)</div>
+    {% if summary.over_budget %}<div class="badge b-failed">{{ summary.over_budget }} over budget</div>{% endif %}
+  </div>
+
+  {% if can_manage %}
+  <form method="post" class="card" style="display:flex;gap:6px;align-items:end;flex-wrap:wrap">{% csrf_token %}
+    <div><label>Budget for (label, or * for default)</label><input name="label" placeholder="*" value="*"></div>
+    <div><label>p95 threshold (ms)</label><input name="threshold_ms" type="number" min="1" placeholder="500" required></div>
+    <button class="btn" type="submit">Save budget</button>
+  </form>
+  {% endif %}
+
+  <div class="card">
+    <h2 style="margin-top:0;font-size:15px">Surfaces (slowest first)</h2>
+    {% if report.labels %}
+    <table>
+      <tr><th>Surface</th><th>p50</th><th>p95</th><th>max</th><th>samples</th><th>budget</th></tr>
+      {% for r in report.labels %}
+      <tr{% if r.over_budget %} style="color:#c0392b"{% endif %}>
+        <td><code>{{ r.label }}</code> <span class="muted" style="font-size:10px">{{ r.kind }}</span></td>
+        <td>{{ r.p50 }}ms</td>
+        <td><strong>{{ r.p95 }}ms</strong>{% if r.over_budget %} ⚠{% endif %}</td>
+        <td>{{ r.max }}ms</td>
+        <td class="muted">{{ r.count }}</td>
+        <td class="muted">{% if r.budget %}≤ {{ r.budget }}ms{% else %}—{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <p class="empty" style="margin:0">No performance samples yet. Your app can POST timings to
+      <code>/api/v1/projects/{{ project.id }}/performance/samples/</code> and they'll appear here.</p>
+    {% endif %}
+  </div>
+
+  {% if budgets %}
+  <div class="card">
+    <h2 style="margin-top:0;font-size:15px">Budgets</h2>
+    <table>{% for b in budgets %}<tr><td><code>{{ b.label }}</code></td><td class="muted">p95 ≤ {{ b.threshold_ms }}ms</td></tr>{% endfor %}</table>
+  </div>
+  {% endif %}
+{% endblock %}
