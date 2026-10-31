@@ -20,6 +20,7 @@ import '../features/quality/compatibility_screen.dart';
 import '../features/quality/security_screen.dart';
 import '../features/acceptance/acceptance_screen.dart';
 import '../features/automations/automations_screen.dart';
+import '../features/explain/explain_screen.dart';
 import '../features/flags/flags_screen.dart';
 import '../features/graph/graph_screen.dart';
 import '../features/health/health_screen.dart';
@@ -228,6 +229,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/projects/:id/flags',
         builder: (_, s) => FlagsScreen(projectId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/projects/:id/explain',
+        builder: (_, s) => ExplainScreen(projectId: _idParam(s, 'id')),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,

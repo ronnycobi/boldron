@@ -1439,6 +1439,16 @@ class CapabilityEngineWebTests(TestCase):
         flag.refresh_from_db()
         self.assertTrue(flag.enabled)
 
+    def test_project_explain_page_renders(self):
+        p = Project.objects.create(
+            organization=self.org, name="ExplainApp", description="an online store",
+            capabilities=["auth", "database", "ecommerce", "payments", "sms"])
+        html = self.client.get(
+            reverse("dashboard:project_explain", args=[p.id])).content.decode()
+        self.assertIn("What is this app?", html)
+        self.assertIn("E-commerce", html)       # built feature
+        self.assertIn("What it's made of", html)
+
     def test_project_page_shows_capability_map(self):
         p = Project.objects.create(
             organization=self.org, name="Shop",

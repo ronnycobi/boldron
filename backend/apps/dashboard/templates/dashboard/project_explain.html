@@ -1,0 +1,67 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}{{ project.name }} · Explain · {{ app_name }}{% endblock %}
+{% block crumb %}Build / Projects / {{ project.name }} / Explain{% endblock %}
+{% block content %}
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+    <h1>What is this app?</h1>
+    <a class="btn ghost" href="{% url 'dashboard:project' project.id %}">← {{ project.name }}</a>
+  </div>
+
+  <div class="card">
+    <p style="font-size:16px;margin:0 0 6px">{{ explain.summary }}</p>
+    {% if explain.description %}<p class="muted" style="margin:0">{{ explain.description }}</p>{% endif %}
+  </div>
+
+  {% if part %}
+  <div class="card" style="border-color:var(--brandline);background:var(--brandsoft)">
+    <div style="display:flex;justify-content:space-between;align-items:baseline">
+      <h2 style="margin:0">{{ part.node.label }}</h2>
+      <a class="btn ghost" href="{% url 'dashboard:project_explain' project.id %}">Clear</a>
+    </div>
+    <p style="margin:8px 0 0">{{ part.explanation }}</p>
+  </div>
+  {% endif %}
+
+  <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr))">
+    <div class="card">
+      <h2 style="margin-top:0;font-size:15px">What it does</h2>
+      {% for name in explain.does %}<span class="chip">{{ name }}</span>{% empty %}<p class="muted" style="margin:0">Still being set up.</p>{% endfor %}
+      {% if explain.coming %}
+        <p class="muted" style="font-size:12px;margin:10px 0 4px">Planned (not built yet):</p>
+        {% for name in explain.coming %}<span class="chip" style="opacity:.6">{{ name }}</span>{% endfor %}
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0;font-size:15px">What it's made of</h2>
+      <table>
+        {% for p in explain.parts %}<tr><td class="strong">{{ p.count }}</td><td class="muted">{{ p.label }}</td></tr>{% empty %}<tr><td class="muted">Nothing built yet.</td></tr>{% endfor %}
+      </table>
+      <p class="muted" style="font-size:12px;margin:10px 0 0">Runs on: {% for p in explain.platforms %}{{ p }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0;font-size:15px">What state it's in</h2>
+      {% if explain.health.score is not None %}
+        <p style="margin:0"><strong style="font-size:20px">{{ explain.health.score }}</strong>/100
+          <span class="badge b-{% if explain.health.band == 'good' %}completed{% elif explain.health.band == 'fair' %}waiting_for_approval{% elif explain.health.band == 'poor' %}failed{% else %}idle{% endif %}">{{ explain.health.band }}</span></p>
+        <p class="muted" style="font-size:12.5px;margin:6px 0 0">{{ explain.health.headline }}</p>
+      {% else %}<p class="muted" style="margin:0">{{ explain.health.headline }}</p>{% endif %}
+      <p class="muted" style="font-size:12.5px;margin:10px 0 0">
+        Acceptance: {% if explain.acceptance.total %}{{ explain.acceptance.met }} of {{ explain.acceptance.total }} criteria met{% if explain.acceptance.accepted %} — accepted{% endif %}{% else %}no criteria yet{% endif %}.</p>
+    </div>
+  </div>
+
+  {% if explain.requirements %}
+  <h2>What it needs to do</h2>
+  <div class="card"><div>{% for r in explain.requirements %}<span class="chip">{{ r }}</span>{% endfor %}</div></div>
+  {% endif %}
+
+  {% if explain.rules %}
+  <h2>Rules it follows</h2>
+  <div class="card"><div>{% for r in explain.rules %}<span class="chip">{{ r }}</span>{% endfor %}</div></div>
+  {% endif %}
+
+  <p class="muted" style="font-size:12px;margin-top:16px">Want to understand one part and what depends on it? Open the
+    <a href="{% url 'dashboard:project_graph' project.id %}">app graph</a> and pick anything.</p>
+{% endblock %}

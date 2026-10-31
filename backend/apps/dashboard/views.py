@@ -2649,6 +2649,22 @@ def project_flags(request, pk):
 
 
 @login_required
+def project_explain(request, pk):
+    """Explain my application (spec §29): a plain-language account of what the app
+    is, what it does, what it's made of and what state it's in — composed read-only
+    from real project knowledge, customer-safe. ?node=<id> explains one part."""
+    from apps.explain.explain import explain_application, explain_part
+    proj = get_object_or_404(
+        Project.objects.filter(organization__in=organizations_for(request.user)), pk=pk)
+    node = request.GET.get("node")
+    part = explain_part(proj, node) if node else None
+    return render(request, "dashboard/project_explain.html", {
+        "active": "projects", "project": proj,
+        "explain": explain_application(proj), "part": part,
+    })
+
+
+@login_required
 def project_health(request, pk):
     """A project's composed Health Score (spec §30): one honest signal built from
     the real security, test, incident, acceptance and deployment ledgers. Read-only
