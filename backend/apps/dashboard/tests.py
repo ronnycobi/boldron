@@ -1483,6 +1483,19 @@ class CapabilityEngineWebTests(TestCase):
         self.assertIn("Bonjour", html)
         self.assertIn("coverage", html.lower())
 
+    def test_project_experiments_page_create_and_results(self):
+        p = Project.objects.create(organization=self.org, name="AbApp")
+        self.client.post(reverse("dashboard:project_experiments", args=[p.id]), {
+            "action": "add", "key": "cta", "name": "CTA test",
+            "variants": "control, variant-b", "metric": "signup"})
+        from apps.experiments.models import Experiment
+        self.assertEqual(Experiment.objects.filter(project=p).count(), 1)
+        html = self.client.get(
+            reverse("dashboard:project_experiments", args=[p.id])).content.decode()
+        self.assertIn("A/B experiments", html)
+        self.assertIn("CTA test", html)
+        self.assertIn("collecting", html)  # honest: not enough data to call a winner
+
     def test_project_page_shows_capability_map(self):
         p = Project.objects.create(
             organization=self.org, name="Shop",

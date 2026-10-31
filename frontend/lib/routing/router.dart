@@ -20,6 +20,7 @@ import '../features/quality/compatibility_screen.dart';
 import '../features/quality/security_screen.dart';
 import '../features/acceptance/acceptance_screen.dart';
 import '../features/automations/automations_screen.dart';
+import '../features/experiments/experiments_screen.dart';
 import '../features/explain/explain_screen.dart';
 import '../features/flags/flags_screen.dart';
 import '../features/graph/graph_screen.dart';
@@ -236,6 +237,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/projects/:id/localization',
         builder: (_, s) => LocalizationScreen(projectId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/projects/:id/experiments',
+        builder: (_, s) => ExperimentsScreen(projectId: _idParam(s, 'id')),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,

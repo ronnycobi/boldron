@@ -1,0 +1,70 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}{{ project.name }} · Experiments · {{ app_name }}{% endblock %}
+{% block crumb %}Build / Projects / {{ project.name }} / Experiments{% endblock %}
+{% block content %}
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+    <h1>A/B experiments</h1>
+    <a class="btn ghost" href="{% url 'dashboard:project' project.id %}">← {{ project.name }}</a>
+  </div>
+  <p class="sub">Split traffic between variants and measure which converts better in <strong>{{ project.name }}</strong>.
+    Each subject is assigned once, deterministically; results are real counts and a winner is only called when
+    the numbers are statistically significant — otherwise it says so.</p>
+
+  <div class="card" style="display:flex;gap:18px;flex-wrap:wrap;align-items:baseline">
+    <div><strong style="font-size:20px">{{ summary.running }}</strong> <span class="muted">running</span></div>
+    {% if summary.draft %}<div class="muted">{{ summary.draft }} draft</div>{% endif %}
+    {% if summary.stopped %}<div class="muted">{{ summary.stopped }} stopped</div>{% endif %}
+  </div>
+
+  {% if can_manage %}
+  <details class="card" style="margin-bottom:12px">
+    <summary style="cursor:pointer;font-weight:700;list-style:none">+ New experiment</summary>
+    <form method="post" style="margin-top:12px">{% csrf_token %}
+      <input type="hidden" name="action" value="add">
+      <label>Key</label><input name="key" placeholder="checkout-button" required>
+      <label>Name</label><input name="name" placeholder="Checkout button colour">
+      <label>Variants (comma-separated)</label><input name="variants" placeholder="control, variant-b" required>
+      <label>Metric</label><input name="metric" value="conversion">
+      <div style="margin-top:10px"><button class="btn" type="submit">Create experiment</button></div>
+    </form>
+  </details>
+  {% endif %}
+
+  {% for row in experiments %}
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
+      <div>
+        <strong>{{ row.obj.name|default:row.obj.key }}</strong>
+        <span class="badge b-{% if row.obj.status == 'running' %}completed{% elif row.obj.status == 'stopped' %}idle{% else %}waiting_for_approval{% endif %}" style="margin-left:6px">{{ row.obj.get_status_display }}</span>
+        <span class="muted" style="font-size:11.5px;margin-left:4px">metric: {{ row.obj.metric }}</span>
+      </div>
+      {% if can_manage %}
+      <form method="post" style="display:flex;gap:4px;align-items:center">{% csrf_token %}
+        <input type="hidden" name="action" value="status">
+        <input type="hidden" name="experiment" value="{{ row.obj.id }}">
+        <select name="status">
+          {% for val, label in statuses %}<option value="{{ val }}" {% if val == row.obj.status %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+        <button class="btn ghost" type="submit" style="padding:4px 10px">Save</button>
+      </form>
+      {% endif %}
+    </div>
+
+    <table style="margin-top:10px">
+      <tr><th>Variant</th><th>Exposures</th><th>Conversions</th><th>Rate</th></tr>
+      {% for v in row.results.variants %}
+      <tr{% if v.key == row.results.assessment.leader %} style="font-weight:700"{% endif %}>
+        <td>{{ v.name }}{% if v.key == row.results.assessment.leader %} 🏆{% endif %}</td>
+        <td>{{ v.exposures }}</td><td>{{ v.conversions }}</td><td>{{ v.rate_pct }}%</td>
+      </tr>
+      {% endfor %}
+    </table>
+    <p class="muted" style="font-size:12.5px;margin:8px 0 0">
+      <span class="badge b-{% if row.results.assessment.status == 'significant' %}completed{% elif row.results.assessment.status == 'collecting' %}waiting_for_approval{% else %}idle{% endif %}">{{ row.results.assessment.status }}</span>
+      {{ row.results.assessment.reason }}</p>
+  </div>
+  {% empty %}
+  <div class="card"><p class="empty" style="margin:0">No experiments yet.
+    {% if can_manage %}Create one above.{% endif %}</p></div>
+  {% endfor %}
+{% endblock %}

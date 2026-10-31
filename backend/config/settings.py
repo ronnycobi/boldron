@@ -185,6 +185,7 @@ INSTALLED_APPS = [
     "apps.explain",
     "apps.policies",
     "apps.localization",
+    "apps.experiments",
 ]
 
 # --- Auth redirects (server-rendered dashboard UI) --------------------------

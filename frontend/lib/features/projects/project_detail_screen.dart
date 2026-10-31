@@ -19,6 +19,7 @@ const List<_Area> _areas = [
   (icon: Icons.favorite_outline, label: 'Health', path: 'health'),
   (icon: Icons.flag_outlined, label: 'Feature flags', path: 'flags'),
   (icon: Icons.translate_outlined, label: 'Languages', path: 'localization'),
+  (icon: Icons.science_outlined, label: 'Experiments', path: 'experiments'),
   (icon: Icons.hub_outlined, label: 'App graph', path: 'graph'),
   (icon: Icons.checklist_outlined, label: 'Acceptance', path: 'acceptance'),
   (icon: Icons.gavel_outlined, label: 'Business rules', path: 'rules'),

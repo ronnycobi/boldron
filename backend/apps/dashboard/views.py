@@ -2771,6 +2771,51 @@ def project_localization(request, pk):
 
 
 @login_required
+def project_experiments(request, pk):
+    """A project's A/B experiments (spec §20): variants, deterministic assignment,
+    and real results with an honest significance verdict. Members view; owners/
+    admins create and start/stop. Results are real counts — no fabricated winner."""
+    import json
+
+    from apps.experiments import service
+    from apps.experiments.models import Experiment
+    proj = get_object_or_404(
+        Project.objects.filter(organization__in=organizations_for(request.user)), pk=pk)
+    can_manage = proj.organization_id in _manageable_ids(request.user)
+
+    if request.method == "POST":
+        if not can_manage:
+            messages.error(request, "Owner or admin rights required.")
+            return redirect("dashboard:project_experiments", pk=pk)
+        action = request.POST.get("action")
+        try:
+            if action == "add":
+                # variants entered as "control, variant-b" become equal-weight.
+                keys = [k.strip() for k in (request.POST.get("variants") or "").split(",") if k.strip()]
+                variants = [{"key": k, "weight": 1} for k in keys]
+                service.create(proj, key=request.POST.get("key", ""), variants=variants,
+                               name=request.POST.get("name", ""),
+                               metric=request.POST.get("metric", "conversion"),
+                               user=request.user)
+                messages.success(request, "Experiment created.")
+            elif action == "status":
+                exp = get_object_or_404(Experiment, pk=request.POST.get("experiment", 0), project=proj)
+                service.set_status(exp, request.POST.get("status", ""), user=request.user)
+        except service.ExperimentError as exc:
+            messages.error(request, str(exc))
+        return redirect("dashboard:project_experiments", pk=pk)
+
+    experiments = []
+    for e in proj.experiments.all():
+        experiments.append({"obj": e, "results": service.results(e)})
+    return render(request, "dashboard/project_experiments.html", {
+        "active": "projects", "project": proj, "can_manage": can_manage,
+        "summary": service.summary(proj), "experiments": experiments,
+        "statuses": [("draft", "Draft"), ("running", "Running"), ("stopped", "Stopped")],
+    })
+
+
+@login_required
 def project_health(request, pk):
     """A project's composed Health Score (spec §30): one honest signal built from
     the real security, test, incident, acceptance and deployment ledgers. Read-only
