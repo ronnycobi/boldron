@@ -1,0 +1,62 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}{{ project.name }} · Compliance · {{ app_name }}{% endblock %}
+{% block crumb %}Build / Projects / {{ project.name }} / Compliance{% endblock %}
+{% block content %}
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+    <h1>Compliance</h1>
+    <a class="btn ghost" href="{% url 'dashboard:project' project.id %}">← {{ project.name }}</a>
+  </div>
+  <p class="sub">Track the controls <strong>{{ project.name }}</strong> needs for each framework. Controls the
+    platform genuinely provides are evidenced automatically; the rest need you to attest them with evidence —
+    {{ app_name }} never marks your app "compliant" on its own.</p>
+
+  <div class="card" style="display:flex;gap:18px;flex-wrap:wrap;align-items:baseline">
+    <div>
+      <strong style="font-size:20px">{% if score.overall_percent is not None %}{{ score.overall_percent }}%{% else %}—{% endif %}</strong>
+      <span class="muted">controls met{% if score.overall_percent is not None %} overall{% endif %}</span>
+    </div>
+    <div class="muted">{{ score.controls }} control(s) tracked</div>
+  </div>
+
+  {% if can_manage %}
+  <form method="post" class="card" style="display:flex;gap:6px;align-items:end;flex-wrap:wrap">{% csrf_token %}
+    <input type="hidden" name="action" value="seed">
+    <div><label>Add a framework's controls</label>
+      <select name="framework">{% for f in frameworks %}<option value="{{ f.key }}">{{ f.label }}</option>{% endfor %}</select></div>
+    <button class="btn" type="submit">Add controls</button>
+  </form>
+  {% endif %}
+
+  {% for g in grouped %}
+  <div class="card">
+    <h2 style="margin-top:0;font-size:15px">{{ g.label }}</h2>
+    {% for c in g.controls %}
+    <div style="padding:10px 0;border-top:1px solid var(--line)">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
+        <div style="flex:1 1 55%">
+          <span class="badge b-{% if c.status == 'met' %}completed{% elif c.status == 'partial' %}waiting_for_approval{% elif c.status == 'not_met' %}failed{% else %}idle{% endif %}">{{ c.get_status_display }}</span>
+          <strong style="margin-left:6px">{{ c.title }}</strong>
+          {% if c.auto %}<span class="muted" style="font-size:10.5px;margin-left:4px">platform-provided</span>{% endif %}
+          <p class="muted" style="font-size:12.5px;margin:4px 0 0">{{ c.description }}</p>
+          {% if c.evidence %}<p class="muted" style="font-size:12px;margin:4px 0 0">Evidence: {{ c.evidence }}{% if c.attested_by %} · {{ c.attested_by.email }}{% endif %}</p>{% endif %}
+        </div>
+        {% if can_manage %}
+        <form method="post" style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;max-width:320px">{% csrf_token %}
+          <input type="hidden" name="action" value="attest">
+          <input type="hidden" name="control" value="{{ c.id }}">
+          <select name="status">
+            {% for val, label in statuses %}<option value="{{ val }}" {% if val == c.status %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+          <input name="evidence" placeholder="evidence / link" value="{{ c.evidence }}" style="width:160px">
+          <button class="btn ghost" type="submit" style="padding:4px 10px">Attest</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% empty %}
+  <div class="card"><p class="empty" style="margin:0">No frameworks tracked yet.
+    {% if can_manage %}Add one above.{% endif %}</p></div>
+  {% endfor %}
+{% endblock %}

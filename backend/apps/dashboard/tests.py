@@ -1496,6 +1496,18 @@ class CapabilityEngineWebTests(TestCase):
         self.assertIn("CTA test", html)
         self.assertIn("collecting", html)  # honest: not enough data to call a winner
 
+    def test_project_compliance_page_seed_and_attest(self):
+        p = Project.objects.create(organization=self.org, name="GdprApp")
+        self.client.post(reverse("dashboard:project_compliance", args=[p.id]),
+                         {"action": "seed", "framework": "gdpr"})
+        from apps.compliance.models import ComplianceControl
+        self.assertTrue(ComplianceControl.objects.filter(project=p).exists())
+        html = self.client.get(
+            reverse("dashboard:project_compliance", args=[p.id])).content.decode()
+        self.assertIn("Compliance", html)
+        self.assertIn("platform-provided", html)  # auto-evidenced control shown
+        self.assertIn("Pending", html)            # manual control honest-pending
+
     def test_project_page_shows_capability_map(self):
         p = Project.objects.create(
             organization=self.org, name="Shop",

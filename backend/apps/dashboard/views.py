@@ -2816,6 +2816,53 @@ def project_experiments(request, pk):
 
 
 @login_required
+def project_compliance(request, pk):
+    """A project's compliance controls (spec §16): per-framework requirements with
+    honest status. Members view; owners/admins seed frameworks and attest controls.
+    Platform-provided controls are auto-evidenced; the rest need a real attestation
+    with evidence — nothing is auto-claimed compliant."""
+    from apps.compliance import service
+    from apps.compliance.catalog import frameworks
+    from apps.compliance.models import ComplianceControl, ControlStatus, Framework
+    proj = get_object_or_404(
+        Project.objects.filter(organization__in=organizations_for(request.user)), pk=pk)
+    can_manage = proj.organization_id in _manageable_ids(request.user)
+
+    if request.method == "POST":
+        if not can_manage:
+            messages.error(request, "Owner or admin rights required.")
+            return redirect("dashboard:project_compliance", pk=pk)
+        action = request.POST.get("action")
+        try:
+            if action == "seed":
+                n = service.seed_framework(proj, request.POST.get("framework", ""),
+                                           user=request.user)
+                messages.success(request, f"Added {n} control(s)." if n
+                                 else "Those controls are already here.")
+            elif action == "attest":
+                ctrl = get_object_or_404(ComplianceControl, pk=request.POST.get("control", 0), project=proj)
+                service.attest(ctrl, request.POST.get("status", ""),
+                               evidence=request.POST.get("evidence", ""), user=request.user)
+        except service.ComplianceError as exc:
+            messages.error(request, str(exc))
+        return redirect("dashboard:project_compliance", pk=pk)
+
+    # group controls by framework
+    score = service.score(proj)
+    label_by_fw = {f["key"]: f["label"] for f in frameworks()}
+    groups = {}
+    for c in proj.compliance_controls.select_related("attested_by"):
+        groups.setdefault(c.framework, []).append(c)
+    grouped = [{"framework": fw, "label": label_by_fw.get(fw, fw), "controls": cs}
+               for fw, cs in sorted(groups.items())]
+    return render(request, "dashboard/project_compliance.html", {
+        "active": "projects", "project": proj, "can_manage": can_manage,
+        "score": score, "grouped": grouped, "frameworks": frameworks(),
+        "statuses": ControlStatus.choices,
+    })
+
+
+@login_required
 def project_health(request, pk):
     """A project's composed Health Score (spec §30): one honest signal built from
     the real security, test, incident, acceptance and deployment ledgers. Read-only
