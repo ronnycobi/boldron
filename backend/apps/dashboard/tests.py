@@ -1449,6 +1449,21 @@ class CapabilityEngineWebTests(TestCase):
         self.assertIn("E-commerce", html)       # built feature
         self.assertIn("What it's made of", html)
 
+    def test_project_policies_page_create_and_built_ins(self):
+        p = Project.objects.create(organization=self.org, name="PolicyApp")
+        self.client.post(reverse("dashboard:project_policies", args=[p.id]), {
+            "action": "add", "name": "Freeze production", "scope": "deploy",
+            "effect": "block",
+            "conditions": '[{"fact": "is_production", "op": "eq", "value": true}]',
+            "message": "Production is frozen."})
+        from apps.policies.models import Policy
+        self.assertEqual(Policy.objects.filter(project=p).count(), 1)
+        html = self.client.get(
+            reverse("dashboard:project_policies", args=[p.id])).content.decode()
+        self.assertIn("Governance policies", html)
+        self.assertIn("Freeze production", html)
+        self.assertIn("Built-in guardrails", html)   # real gates surfaced too
+
     def test_project_page_shows_capability_map(self):
         p = Project.objects.create(
             organization=self.org, name="Shop",

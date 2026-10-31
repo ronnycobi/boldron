@@ -2665,6 +2665,56 @@ def project_explain(request, pk):
 
 
 @login_required
+def project_policies(request, pk):
+    """A project's governance policies (spec §44): declarative guardrails on
+    platform actions (today: deploys), plus the platform's built-in guardrails
+    shown read-only. Members view; owners/admins create and toggle. A block policy
+    genuinely stops the deploy — it is not advisory."""
+    import json
+
+    from apps.policies import service
+    from apps.policies.models import Policy, PolicyEffect, PolicyScope
+    proj = get_object_or_404(
+        Project.objects.filter(organization__in=organizations_for(request.user)), pk=pk)
+    can_manage = proj.organization_id in _manageable_ids(request.user)
+
+    if request.method == "POST":
+        if not can_manage:
+            messages.error(request, "Owner or admin rights required.")
+            return redirect("dashboard:project_policies", pk=pk)
+        action = request.POST.get("action")
+        try:
+            if action == "add":
+                conditions = []
+                if request.POST.get("conditions", "").strip():
+                    conditions = json.loads(request.POST["conditions"])
+                service.create(
+                    proj, name=request.POST.get("name", ""),
+                    scope=request.POST.get("scope", "deploy"),
+                    effect=request.POST.get("effect", "block"),
+                    description=request.POST.get("description", ""),
+                    message=request.POST.get("message", ""),
+                    conditions=conditions, user=request.user)
+                messages.success(request, "Policy created.")
+            elif action == "toggle":
+                p = get_object_or_404(Policy, pk=request.POST.get("policy", 0), project=proj)
+                service.set_enabled(p, not p.enabled, user=request.user)
+        except json.JSONDecodeError:
+            messages.error(request, "Conditions must be valid JSON.")
+        except service.PolicyError as exc:
+            messages.error(request, str(exc))
+        return redirect("dashboard:project_policies", pk=pk)
+
+    return render(request, "dashboard/project_policies.html", {
+        "active": "projects", "project": proj, "can_manage": can_manage,
+        "summary": service.summary(proj), "policies": list(proj.policies.all()),
+        "built_in": service.built_in_guardrails(proj),
+        "scopes": [s for s in PolicyScope if s in service.ENFORCED_SCOPES],
+        "effects": PolicyEffect.choices,
+    })
+
+
+@login_required
 def project_health(request, pk):
     """A project's composed Health Score (spec §30): one honest signal built from
     the real security, test, incident, acceptance and deployment ledgers. Read-only

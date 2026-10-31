@@ -85,6 +85,22 @@ def run(deployment: Deployment) -> Deployment:
     except Exception:
         pass  # a hook subsystem error must not silently allow a blocked deploy path to crash
 
+    # Governance policies (spec §44): custom block / require-approval rules the org
+    # defined for deploys, evaluated against this deploy's context.
+    try:
+        from apps.policies.engine import decide
+        decision = decide(deployment.project, "deploy",
+                          {"environment": deployment.environment,
+                           "is_production": deployment.is_production})
+        if decision["blocks"]:
+            reasons = "; ".join(b["message"] for b in decision["blocks"])
+            return _fail(deployment, f"Blocked by policy — {reasons}")
+        if decision["require_approval"] and not deployment.approved:
+            reasons = "; ".join(a["message"] for a in decision["require_approval"])
+            return _fail(deployment, f"Policy requires approval — {reasons}")
+    except Exception:
+        pass  # a policy engine error must not crash the deploy path
+
     deployment.status = DeploymentStatus.DEPLOYING
     deployment.save(update_fields=["status"])
     try:

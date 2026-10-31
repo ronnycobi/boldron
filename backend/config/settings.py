@@ -183,6 +183,7 @@ INSTALLED_APPS = [
     "apps.automations",
     "apps.flags",
     "apps.explain",
+    "apps.policies",
 ]
 
 # --- Auth redirects (server-rendered dashboard UI) --------------------------

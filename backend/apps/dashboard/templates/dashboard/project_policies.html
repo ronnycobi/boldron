@@ -1,0 +1,76 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}{{ project.name }} · Policies · {{ app_name }}{% endblock %}
+{% block crumb %}Build / Projects / {{ project.name }} / Policies{% endblock %}
+{% block content %}
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+    <h1>Governance policies</h1>
+    <a class="btn ghost" href="{% url 'dashboard:project' project.id %}">← {{ project.name }}</a>
+  </div>
+  <p class="sub">Guardrails on what can happen to <strong>{{ project.name }}</strong>. A policy is checked at
+    the action's real decision point — a <strong>block</strong> policy genuinely stops a deploy, it isn't
+    advisory. The platform's own always-on guardrails are shown below too.</p>
+
+  <div class="card" style="display:flex;gap:18px;flex-wrap:wrap;align-items:baseline">
+    <div><strong style="font-size:20px">{{ summary.enabled }}</strong> <span class="muted">active</span></div>
+    {% if summary.blocking %}<div class="badge b-failed">{{ summary.blocking }} blocking</div>{% endif %}
+    <div class="muted">{{ summary.built_in }} built-in guardrails</div>
+  </div>
+
+  {% if can_manage %}
+  <details class="card" style="margin-bottom:12px">
+    <summary style="cursor:pointer;font-weight:700;list-style:none">+ New policy</summary>
+    <form method="post" style="margin-top:12px">{% csrf_token %}
+      <input type="hidden" name="action" value="add">
+      <label>Name</label>
+      <input name="name" placeholder="e.g. No production deploys during a freeze" required>
+      <label>Applies to</label>
+      <select name="scope">
+        {% for s in scopes %}<option value="{{ s.value }}">{{ s.label }}</option>{% endfor %}
+      </select>
+      <label>Effect</label>
+      <select name="effect">
+        {% for val, label in effects %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+      </select>
+      <label>Conditions (JSON list, optional — empty means always)</label>
+      <textarea name="conditions" rows="2" placeholder='[{"fact": "is_production", "op": "eq", "value": true}]'></textarea>
+      <label>Message shown when it applies</label>
+      <input name="message" placeholder="Production is frozen until Monday.">
+      <div style="margin-top:10px"><button class="btn" type="submit">Create policy</button></div>
+    </form>
+  </details>
+  {% endif %}
+
+  {% for p in policies %}
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
+      <div style="flex:1 1 55%">
+        <strong>{{ p.name }}</strong>
+        <span class="badge b-{% if p.effect == 'block' %}failed{% elif p.effect == 'require_approval' %}waiting_for_approval{% else %}idle{% endif %}" style="margin-left:6px">{{ p.get_effect_display }}</span>
+        {% if not p.enabled %}<span class="muted" style="font-size:11.5px;margin-left:4px">disabled</span>{% endif %}
+        <span class="muted" style="font-size:11.5px;margin-left:4px">on {{ p.get_scope_display|lower }}</span>
+        {% if p.message %}<p class="muted" style="font-size:13px;margin:6px 0 0">“{{ p.message }}”</p>{% endif %}
+        {% if p.conditions %}<pre style="font-size:11.5px;margin:6px 0 0;white-space:pre-wrap;color:var(--muted)">{{ p.conditions }}</pre>{% endif %}
+      </div>
+      {% if can_manage %}
+      <form method="post">{% csrf_token %}
+        <input type="hidden" name="action" value="toggle">
+        <input type="hidden" name="policy" value="{{ p.id }}">
+        <button class="btn ghost" type="submit" style="padding:4px 10px">{% if p.enabled %}Disable{% else %}Enable{% endif %}</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  {% empty %}
+  <div class="card"><p class="empty" style="margin:0">No custom policies yet.
+    {% if can_manage %}Create one above.{% endif %}</p></div>
+  {% endfor %}
+
+  <h2>Built-in guardrails <span class="muted" style="font-size:12px;font-weight:400">· always on</span></h2>
+  {% for g in built_in %}
+  <div class="card" style="opacity:.92">
+    <strong>{{ g.name }}</strong>
+    <span class="badge b-{% if g.effect == 'block' %}failed{% else %}waiting_for_approval{% endif %}" style="margin-left:6px">{{ g.effect }}</span>
+    <p class="muted" style="font-size:13px;margin:6px 0 0">{{ g.detail }}</p>
+  </div>
+  {% endfor %}
+{% endblock %}
