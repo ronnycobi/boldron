@@ -36,6 +36,12 @@ def open_incident(project, *, title, severity="medium", source="manual", detail=
         raise_alert(project, kind="incident", severity=severity, message=title)
     except Exception:
         pass
+    # Fire automations listening for an opened incident (spec §10) — best-effort,
+    # loop-safe (the engine won't re-enter if this was itself an automation action).
+    from apps.automations.engine import fire_safe
+    fire_safe(project, "incident.opened",
+              {"title": incident.title, "severity": severity, "source": source},
+              user=user)
     return incident
 
 
@@ -70,6 +76,10 @@ def transition(incident: Incident, status: str, *, user=None, note="") -> Incide
         message=(note or "").strip()[:2000], created_by=user)
     audit("incident.transition", actor=user, organization=incident.project.organization,
           target=f"incident:{incident.id}", summary=f"{incident.title} → {status}")
+    if status in (IncidentStatus.RESOLVED, IncidentStatus.CLOSED):
+        from apps.automations.engine import fire_safe
+        fire_safe(incident.project, "incident.resolved",
+                  {"title": incident.title, "severity": incident.severity}, user=user)
     return incident
 
 

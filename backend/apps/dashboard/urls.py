@@ -30,6 +30,7 @@ urlpatterns = [
     path("projects/<int:pk>/health/", views.project_health, name="project_health"),
     path("projects/<int:pk>/acceptance/", views.project_acceptance, name="project_acceptance"),
     path("projects/<int:pk>/rules/", views.project_rules, name="project_rules"),
+    path("projects/<int:pk>/automations/", views.project_automations, name="project_automations"),
     path("projects/<int:pk>/tests/", views.project_tests, name="project_tests"),
     path("projects/<int:pk>/security/", views.project_security, name="project_security"),
     path("projects/<int:pk>/compatibility/", views.project_compatibility, name="project_compatibility"),

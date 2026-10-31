@@ -76,6 +76,11 @@ def run_scan(project, *, trigger="manual", user=None, collector=None) -> Securit
         ])
     audit("security.scan", actor=user, organization=project.organization,
           target=f"project:{project.id}", summary=f"{scan.status}: {scan.summary}")
+    if scan.status == SecurityScanStatus.BLOCKED:
+        from apps.automations.engine import fire_safe
+        fire_safe(project, "security.blocked",
+                  {"high": scan.high, "medium": scan.medium, "low": scan.low},
+                  user=user)
     return scan
 
 

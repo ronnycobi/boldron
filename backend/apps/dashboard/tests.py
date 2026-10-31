@@ -1403,6 +1403,25 @@ class CapabilityEngineWebTests(TestCase):
         self.assertIn("Security", html)
         self.assertIn("high-severity", html)  # real finding surfaced honestly
 
+    def test_project_automations_page_create_and_test_run(self):
+        p = Project.objects.create(organization=self.org, name="AutoApp")
+        # create an automation via the page
+        self.client.post(reverse("dashboard:project_automations", args=[p.id]), {
+            "action": "add", "name": "Note on incident", "trigger": "incident.opened",
+            "actions": '[{"type": "note", "params": {"text": "seen {title}"}}]',
+        })
+        from apps.automations.models import Workflow
+        wf = Workflow.objects.get(project=p)
+        html = self.client.get(
+            reverse("dashboard:project_automations", args=[p.id])).content.decode()
+        self.assertIn("Automations", html)
+        self.assertIn("Note on incident", html)
+        # test-run it through the page -> honest completed result shown
+        run = self.client.post(reverse("dashboard:project_automations", args=[p.id]),
+                               {"action": "run", "workflow": wf.id,
+                                "facts": '{"title": "X"}'})
+        self.assertContains(run, "done")
+
     def test_project_page_shows_capability_map(self):
         p = Project.objects.create(
             organization=self.org, name="Shop",

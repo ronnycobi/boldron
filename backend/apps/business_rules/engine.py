@@ -72,6 +72,23 @@ def validate_definition(defn) -> tuple[bool, str]:
     return True, ""
 
 
+def match_conditions(conditions, facts: dict) -> bool:
+    """True when every condition in a `when`-style list holds against the facts.
+    Reusable by other engines (e.g. automations) so condition semantics stay
+    identical everywhere: a missing fact fails its condition, and an empty list
+    matches (an unconditional policy)."""
+    if not isinstance(conditions, list):
+        return False
+    facts = facts or {}
+    for cond in conditions:
+        if not isinstance(cond, dict) or cond.get("op") not in _OPS:
+            return False
+        actual = facts.get(cond.get("fact"), _MISSING)
+        if actual is _MISSING or not _OPS[cond["op"]](actual, cond.get("value")):
+            return False
+    return True
+
+
 def evaluate_rule(definition: dict, facts: dict) -> tuple[bool, dict]:
     """Evaluate one definition against facts. Returns (fired, then-block).
     A missing fact makes its condition False — the rule never fires on data the

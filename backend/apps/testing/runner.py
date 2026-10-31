@@ -59,6 +59,11 @@ def run_project_tests(project, *, change=None, trigger="manual", user=None,
         _apply_result(run, result if isinstance(result, dict) else {})
     audit("tests.run", actor=user, organization=project.organization,
           target=f"project:{project.id}", summary=f"{run.status}: {run.summary}")
+    if run.status in (TestRunStatus.FAILED, TestRunStatus.ERROR):
+        from apps.automations.engine import fire_safe
+        fire_safe(project, "tests.failed",
+                  {"failures": run.failures, "errors": run.errors, "ran": run.ran},
+                  user=user)
     return run
 
 

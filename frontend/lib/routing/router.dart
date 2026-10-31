@@ -19,6 +19,7 @@ import '../features/operations/operations_screen.dart';
 import '../features/quality/compatibility_screen.dart';
 import '../features/quality/security_screen.dart';
 import '../features/acceptance/acceptance_screen.dart';
+import '../features/automations/automations_screen.dart';
 import '../features/graph/graph_screen.dart';
 import '../features/health/health_screen.dart';
 import '../features/rules/rules_screen.dart';
@@ -231,6 +232,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/projects/:id/rules',
         builder: (_, s) => RulesScreen(projectId: _idParam(s, 'id')),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/projects/:id/automations',
+        builder: (_, s) => AutomationsScreen(projectId: _idParam(s, 'id')),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,

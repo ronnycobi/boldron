@@ -2520,6 +2520,71 @@ def project_acceptance(request, pk):
 
 
 @login_required
+def project_automations(request, pk):
+    """A project's automations (spec §10-11): trigger → conditions → actions, with
+    a run history that records each action's honest outcome. Members view and
+    test-run; owners/admins create, edit and change status. Actions that need
+    unconfigured capabilities are skipped honestly, never faked."""
+    import json
+
+    from apps.automations import engine, service
+    from apps.automations.actions import ACTIONS
+    from apps.automations.models import Workflow, WorkflowStatus
+    from apps.automations.triggers import TRIGGERS
+    proj = get_object_or_404(
+        Project.objects.filter(organization__in=organizations_for(request.user)), pk=pk)
+    can_manage = proj.organization_id in _manageable_ids(request.user)
+    last_run = None
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "run":   # test-run is a safe action any member may do
+            wf = get_object_or_404(Workflow, pk=request.POST.get("workflow", 0), project=proj)
+            try:
+                facts = json.loads(request.POST.get("facts") or "{}")
+                if not isinstance(facts, dict):
+                    raise ValueError
+                last_run = engine.run_now(wf, facts, user=request.user)
+            except (ValueError, json.JSONDecodeError):
+                messages.error(request, "Facts must be a JSON object.")
+        elif not can_manage:
+            messages.error(request, "Owner or admin rights required.")
+            return redirect("dashboard:project_automations", pk=pk)
+        else:
+            try:
+                if action == "add":
+                    conditions, actions = [], []
+                    if request.POST.get("conditions", "").strip():
+                        conditions = json.loads(request.POST["conditions"])
+                    actions = json.loads(request.POST.get("actions") or "[]")
+                    service.create(
+                        proj, name=request.POST.get("name", ""),
+                        trigger=request.POST.get("trigger", ""),
+                        description=request.POST.get("description", ""),
+                        conditions=conditions, actions=actions, user=request.user)
+                    messages.success(request, "Automation created.")
+                    return redirect("dashboard:project_automations", pk=pk)
+                elif action == "status":
+                    wf = get_object_or_404(Workflow, pk=request.POST.get("workflow", 0), project=proj)
+                    service.set_status(wf, request.POST.get("status", ""), user=request.user)
+                    return redirect("dashboard:project_automations", pk=pk)
+            except json.JSONDecodeError:
+                messages.error(request, "Conditions / actions must be valid JSON.")
+            except service.AutomationError as exc:
+                messages.error(request, str(exc))
+
+    automations = list(proj.automations.prefetch_related("runs"))
+    for wf in automations:   # annotate a readable trigger label for the template
+        wf.trigger_label = TRIGGERS.get(wf.trigger, {}).get("label", wf.trigger)
+    return render(request, "dashboard/project_automations.html", {
+        "active": "projects", "project": proj, "can_manage": can_manage,
+        "summary": service.summary(proj), "automations": automations,
+        "triggers": TRIGGERS, "actions_catalog": ACTIONS,
+        "statuses": WorkflowStatus.choices, "last_run": last_run,
+    })
+
+
+@login_required
 def project_health(request, pk):
     """A project's composed Health Score (spec §30): one honest signal built from
     the real security, test, incident, acceptance and deployment ledgers. Read-only

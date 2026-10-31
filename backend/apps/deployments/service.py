@@ -105,6 +105,10 @@ def run(deployment: Deployment) -> Deployment:
            target=f"deployment:{deployment.id}",
            summary=f"{deployment.environment} · {deployment.provider}",
            metadata={"url": deployment.url})
+    from apps.automations.engine import fire_safe
+    fire_safe(deployment.project, "deploy.succeeded",
+              {"environment": deployment.environment,
+               "is_production": deployment.is_production}, user=deployment.created_by)
     return deployment
 
 
@@ -119,4 +123,8 @@ def _fail(deployment: Deployment, message: str) -> Deployment:
         auto_detect_from_deploy(deployment)
     except Exception:
         pass
+    from apps.automations.engine import fire_safe
+    fire_safe(deployment.project, "deploy.failed",
+              {"environment": deployment.environment,
+               "is_production": deployment.is_production}, user=deployment.created_by)
     return deployment

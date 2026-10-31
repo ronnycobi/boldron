@@ -1,0 +1,105 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}{{ project.name }} · Automations · {{ app_name }}{% endblock %}
+{% block crumb %}Build / Projects / {{ project.name }} / Automations{% endblock %}
+{% block content %}
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+    <h1>Automations</h1>
+    <a class="btn ghost" href="{% url 'dashboard:project' project.id %}">← {{ project.name }}</a>
+  </div>
+  <p class="sub">When something happens in <strong>{{ project.name }}</strong>, do something about it.
+    Each automation reacts to a real event, checks its conditions, and runs its actions — recording
+    every action's honest result. An action that needs an unconfigured capability is skipped, never faked.</p>
+
+  <div class="card" style="display:flex;gap:18px;flex-wrap:wrap;align-items:baseline">
+    <div><strong style="font-size:20px">{{ summary.active }}</strong> <span class="muted">active</span></div>
+    {% if summary.draft %}<div class="muted">{{ summary.draft }} draft</div>{% endif %}
+    {% if summary.paused %}<div class="muted">{{ summary.paused }} paused</div>{% endif %}
+    <div class="muted">{{ summary.runs }} run(s) recorded</div>
+  </div>
+
+  {% if last_run %}
+  <div class="card" style="border-color:var(--brandline);background:var(--brandsoft)">
+    <strong>Test run — {{ last_run.get_status_display }}</strong>
+    <table style="margin-top:8px">
+      {% for r in last_run.results %}
+      <tr>
+        <td style="width:26%">{{ r.action|default:"—" }}</td>
+        <td><span class="badge b-{% if r.outcome == 'done' %}completed{% elif r.outcome == 'skipped' %}idle{% else %}failed{% endif %}">{{ r.outcome }}</span></td>
+        <td class="muted">{{ r.detail }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+
+  {% if can_manage %}
+  <details class="card" style="margin-bottom:12px">
+    <summary style="cursor:pointer;font-weight:700;list-style:none">+ New automation</summary>
+    <form method="post" style="margin-top:12px">{% csrf_token %}
+      <input type="hidden" name="action" value="add">
+      <label>Name</label>
+      <input name="name" placeholder="e.g. Alert on production deploy failure" required>
+      <label>When (trigger)</label>
+      <select name="trigger">
+        {% for key, t in triggers.items %}<option value="{{ key }}">{{ t.label }} — {{ t.description }}</option>{% endfor %}
+      </select>
+      <label>Conditions (JSON list, optional)</label>
+      <textarea name="conditions" rows="2" placeholder='[{"fact": "is_production", "op": "eq", "value": true}]'></textarea>
+      <label>Actions (JSON list)</label>
+      <textarea name="actions" rows="3" placeholder='[{"type": "notify", "params": {"message": "Deploy to {environment} failed", "severity": "high"}}]' required></textarea>
+      <p class="muted" style="font-size:11.5px;margin:6px 0 0">Actions: {% for key, a in actions_catalog.items %}<code>{{ key }}</code>{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+      <div style="margin-top:10px"><button class="btn" type="submit">Create automation</button></div>
+    </form>
+  </details>
+  {% endif %}
+
+  {% for wf in automations %}
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
+      <div style="flex:1 1 55%">
+        <strong>{{ wf.name }}</strong>
+        <span class="badge b-{% if wf.status == 'active' %}completed{% elif wf.status == 'paused' %}idle{% else %}waiting_for_approval{% endif %}" style="margin-left:6px">{{ wf.get_status_display }}</span>
+        <div class="muted" style="font-size:12.5px;margin-top:4px">
+          When <strong>{{ wf.trigger_label }}</strong>
+          {% if wf.conditions %}· {{ wf.conditions|length }} condition(s){% endif %}
+          · {{ wf.actions|length }} action(s) · {{ wf.run_count }} run(s)
+        </div>
+        {% if wf.description %}<p class="muted" style="font-size:13px;margin:6px 0 0">{{ wf.description }}</p>{% endif %}
+      </div>
+      {% if can_manage %}
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <form method="post" style="display:flex;gap:4px;align-items:center">{% csrf_token %}
+          <input type="hidden" name="action" value="status">
+          <input type="hidden" name="workflow" value="{{ wf.id }}">
+          <select name="status">
+            {% for val, label in statuses %}<option value="{{ val }}" {% if val == wf.status %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+          <button class="btn ghost" type="submit" style="padding:4px 10px">Save</button>
+        </form>
+        <form method="post" style="display:flex;gap:4px;align-items:center">{% csrf_token %}
+          <input type="hidden" name="action" value="run">
+          <input type="hidden" name="workflow" value="{{ wf.id }}">
+          <input name="facts" placeholder='{"severity":"high"}' style="width:150px">
+          <button class="btn ghost" type="submit" style="padding:4px 10px">Test</button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+    {% with recent=wf.runs.all|slice:":3" %}
+    {% if recent %}
+    <table style="margin-top:10px">
+      {% for run in recent %}
+      <tr>
+        <td style="width:20%"><span class="badge b-{% if run.status == 'completed' %}completed{% elif run.status == 'failed' %}failed{% else %}idle{% endif %}">{{ run.get_status_display }}</span></td>
+        <td class="muted" style="font-size:12px">{{ run.trigger }} · {{ run.created_at|date:"M j, H:i" }}{% for r in run.results %} · {{ r.action }}:{{ r.outcome }}{% endfor %}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% endif %}
+    {% endwith %}
+  </div>
+  {% empty %}
+  <div class="card"><p class="empty" style="margin:0">No automations yet.
+    {% if can_manage %}Create one above.{% endif %}</p></div>
+  {% endfor %}
+{% endblock %}
