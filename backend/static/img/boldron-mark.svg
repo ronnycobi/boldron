@@ -1,20 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 156 120" fill="none" role="img" aria-label="Boldron">
-  <defs>
-    <linearGradient id="dfD" x1="8" y1="10" x2="96" y2="110" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#31c8ff"/>
-      <stop offset="1" stop-color="#3f74ff"/>
-    </linearGradient>
-    <linearGradient id="dfF" x1="104" y1="8" x2="156" y2="112" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#6f5bff"/>
-      <stop offset="1" stop-color="#b74bff"/>
-    </linearGradient>
-  </defs>
-  <!-- Angular "D": hexagonal bowl with a punched counter (evenodd) -->
-  <path fill="url(#dfD)" fill-rule="evenodd" d="
-    M10 12 H60 L92 42 V78 L60 108 H10 Z
-    M30 34 H54 L70 50 V70 L54 86 H30 Z"/>
-  <!-- "F": stem + two rocket-fin bars -->
-  <path fill="url(#dfF)" d="M104 12 H124 V108 H104 Z"/>
-  <path fill="url(#dfF)" d="M104 12 H156 L138 34 H104 Z"/>
-  <path fill="url(#dfF)" d="M104 50 H146 L128 72 H104 Z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none" role="img" aria-label="Boldron">
+  <!-- Brand accent: the orange blade, lower-left, pointing to the corner. -->
+  <path fill="#F2691E" d="M8 106 L44 52 V80 L30 106 Z"/>
+  <!-- The "B" (rendered light so it reads on the app's dark chrome; the brand
+       sheet is black-on-white — this is its dark-UI inversion). evenodd punches
+       the two counters. -->
+  <path fill="#F4F6FF" fill-rule="evenodd" d="
+    M34 14 H78 C96 14 104 24 104 39 C104 50 98 57 89 60 C100 63 108 71 108 85 C108 101 98 106 80 106 H34 Z
+    M54 32 H73 C81 32 84 36 84 42 C84 48 81 51 73 51 H54 Z
+    M54 69 H75 C84 69 87 74 87 81 C87 88 83 90 74 90 H54 Z"/>
 </svg>
