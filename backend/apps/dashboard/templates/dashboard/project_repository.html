@@ -32,4 +32,30 @@
     <p class="muted" style="font-size:13px">Pushing to an external host (GitHub, GitLab) needs a git integration configured by your operator. Until then, the repository lives inside the platform and your code is available via <a href="{% url 'dashboard:org_documents' %}">Documents → export</a>. Nothing here is faked as connected.</p>
   {% endif %}
 </div>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">
+    <h2 style="margin:0">Dependencies &amp; licenses</h2>
+    {% if license_report.needs_review %}<span class="badge b-waiting_for_approval">{{ license_report.needs_review }} to review</span>{% endif %}
+  </div>
+  <p class="muted" style="font-size:13px;margin:6px 0 10px">{{ license_report.note }}</p>
+  {% if license_report.dependencies %}
+  <table>
+    <tr><th>Package</th><th>Version</th><th>License</th><th>Flag</th></tr>
+    {% for d in license_report.dependencies %}
+    <tr>
+      <td class="strong">{{ d.package }}</td><td class="muted">{{ d.version|default:"—" }}</td>
+      <td class="muted">{{ d.license }}</td>
+      <td><span class="badge b-{% if d.flag == 'ok' %}completed{% elif d.flag == 'review' %}waiting_for_approval{% else %}idle{% endif %}">{{ d.flag }}</span></td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}<p class="muted" style="margin:0">No dependencies recorded.</p>{% endif %}
+  {% if can_manage %}
+  <form method="post" style="margin-top:12px">{% csrf_token %}
+    <input type="hidden" name="action" value="import_licenses">
+    <button class="btn ghost" type="submit">Import dependencies from the repo manifest</button>
+  </form>
+  {% endif %}
+</div>
 {% endblock %}

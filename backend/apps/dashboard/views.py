@@ -2401,9 +2401,17 @@ def project_repository(request, pk):
         except GitError:
             pass
     remote_configured = bool(os.environ.get("GIT_REMOTE_TOKEN"))
+    can_manage = proj.organization_id in _manageable_ids(request.user)
+    from apps.licenses import service as licenses
+    if request.method == "POST" and request.POST.get("action") == "import_licenses" and can_manage:
+        n = licenses.import_from_context(proj)
+        messages.success(request, f"Imported {n} dependenc{'y' if n == 1 else 'ies'}."
+                         if n else "No captured dependencies to import.")
+        return redirect("dashboard:project_repository", pk=pk)
     return render(request, "dashboard/project_repository.html", {
         "active": "projects", "project": proj, "info": info,
-        "remote_configured": remote_configured,
+        "remote_configured": remote_configured, "can_manage": can_manage,
+        "license_report": licenses.report(proj),
     })
 
 

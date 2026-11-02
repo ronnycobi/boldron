@@ -53,6 +53,7 @@ urlpatterns = [
     path("api/v1/", include("apps.trust.urls")),
     path("api/v1/", include("apps.governance.urls")),
     path("api/v1/", include("apps.app_legal.urls")),
+    path("api/v1/", include("apps.licenses.urls")),
     path("api/v1/", include("apps.backups.urls")),
     path("api/v1/", include("apps.tools.urls")),
     path("api/v1/", include("apps.developer.urls")),
