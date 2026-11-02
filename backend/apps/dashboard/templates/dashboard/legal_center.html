@@ -45,6 +45,31 @@
     {% else %}<p class="empty" style="margin:0">No legal documents have been published yet.</p>{% endif %}
   </div>
 
+  <h2>Cookie &amp; marketing preferences</h2>
+  <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr))">
+    <div class="card">
+      <h3 style="margin-top:0;font-size:14px">Cookies</h3>
+      <p class="muted" style="font-size:12.5px;margin:0 0 10px">Necessary cookies are always on so the service works. You choose the rest — declining is fine.</p>
+      <form method="post">{% csrf_token %}
+        <input type="hidden" name="action" value="cookies">
+        <label style="display:flex;align-items:center;gap:8px;opacity:.6"><input type="checkbox" checked disabled style="width:auto"> Necessary <span class="muted" style="font-size:11px">(always on)</span></label>
+        <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" name="preferences" {% if cookies.preferences %}checked{% endif %} style="width:auto"> Preferences</label>
+        <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" name="analytics" {% if cookies.analytics %}checked{% endif %} style="width:auto"> Analytics</label>
+        <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" name="marketing" {% if cookies.marketing %}checked{% endif %} style="width:auto"> Marketing</label>
+        <div style="margin-top:10px"><button class="btn" type="submit">Save cookie preferences</button></div>
+      </form>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0;font-size:14px">Marketing communications</h3>
+      <p class="muted" style="font-size:12.5px;margin:0 0 10px">Separate from service messages about your account and tickets, which you always receive where needed.</p>
+      <form method="post">{% csrf_token %}
+        <input type="hidden" name="action" value="marketing">
+        <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" name="opted_in" {% if marketing_opted_in %}checked{% endif %} style="width:auto"> Send me product updates and marketing emails</label>
+        <div style="margin-top:10px"><button class="btn" type="submit">Save</button></div>
+      </form>
+    </div>
+  </div>
+
   <h2>Your agreements</h2>
   <div class="card">
     <table>

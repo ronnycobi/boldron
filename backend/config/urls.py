@@ -48,6 +48,7 @@ urlpatterns = [
     path("api/v1/", include("apps.data_quality.urls")),
     path("api/v1/", include("apps.performance.urls")),
     path("api/v1/", include("apps.legal.urls")),
+    path("api/v1/", include("apps.consent.urls")),
     path("api/v1/", include("apps.backups.urls")),
     path("api/v1/", include("apps.tools.urls")),
     path("api/v1/", include("apps.developer.urls")),

@@ -2959,19 +2959,37 @@ def legal_center(request):
     """The customer Legal Center (spec §53): the current published legal documents,
     the user's own versioned acceptance history, and any pending acceptances. A
     user only ever sees their own agreements."""
+    from apps.consent import service as consent
     from apps.legal import service
-    if request.method == "POST" and request.POST.get("action") == "accept":
-        from apps.legal.models import LegalDocument
-        doc = get_object_or_404(LegalDocument, slug=request.POST.get("document", ""))
-        try:
-            service.record_acceptance(
-                request.user, doc, method="legal_center",
-                ip_address=(request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip()
-                            or request.META.get("REMOTE_ADDR")),
-                user_agent=request.META.get("HTTP_USER_AGENT", ""))
-            messages.success(request, f"Recorded your acceptance of {doc.title} v{doc.version}.")
-        except service.LegalError as exc:
-            messages.error(request, str(exc))
+
+    def _ip():
+        return (request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip()
+                or request.META.get("REMOTE_ADDR"))
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "accept":
+            from apps.legal.models import LegalDocument
+            doc = get_object_or_404(LegalDocument, slug=request.POST.get("document", ""))
+            try:
+                service.record_acceptance(
+                    request.user, doc, method="legal_center", ip_address=_ip(),
+                    user_agent=request.META.get("HTTP_USER_AGENT", ""))
+                messages.success(request, f"Recorded your acceptance of {doc.title} v{doc.version}.")
+            except service.LegalError as exc:
+                messages.error(request, str(exc))
+        elif action == "cookies":
+            consent.record_cookie_consent(
+                user=request.user, method="legal_center", ip_address=_ip(),
+                user_agent=request.META.get("HTTP_USER_AGENT", ""),
+                categories={"preferences": bool(request.POST.get("preferences")),
+                            "analytics": bool(request.POST.get("analytics")),
+                            "marketing": bool(request.POST.get("marketing"))})
+            messages.success(request, "Cookie preferences saved.")
+        elif action == "marketing":
+            consent.set_marketing_consent(
+                request.user, bool(request.POST.get("opted_in")), source="legal_center")
+            messages.success(request, "Marketing preferences saved.")
         return redirect("dashboard:legal_center")
 
     documents = service.published_documents()
@@ -2980,6 +2998,8 @@ def legal_center(request):
     rows = [{"doc": d, "acceptance": accepted.get(d.id)} for d in documents]
     return render(request, "dashboard/legal_center.html", {
         "active": "settings", "rows": rows, "pending": pending,
+        "cookies": consent.cookie_state(user=request.user),
+        "marketing_opted_in": consent.marketing_opted_in(request.user),
     })
 
 
