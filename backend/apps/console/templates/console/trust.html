@@ -55,4 +55,48 @@
     </table>
     {% else %}<p class="empty">No vulnerability reports.</p>{% endif %}
   </div>
+
+  <h2>Security incidents
+    {% if incident_summary.open %}<span class="pill" style="color:#c0392b">{{ incident_summary.open }} open</span>{% endif %}</h2>
+  <p class="sub">Breach notification is never automatic — it's assessed, then sent explicitly, so legal/security can review first.</p>
+  <details class="card">
+    <summary style="cursor:pointer;font-weight:700;list-style:none">+ Open security incident</summary>
+    <form method="post" style="margin-top:12px">{% csrf_token %}
+      <input type="hidden" name="action" value="open_incident">
+      <label>Title</label><input name="title" required>
+      <label>Severity</label><select name="severity">{% for v, l in incident_severities %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select>
+      <div style="margin-top:10px"><button class="btn" type="submit">Open</button></div>
+    </form>
+  </details>
+  {% for inc in incidents %}
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">
+      <div><strong>{{ inc.title }}</strong>
+        <span class="pill">{{ inc.get_severity_display }}</span>
+        <span class="pill">{{ inc.get_status_display }}</span>
+        {% if inc.notification_assessed %}
+          <span class="muted" style="font-size:11px">notification: {% if inc.notification_required %}required{% else %}not required{% endif %}{% if inc.notification_sent %} · sent{% endif %}</span>
+        {% else %}<span class="muted" style="font-size:11px">notification not assessed</span>{% endif %}
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <form method="post" style="display:flex;gap:4px;align-items:center">{% csrf_token %}
+        <input type="hidden" name="action" value="incident_status"><input type="hidden" name="incident" value="{{ inc.id }}">
+        <select name="status">{% for v, l in incident_statuses %}<option value="{{ v }}" {% if v == inc.status %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+        <button class="btn ghost" type="submit" style="padding:3px 8px">Save status</button>
+      </form>
+      <form method="post" style="display:flex;gap:4px;align-items:center">{% csrf_token %}
+        <input type="hidden" name="action" value="assess"><input type="hidden" name="incident" value="{{ inc.id }}">
+        <label style="font-size:12px"><input type="checkbox" name="required" style="width:auto"> notification required</label>
+        <button class="btn ghost" type="submit" style="padding:3px 8px">Record assessment</button>
+      </form>
+      {% if inc.notification_assessed and inc.notification_required and not inc.notification_sent %}
+      <form method="post">{% csrf_token %}
+        <input type="hidden" name="action" value="notify"><input type="hidden" name="incident" value="{{ inc.id }}">
+        <button class="btn" type="submit" style="padding:3px 8px">Mark notified</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
 {% endblock %}

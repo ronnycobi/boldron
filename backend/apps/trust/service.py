@@ -108,3 +108,75 @@ def disclosure_info() -> dict:
                      "customers' data, run denial-of-service, or publicly disclose "
                      "before we have had a chance to remediate."),
     }
+
+
+# --- security incidents (spec §30) -------------------------------------------
+
+def open_security_incident(*, title, severity="medium", summary="", user=None):
+    from apps.trust.models import SecurityIncident
+    title = (title or "").strip()
+    if not title:
+        raise TrustError("A security incident needs a title.")
+    if severity not in SecurityIncident.Severity.values:
+        severity = "medium"
+    inc = SecurityIncident.objects.create(
+        title=title[:200], severity=severity, summary=summary)
+    audit("security.incident.open", actor=user, target=f"sec_incident:{inc.id}",
+          summary=f"[{severity}] {title}")
+    return inc
+
+
+def update_security_incident(inc, *, user=None, **fields):
+    from django.utils import timezone
+    from apps.trust.models import SecurityIncident
+    for f in ("summary", "investigation", "containment", "remediation", "postmortem"):
+        if f in fields and fields[f] is not None:
+            setattr(inc, f, fields[f])
+    if "severity" in fields and fields["severity"] in SecurityIncident.Severity.values:
+        inc.severity = fields["severity"]
+    if "status" in fields and fields["status"] in SecurityIncident.Status.values:
+        inc.status = fields["status"]
+        if fields["status"] in ("resolved", "closed") and not inc.resolved_at:
+            inc.resolved_at = timezone.now()
+    inc.save()
+    audit("security.incident.update", actor=user, target=f"sec_incident:{inc.id}",
+          summary=inc.status)
+    return inc
+
+
+def assess_notification(inc, *, required, note="", user=None):
+    """Record the breach-notification assessment. This does NOT send anything —
+    it's the reviewed decision that must precede any notification."""
+    inc.notification_assessed = True
+    inc.notification_required = bool(required)
+    inc.notification_note = note
+    inc.save(update_fields=["notification_assessed", "notification_required",
+                            "notification_note"])
+    audit("security.incident.assess", actor=user, target=f"sec_incident:{inc.id}",
+          summary=f"notification {'required' if required else 'not required'}")
+    return inc
+
+
+def mark_notified(inc, *, user=None):
+    """Mark that notification has been sent — only allowed AFTER an assessment that
+    found it required (never an automatic or premature notification)."""
+    if not inc.notification_assessed:
+        raise TrustError("Assess whether notification is required before sending.")
+    if not inc.notification_required:
+        raise TrustError("The assessment found notification was not required.")
+    inc.notification_sent = True
+    inc.save(update_fields=["notification_sent"])
+    audit("security.incident.notified", actor=user, target=f"sec_incident:{inc.id}",
+          summary="notification sent")
+    return inc
+
+
+def security_incident_summary() -> dict:
+    from apps.trust.models import SecurityIncident
+    inc = SecurityIncident.objects.all()
+    open_ = inc.exclude(status__in=("resolved", "closed"))
+    return {
+        "total": inc.count(),
+        "open": open_.count(),
+        "critical_open": open_.filter(severity="critical").count(),
+    }

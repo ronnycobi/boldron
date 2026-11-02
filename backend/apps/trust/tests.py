@@ -100,3 +100,40 @@ class TrustWebTests(TestCase):
         self.client.post(reverse("console:trust"),
                          {"action": "subprocessor", "name": "Brevo", "category": "email"})
         self.assertTrue(Subprocessor.objects.filter(name="Brevo").exists())
+
+
+class SecurityIncidentTests(TestCase):
+    def setUp(self):
+        self.staff = User.objects.create_user(email="si@x.com", password="pw12345!", is_staff=True)
+
+    def test_open_requires_title(self):
+        with self.assertRaises(service.TrustError):
+            service.open_security_incident(title="")
+
+    def test_notification_cannot_be_sent_before_assessment(self):
+        inc = service.open_security_incident(title="Data exposure", severity="high")
+        with self.assertRaises(service.TrustError):
+            service.mark_notified(inc)   # never auto/premature
+
+    def test_notification_blocked_when_assessed_not_required(self):
+        inc = service.open_security_incident(title="Minor issue")
+        service.assess_notification(inc, required=False)
+        with self.assertRaises(service.TrustError):
+            service.mark_notified(inc)
+
+    def test_full_flow_assess_required_then_notify(self):
+        from apps.trust.models import SecurityIncident
+        inc = service.open_security_incident(title="Breach", severity="critical")
+        service.update_security_incident(inc, status="contained")
+        service.assess_notification(inc, required=True, note="PII affected")
+        service.mark_notified(inc)
+        inc.refresh_from_db()
+        self.assertTrue(inc.notification_sent)
+        self.assertEqual(inc.status, SecurityIncident.Status.CONTAINED)
+
+    def test_console_opens_security_incident(self):
+        self.client.force_login(self.staff)
+        self.client.post(reverse("console:trust"),
+                         {"action": "open_incident", "title": "Suspicious login", "severity": "high"})
+        from apps.trust.models import SecurityIncident
+        self.assertTrue(SecurityIncident.objects.filter(title="Suspicious login").exists())

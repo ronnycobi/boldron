@@ -477,7 +477,7 @@ def trust(request):
     from django.shortcuts import redirect
 
     from apps.trust import service
-    from apps.trust.models import Subprocessor, VulnerabilityReport
+    from apps.trust.models import SecurityIncident, Subprocessor, VulnerabilityReport
 
     if request.method == "POST":
         action = request.POST.get("action")
@@ -495,6 +495,26 @@ def trust(request):
                 service.set_report_status(report, request.POST.get("status", ""),
                                           user=request.user)
                 messages.success(request, "Report updated.")
+            elif action == "open_incident":
+                service.open_security_incident(
+                    title=request.POST.get("title", ""),
+                    severity=request.POST.get("severity", "medium"), user=request.user)
+                messages.success(request, "Security incident opened.")
+            elif action == "incident_status":
+                inc = get_object_or_404(SecurityIncident, pk=request.POST.get("incident", 0))
+                service.update_security_incident(inc, status=request.POST.get("status", ""),
+                                                 user=request.user)
+                messages.success(request, "Incident updated.")
+            elif action == "assess":
+                inc = get_object_or_404(SecurityIncident, pk=request.POST.get("incident", 0))
+                service.assess_notification(
+                    inc, required=bool(request.POST.get("required")),
+                    note=request.POST.get("note", ""), user=request.user)
+                messages.success(request, "Notification assessment recorded.")
+            elif action == "notify":
+                inc = get_object_or_404(SecurityIncident, pk=request.POST.get("incident", 0))
+                service.mark_notified(inc, user=request.user)
+                messages.success(request, "Marked as notified.")
         except service.TrustError as exc:
             messages.error(request, str(exc))
         return redirect("console:trust")
@@ -505,4 +525,8 @@ def trust(request):
         "reports": VulnerabilityReport.objects.all()[:100],
         "categories": Subprocessor.Category.choices,
         "report_statuses": VulnerabilityReport.Status.choices,
+        "incidents": SecurityIncident.objects.all()[:50],
+        "incident_summary": service.security_incident_summary(),
+        "incident_severities": SecurityIncident.Severity.choices,
+        "incident_statuses": SecurityIncident.Status.choices,
     })
