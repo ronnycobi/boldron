@@ -258,7 +258,12 @@ def overview(request):
             org = Organization.objects.create(
                 name=f"{user.short_name}'s workspace", created_by=user)
             org.add_member(user, role=Role.OWNER)
-        project = create_and_start_build(org, brief, user)
+        from apps.governance.service import GovernanceError
+        try:
+            project = create_and_start_build(org, brief, user)
+        except GovernanceError as exc:
+            messages.error(request, str(exc))
+            return redirect("dashboard:home")
         messages.success(request, f"{settings.APP_NAME} is building your app — follow the progress below.")
         # Real balance check: probe a connected model (cached) rather than just
         # checking that a key is set, so the demo-mode warning is accurate.
@@ -2318,11 +2323,25 @@ def org_privacy(request):
                                           "within our response window.")
             except privacy.PrivacyError as exc:
                 messages.error(request, str(exc))
+        elif action == "appeal":
+            from apps.governance import service as gov
+            org = get_object_or_404(Organization, pk=request.POST.get("organization", 0),
+                                    memberships__user=request.user)
+            try:
+                gov.submit_appeal(org, request.user, reason=request.POST.get("reason", ""))
+                messages.success(request, "Your appeal was submitted — our team will review it.")
+            except gov.GovernanceError as exc:
+                messages.error(request, str(exc))
         return redirect("dashboard:org_privacy")
+    from apps.governance import service as gov
+    from apps.governance.models import AccountStatus
+    accounts = [{"org": o, "status": gov.current_status(o)} for o in orgs]
     return render(request, "dashboard/org_privacy.html", {
         "active": "settings", "orgs": orgs,
         "request_types": [{"key": t.value, "label": t.label} for t in RequestType],
         "my_requests": list(request.user.privacy_requests.all()[:20]),
+        "accounts": accounts,
+        "blocked_statuses": [AccountStatus.SUSPENDED, AccountStatus.TERMINATED],
     })
 
 

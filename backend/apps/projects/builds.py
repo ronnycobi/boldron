@@ -198,6 +198,9 @@ def create_and_start_build(organization, brief, user) -> Project:
     Returns the new Project."""
     from apps.capabilities.analysis import capability_ids
     from apps.mobile import planner as mobile_planner
+    # Account governance (spec §42): a suspended/terminated account can't build.
+    from apps.governance.service import require_active
+    require_active(organization)
     project = Project.objects.create(
         organization=organization,
         name=name_from_brief(brief),

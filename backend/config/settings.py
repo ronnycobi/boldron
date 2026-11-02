@@ -196,6 +196,7 @@ INSTALLED_APPS = [
     "apps.consent",
     "apps.privacy",
     "apps.trust",
+    "apps.governance",
 ]
 
 # --- Auth redirects (server-rendered dashboard UI) --------------------------

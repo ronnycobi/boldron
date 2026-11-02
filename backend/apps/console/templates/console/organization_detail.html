@@ -59,4 +59,43 @@
     </table>
     {% else %}<p class="empty">No usage recorded.</p>{% endif %}
   </div>
+
+  <h2>Account status <span class="pill">{{ account_status }}</span></h2>
+  <div class="card">
+    <form method="post" style="display:flex;gap:6px;align-items:end;flex-wrap:wrap">{% csrf_token %}
+      <input type="hidden" name="action" value="set_status">
+      <div><label>Set status</label><select name="status">{% for v, l in account_statuses %}<option value="{{ v }}" {% if v == account_status %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+      <div style="flex:1;min-width:180px"><label>Reason (required to suspend/terminate)</label><input name="reason"></div>
+      <div><label>Policy section</label><input name="policy_section" placeholder="AUP 3.1" style="width:110px"></div>
+      <button class="btn" type="submit">Apply</button>
+    </form>
+    {% if account_history %}
+    <table style="margin-top:12px">
+      {% for a in account_history %}
+      <tr><td class="muted">{{ a.created_at|date:"M j, H:i" }}</td><td>{{ a.from_status }} → <strong>{{ a.to_status }}</strong></td><td class="muted">{{ a.reason|truncatechars:50 }}</td></tr>
+      {% endfor %}
+    </table>
+    {% endif %}
+  </div>
+
+  {% if appeals %}
+  <h2>Appeals</h2>
+  <div class="card">
+    {% for ap in appeals %}
+    <div style="padding:8px 0;border-top:1px solid var(--line)">
+      <div><strong>{{ ap.get_status_display }}</strong>{% if ap.outcome %} · {{ ap.get_outcome_display }}{% endif %} <span class="muted" style="font-size:11px">{{ ap.created_at|date:"M j" }}</span></div>
+      <p class="muted" style="font-size:13px;margin:4px 0">{{ ap.reason }}</p>
+      {% if ap.status != 'decided' %}
+      <form method="post" style="display:flex;gap:4px;align-items:center">{% csrf_token %}
+        <input type="hidden" name="action" value="decide_appeal">
+        <input type="hidden" name="appeal" value="{{ ap.id }}">
+        <select name="outcome">{% for v, l in appeal_outcomes %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select>
+        <input name="resolution" placeholder="resolution note" style="width:200px">
+        <button class="btn ghost" type="submit" style="padding:3px 8px">Decide</button>
+      </form>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
 {% endblock %}

@@ -30,6 +30,22 @@
   {% endfor %}
 </div>
 
+{% for a in accounts %}{% if a.status != 'active' %}
+<div class="card" style="border-color:rgba(245,196,84,.45);background:rgba(245,196,84,.07)">
+  <h2 style="margin-top:0">Account status — {{ a.org.name }}: <strong style="text-transform:capitalize">{{ a.status }}</strong></h2>
+  {% if a.status in blocked_statuses %}
+  <p class="muted" style="font-size:13px">This account is currently {{ a.status }}. If you believe this was a mistake, you can appeal and our team will review it.</p>
+  <form method="post" style="margin-top:8px">{% csrf_token %}
+    <input type="hidden" name="action" value="appeal">
+    <input type="hidden" name="organization" value="{{ a.org.id }}">
+    <label>Why should we review this?</label>
+    <textarea name="reason" rows="2" required></textarea>
+    <div style="margin-top:8px"><button class="btn" type="submit">Submit appeal</button></div>
+  </form>
+  {% endif %}
+</div>
+{% endif %}{% endfor %}
+
 <div class="card">
   <h2 style="margin-top:0">Privacy requests</h2>
   <p class="muted" style="font-size:13px">Exercise your data rights. We record each request and action it within our response window; the exact rights available depend on your local law.</p>

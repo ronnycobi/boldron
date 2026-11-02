@@ -114,6 +114,28 @@ def organizations(request):
 @staff_required
 def organization_detail(request, pk):
     org = get_object_or_404(Organization, pk=pk)
+    from apps.governance import service as gov
+    from apps.governance.models import AccountStatus, Appeal
+    if request.method == "POST":
+        from django.contrib import messages
+        from django.shortcuts import redirect
+        action = request.POST.get("action")
+        try:
+            if action == "set_status":
+                gov.set_status(org, request.POST.get("status", ""),
+                               reason=request.POST.get("reason", ""),
+                               policy_section=request.POST.get("policy_section", ""),
+                               actor=request.user)
+                messages.success(request, "Account status updated.")
+            elif action == "decide_appeal":
+                appeal = get_object_or_404(Appeal, pk=request.POST.get("appeal", 0), organization=org)
+                gov.decide_appeal(appeal, request.POST.get("outcome", ""),
+                                  resolution=request.POST.get("resolution", ""),
+                                  reviewer=request.user)
+                messages.success(request, "Appeal decided.")
+        except gov.GovernanceError as exc:
+            messages.error(request, str(exc))
+        return redirect("console:org", pk=pk)
     members = Membership.objects.filter(organization=org).select_related("user")
     projects = Project.objects.filter(organization=org).order_by("-created_at")
     account = CreditAccount.objects.filter(organization=org).first()
@@ -125,6 +147,11 @@ def organization_detail(request, pk):
         "active": "orgs", "org": org, "members": members, "projects": projects,
         "account": account, "totals": totals, "recent_usage": recent,
         "spent_today": spent_today(org), "daily_cap": cap,
+        "account_status": gov.current_status(org),
+        "account_statuses": AccountStatus.choices,
+        "account_history": gov.history(org)[:10],
+        "appeals": org.appeals.all()[:10],
+        "appeal_outcomes": Appeal.Outcome.choices,
     })
 
 

@@ -95,7 +95,11 @@ class BuildView(APIView):
                 )
                 org.add_member(request.user, role=Role.OWNER)
 
-        project = create_and_start_build(org, brief, request.user)
+        from apps.governance.service import GovernanceError
+        try:
+            project = create_and_start_build(org, brief, request.user)
+        except GovernanceError as exc:
+            return Response({"detail": str(exc)}, status=403)
         readiness = build_readiness()
         return Response(
             {
