@@ -244,6 +244,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "apps.core.context_processors.branding",
+                "apps.core.context_processors.legal_links",
             ],
         },
     },

@@ -357,6 +357,15 @@
       {% endif %}
       {% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}
       {% block content %}{% endblock %}
+      <footer style="margin-top:28px;padding-top:14px;border-top:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--muted)">
+        <span>© {% now "Y" %} {{ app_company_name|default:app_name }}</span>
+        <a href="{% url 'dashboard:legal_center' %}" style="color:var(--muted)">Legal</a>
+        <a href="{% url 'dashboard:org_privacy' %}" style="color:var(--muted)">Privacy</a>
+        <a href="{% url 'dashboard:trust_center' %}" style="color:var(--muted)">Security</a>
+        {% for l in footer_legal_links %}
+        <a href="/api/v1/legal/documents/{{ l.slug }}/" target="_blank" style="color:var(--muted)">{{ l.title }}</a>
+        {% endfor %}
+      </footer>
     </div>
   </main>
 </div>

@@ -12,16 +12,38 @@ from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 
 
+def legal_footer_text() -> str:
+    """A compact legal footer for transactional email (spec §59): company
+    identification + support contact, built from env/branding (never hard-coded)."""
+    company = (getattr(settings, "APP_COMPANY_NAME", "")
+               or getattr(settings, "APP_NAME", "") or "")
+    support = getattr(settings, "APP_SUPPORT_EMAIL", "")
+    url = getattr(settings, "APP_URL", "")
+    parts = []
+    if company:
+        parts.append(company)
+    if support:
+        parts.append(f"Support: {support}")
+    if url:
+        parts.append(url)
+    body = " · ".join(parts)
+    return (f"\n\n—\n{body}\nThis is a service message about your account."
+            if body else "")
+
+
 def send_email(*, subject: str, to, text: str, html: str | None = None,
-               from_email: str | None = None) -> int:
-    """Send one email. `to` may be a string or a list. Returns messages sent (0/1)."""
+               from_email: str | None = None, legal_footer: bool = True) -> int:
+    """Send one email. `to` may be a string or a list. Returns messages sent (0/1).
+    A transactional legal footer (company + support) is appended by default; pass
+    legal_footer=False for messages that supply their own (e.g. marketing)."""
     recipients = [to] if isinstance(to, str) else list(to)
     recipients = [r for r in recipients if r]
     if not recipients:
         return 0
+    body = text + (legal_footer_text() if legal_footer else "")
     msg = EmailMultiAlternatives(
         subject=subject,
-        body=text,
+        body=body,
         from_email=from_email or settings.DEFAULT_FROM_EMAIL,
         to=recipients,
     )
