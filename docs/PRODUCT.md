@@ -266,7 +266,36 @@ parity, and tests. Several reuse one shared business-rules condition engine.
 All verified end-to-end through the authenticated web app against seeded real
 data (e.g. Health shows "2 measured signals of 5" with unmeasured pillars honestly
 *unknown*; A/B shows a numerically-ahead variant still *inconclusive* until
-significant). Full backend suite ≈1,439 tests green; `flutter analyze` clean.
+significant).
+
+### Legal & Compliance Engine (built on the core)
+
+A production-grade legal/compliance subsystem — a versioned, auditable,
+jurisdiction-aware engine, **never static pages**. It holds the same honesty
+line throughout: no false compliance/certification claims, legal-entity and
+contacts come from the environment only, legal records are tenant/staff-isolated
+and audited, and nothing is destroyed or disclosed without an explicit human step.
+
+| System | Status |
+|--------|--------|
+| **Legal Document engine** (§1–4) | **done — `apps/legal`: one immutable published version per type/jurisdiction/language, draft→review→approve→publish→supersede→archive; publishing freezes content + SHA-256 and a model guard rejects edits (a change is a new version). Extensible type + jurisdiction registry. ~22 tests** |
+| **Versioned acceptance** (§1, §45–46) | **done — durable `LegalAcceptance` (document, version, hash, who, org, IP/UA/country, consent type, mandatory, method) — never a boolean; idempotent per version; a changed mandatory doc re-prompts. Public read API + staff authoring + customer Legal Center + staff console** |
+| **Consent management** (§21–22, §60) | **done — `apps/consent`: cookie consent (necessary forced on, optional off until opted in, no dark patterns) + marketing opt-IN kept separate from service comms; append-only logs. ~12 tests** |
+| **Privacy requests & export** (§17–19) | **done — `apps/privacy`: data-subject request workflow (access/export/correction/deletion/…) with status machine, deadline, reviewer; deletion is tracked not instant; secrets-safe export. ~14 tests** |
+| **Jurisdiction + law enforcement** (§5, §71) | **done — counsel-configured jurisdiction requirements (never inferred; configured:false until set) + staff-only law-enforcement request log (customer data never auto-disclosed). ~8 tests** |
+| **Trust Center** (§26, §28, §29) | **done — `apps/trust`: public subprocessor register, honest security overview (certifications:[] + explicit no-cert disclaimer), private responsible-disclosure intake. ~11 tests** |
+| **Security incidents** (§30) | **done — security-incident workflow with breach notification gated behind an explicit assessment — never auto-sent. ~5 tests** |
+| **Account lifecycle + appeals** (§42–43) | **done — `apps/governance`: active→restricted→suspended→terminated with recorded reason/evidence; suspension genuinely blocks building; appeals with a reviewed outcome (a reversal restores). ~15 tests** |
+| **Application legal** (§62–68) | **done — `apps/app_legal`: per-project privacy scan, policy↔product consistency, a pre-deploy check that never says "compliant", change triggers, and a draft generator (counsel-review disclaimer, real features only). ~14 tests** |
+| **License tracking** (§12) | **done — `apps/licenses`: dependency records + honest license classifier (copyleft/unknown flagged for review), attribution; never declares the project "legally safe". ~7 tests** |
+| **Governance dashboard + footers** (§58–59, §69) | **done — staff governance overview from real DB counts; dynamic footer of published documents; transactional email legal footer from configured identity only** |
+
+The engine is built to accommodate — not fake — the external step it cannot do:
+the actual legal copy and jurisdiction-specific obligations must be drafted and
+reviewed by qualified legal counsel before launch, via the draft→review→approve→
+publish workflow with configurable entity/jurisdiction settings.
+
+Full backend suite ≈1,550 tests green; `flutter analyze` clean.
 
 ## 8. Long-term destination
 
