@@ -1,11 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none" role="img" aria-label="Boldron">
-  <!-- Brand accent: the orange blade, lower-left, pointing to the corner. -->
-  <path fill="#F2691E" d="M8 106 L44 52 V80 L30 106 Z"/>
-  <!-- The "B" (rendered light so it reads on the app's dark chrome; the brand
-       sheet is black-on-white — this is its dark-UI inversion). evenodd punches
-       the two counters. -->
-  <path fill="#F4F6FF" fill-rule="evenodd" d="
-    M34 14 H78 C96 14 104 24 104 39 C104 50 98 57 89 60 C100 63 108 71 108 85 C108 101 98 106 80 106 H34 Z
-    M54 32 H73 C81 32 84 36 84 42 C84 48 81 51 73 51 H54 Z
-    M54 69 H75 C84 69 87 74 87 81 C87 88 83 90 74 90 H54 Z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 120" fill="none" role="img" aria-label="Boldron">
+  <!-- Orange blade: a sharp speed-slash in the lower-left, pointing to the corner. -->
+  <path fill="#F26A1E" d="M12 104 L50 46 L50 58 L26 104 Z"/>
+  <!-- The "B": heavy, slightly dynamic, with a pointed top-right. Rendered light so
+       it reads on the app's dark chrome (the brand sheet is black-on-white — this
+       is its dark-UI inversion). evenodd punches the two counters. -->
+  <path fill="#F5F7FF" fill-rule="evenodd" d="
+    M30 12 H74 C90 12 99 21 99 36 C99 48 92 55 82 58 C96 61 106 69 106 84
+    C106 100 96 108 77 108 H30 Z
+    M52 31 H71 C79 31 82 35 82 42 C82 49 78 52 70 52 H52 Z
+    M52 68 H75 C84 68 87 74 87 82 C87 90 83 90 74 90 H52 Z"/>
 </svg>
