@@ -389,3 +389,36 @@ def legal(request):
         "document_types": [{"code": c, "label": l} for c, l in DOCUMENT_TYPES.items()],
         "jurisdictions": [{"code": c, "label": l} for c, l in JURISDICTIONS.items()],
     })
+
+
+@staff_required
+def privacy(request):
+    """Privacy-request queue (spec §17, §75): the staff workflow for data-subject
+    requests. Staff-only — these records never appear on tenant APIs."""
+    from django.contrib import messages
+    from django.shortcuts import redirect
+
+    from apps.privacy import service
+    from apps.privacy.models import PrivacyRequest, RequestStatus
+
+    if request.method == "POST":
+        req = get_object_or_404(PrivacyRequest, pk=request.POST.get("request", 0))
+        action = request.POST.get("action")
+        try:
+            if action == "transition":
+                service.transition(req, request.POST.get("status", ""),
+                                   note=request.POST.get("note", ""), actor=request.user)
+            elif action == "resolve":
+                service.resolve(req, resolution=request.POST.get("resolution", ""),
+                               status=request.POST.get("status", RequestStatus.COMPLETED),
+                               actor=request.user)
+            messages.success(request, "Request updated.")
+        except service.PrivacyError as exc:
+            messages.error(request, str(exc))
+        return redirect("console:privacy")
+
+    return render(request, "console/privacy.html", {
+        "active": "privacy", "summary": service.summary(),
+        "requests": PrivacyRequest.objects.select_related("user", "organization")[:200],
+        "statuses": RequestStatus.choices,
+    })

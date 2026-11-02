@@ -2291,21 +2291,39 @@ def org_privacy(request):
     """Privacy & data handling (spec §26): what the platform stores, links to the
     real data export, and a genuine data-deletion request (filed as a support
     ticket for a human to action — never an instant irreversible wipe)."""
+    from apps.privacy import service as privacy
+    from apps.privacy.models import RequestType
     orgs = list(organizations_for(request.user).order_by("name"))
-    if request.method == "POST" and request.POST.get("action") == "request_deletion":
-        org = get_object_or_404(Organization, pk=request.POST.get("organization", 0),
-                                memberships__user=request.user)
-        from apps.support.service import create_ticket
-        t = create_ticket(
-            organization=org, user=request.user, category="account", priority="high",
-            subject=f"Data deletion request — {org.name}",
-            body=f"{request.user.email} requested deletion of data for “{org.name}”.",
-        )
-        messages.success(request, f"Deletion request submitted ({t.number}). Our team "
-                                  "will confirm before anything is removed.")
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "request_deletion":
+            org = get_object_or_404(Organization, pk=request.POST.get("organization", 0),
+                                    memberships__user=request.user)
+            from apps.support.service import create_ticket
+            t = create_ticket(
+                organization=org, user=request.user, category="account", priority="high",
+                subject=f"Data deletion request — {org.name}",
+                body=f"{request.user.email} requested deletion of data for “{org.name}”.",
+            )
+            # Also record the structured privacy request for the audit trail.
+            privacy.submit(request.user, RequestType.DELETION, organization=org,
+                           details=f"Filed via support ticket {t.number}.")
+            messages.success(request, f"Deletion request submitted ({t.number}). Our team "
+                                      "will confirm before anything is removed.")
+        elif action == "privacy_request":
+            try:
+                req = privacy.submit(request.user, request.POST.get("request_type", ""),
+                                     details=request.POST.get("details", ""))
+                messages.success(request, f"Request #{req.id} received — we'll action it "
+                                          "within our response window.")
+            except privacy.PrivacyError as exc:
+                messages.error(request, str(exc))
         return redirect("dashboard:org_privacy")
-    return render(request, "dashboard/org_privacy.html",
-                  {"active": "settings", "orgs": orgs})
+    return render(request, "dashboard/org_privacy.html", {
+        "active": "settings", "orgs": orgs,
+        "request_types": [{"key": t.value, "label": t.label} for t in RequestType],
+        "my_requests": list(request.user.privacy_requests.all()[:20]),
+    })
 
 
 @login_required

@@ -29,4 +29,26 @@
   </form>
   {% endfor %}
 </div>
+
+<div class="card">
+  <h2 style="margin-top:0">Privacy requests</h2>
+  <p class="muted" style="font-size:13px">Exercise your data rights. We record each request and action it within our response window; the exact rights available depend on your local law.</p>
+  <form method="post" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap">{% csrf_token %}
+    <input type="hidden" name="action" value="privacy_request">
+    <div><label>Request</label>
+      <select name="request_type">{% for t in request_types %}<option value="{{ t.key }}">{{ t.label }}</option>{% endfor %}</select></div>
+    <div style="flex:1;min-width:200px"><label>Details (optional)</label><input name="details" placeholder="Anything that helps us action this"></div>
+    <button class="btn" type="submit">Submit request</button>
+  </form>
+  {% if my_requests %}
+  <table style="margin-top:14px">
+    <tr><th>Request</th><th>Status</th><th>Submitted</th></tr>
+    {% for r in my_requests %}
+    <tr><td>{{ r.get_request_type_display }}</td>
+      <td><span class="badge b-{% if r.is_open %}waiting_for_approval{% else %}completed{% endif %}">{{ r.get_status_display }}</span></td>
+      <td class="muted">{{ r.created_at|date:"M j, Y" }}</td></tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+</div>
 {% endblock %}

@@ -1,0 +1,39 @@
+{% extends "console/base_console.html" %}
+{% block title %}Privacy requests · Control Center{% endblock %}
+{% block crumb %}Compliance / Privacy requests{% endblock %}
+{% block content %}
+  <h1>Privacy requests</h1>
+  <p class="sub">Data-subject requests (access, export, correction, deletion…). Deletion is actioned by a
+    human after review — never an instant wipe. These records are staff-only and never exposed on tenant APIs.</p>
+
+  <div class="card" style="display:flex;gap:22px;flex-wrap:wrap;align-items:baseline">
+    <div><strong style="font-size:20px">{{ summary.open }}</strong> <span class="muted">open</span></div>
+    <div class="muted">{{ summary.total }} total</div>
+    {% if summary.overdue %}<div class="pill" style="color:#c0392b">{{ summary.overdue }} overdue</div>{% endif %}
+  </div>
+
+  <div class="card">
+    {% if requests %}
+    <table>
+      <tr><th>Request</th><th>User</th><th>Tenant</th><th>Status</th><th>Deadline</th><th>Update</th></tr>
+      {% for r in requests %}
+      <tr>
+        <td class="strong">{{ r.get_request_type_display }}</td>
+        <td class="muted">{{ r.user.email }}</td>
+        <td class="muted">{% if r.organization %}{{ r.organization.name }}{% else %}—{% endif %}</td>
+        <td><span class="pill">{{ r.get_status_display }}</span></td>
+        <td class="muted">{% if r.deadline %}{{ r.deadline|date:"M j" }}{% endif %}</td>
+        <td>
+          <form method="post" style="display:flex;gap:4px;align-items:center">{% csrf_token %}
+            <input type="hidden" name="request" value="{{ r.id }}">
+            <input type="hidden" name="action" value="transition">
+            <select name="status">{% for val, label in statuses %}<option value="{{ val }}" {% if val == r.status %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+            <button class="btn ghost" type="submit" style="padding:3px 8px">Save</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}<p class="empty">No privacy requests yet.</p>{% endif %}
+  </div>
+{% endblock %}

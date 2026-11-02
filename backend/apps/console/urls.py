@@ -20,5 +20,6 @@ urlpatterns = [
     path("hooks/", views.hooks, name="hooks"),
     path("leads/", views.leads, name="leads"),
     path("legal/", views.legal, name="legal"),
+    path("privacy/", views.privacy, name="privacy"),
     path("audit/", views.audit, name="audit"),
 ]
