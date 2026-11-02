@@ -50,6 +50,7 @@ urlpatterns = [
     path("api/v1/", include("apps.legal.urls")),
     path("api/v1/", include("apps.consent.urls")),
     path("api/v1/", include("apps.privacy.urls")),
+    path("api/v1/", include("apps.trust.urls")),
     path("api/v1/", include("apps.backups.urls")),
     path("api/v1/", include("apps.tools.urls")),
     path("api/v1/", include("apps.developer.urls")),

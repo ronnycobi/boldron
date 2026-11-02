@@ -111,6 +111,9 @@ APP_LOGO_URL = env("APP_LOGO_URL", "")          # empty -> bundled fallback mark
 APP_FAVICON_URL = env("APP_FAVICON_URL", "")    # empty -> bundled fallback favicon
 APP_SUPPORT_EMAIL = env("APP_SUPPORT_EMAIL", "")
 APP_SUPPORT_URL = env("APP_SUPPORT_URL", "")
+# Legal / security contacts (env-only; never hard-coded). Fall back to support.
+LEGAL_SECURITY_EMAIL = env("LEGAL_SECURITY_EMAIL", "")
+LEGAL_PRIVACY_EMAIL = env("LEGAL_PRIVACY_EMAIL", "")
 APP_DEFAULT_LOCALE = env("APP_DEFAULT_LOCALE", "en-us")
 # Back-compat: honour the older DJANGO_TIME_ZONE if APP_DEFAULT_TIMEZONE is unset.
 APP_DEFAULT_TIMEZONE = env("APP_DEFAULT_TIMEZONE", env("DJANGO_TIME_ZONE", "UTC"))
@@ -192,6 +195,7 @@ INSTALLED_APPS = [
     "apps.legal",
     "apps.consent",
     "apps.privacy",
+    "apps.trust",
 ]
 
 # --- Auth redirects (server-rendered dashboard UI) --------------------------

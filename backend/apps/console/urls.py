@@ -21,5 +21,6 @@ urlpatterns = [
     path("leads/", views.leads, name="leads"),
     path("legal/", views.legal, name="legal"),
     path("privacy/", views.privacy, name="privacy"),
+    path("trust/", views.trust, name="trust"),
     path("audit/", views.audit, name="audit"),
 ]

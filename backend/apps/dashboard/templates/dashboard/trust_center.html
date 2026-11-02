@@ -1,0 +1,46 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}Trust &amp; Security · {{ app_name }}{% endblock %}
+{% block crumb %}Trust &amp; Security{% endblock %}
+{% block content %}
+  <h1>Trust &amp; Security</h1>
+  <p class="sub">How {{ app_name }} protects your data, who helps us run the service, and how to report a
+    security issue.</p>
+
+  <h2>Security</h2>
+  <div class="card">
+    <table>
+      {% for c in overview.controls %}
+      <tr><td class="strong" style="width:28%">{{ c.area }}</td><td class="muted">{{ c.detail }}</td></tr>
+      {% endfor %}
+    </table>
+    <p class="muted" style="font-size:12px;margin:12px 0 0;padding-top:10px;border-top:1px solid var(--line)">{{ overview.disclaimer }}</p>
+  </div>
+
+  <h2>Subprocessors</h2>
+  <div class="card">
+    {% if subprocessors %}
+    <table>
+      <tr><th>Provider</th><th>Category</th><th>Purpose</th><th>Location</th></tr>
+      {% for s in subprocessors %}
+      <tr><td class="strong">{{ s.name }}</td><td class="muted">{{ s.get_category_display }}</td>
+        <td class="muted">{{ s.purpose|default:s.service }}</td><td class="muted">{{ s.location|default:"—" }}</td></tr>
+      {% endfor %}
+    </table>
+    {% else %}<p class="empty" style="margin:0">The subprocessor register is being finalised.</p>{% endif %}
+  </div>
+
+  <h2>Report a security issue</h2>
+  <div class="card">
+    <p class="muted" style="font-size:13px;margin-top:0">{{ disclosure.guidance }}
+      {% if disclosure.security_contact %}You can also email <strong>{{ disclosure.security_contact }}</strong>.{% endif %}</p>
+    <form method="post" style="margin-top:8px">{% csrf_token %}
+      <input type="hidden" name="action" value="disclose">
+      <label>Summary</label><input name="summary" placeholder="e.g. Reflected XSS on the search page" required>
+      <label>Details</label><textarea name="details" rows="3" placeholder="Steps to reproduce, impact, affected URL…"></textarea>
+      <label>Your email (optional, so we can follow up)</label><input name="reporter_email" type="email">
+      <label>Your severity estimate (optional)</label>
+      <select name="severity_estimate"><option value="">—</option><option>low</option><option>medium</option><option>high</option><option>critical</option></select>
+      <div style="margin-top:10px"><button class="btn" type="submit">Submit report privately</button></div>
+    </form>
+  </div>
+{% endblock %}

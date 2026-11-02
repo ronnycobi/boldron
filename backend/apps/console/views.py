@@ -440,3 +440,42 @@ def privacy(request):
         "requests": PrivacyRequest.objects.select_related("user", "organization")[:200],
         "statuses": RequestStatus.choices,
     })
+
+
+@staff_required
+def trust(request):
+    """Trust & security admin (spec §26, §29): maintain the subprocessor register
+    and triage private vulnerability reports. Staff-only; reports are never public."""
+    from django.contrib import messages
+    from django.shortcuts import redirect
+
+    from apps.trust import service
+    from apps.trust.models import Subprocessor, VulnerabilityReport
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        try:
+            if action == "subprocessor":
+                service.register_subprocessor(
+                    name=request.POST.get("name", ""),
+                    category=request.POST.get("category", "other"),
+                    service=request.POST.get("service", ""),
+                    purpose=request.POST.get("purpose", ""),
+                    location=request.POST.get("location", ""), user=request.user)
+                messages.success(request, "Subprocessor added.")
+            elif action == "report":
+                report = get_object_or_404(VulnerabilityReport, pk=request.POST.get("report", 0))
+                service.set_report_status(report, request.POST.get("status", ""),
+                                          user=request.user)
+                messages.success(request, "Report updated.")
+        except service.TrustError as exc:
+            messages.error(request, str(exc))
+        return redirect("console:trust")
+
+    return render(request, "console/trust.html", {
+        "active": "trust",
+        "subprocessors": Subprocessor.objects.all(),
+        "reports": VulnerabilityReport.objects.all()[:100],
+        "categories": Subprocessor.Category.choices,
+        "report_statuses": VulnerabilityReport.Status.choices,
+    })

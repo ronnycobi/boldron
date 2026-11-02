@@ -85,6 +85,7 @@ urlpatterns = [
     path("settings/documents/<int:pk>.zip", views.project_documents_download, name="project_documents_download"),
     path("settings/privacy/", views.org_privacy, name="org_privacy"),
     path("settings/legal/", views.legal_center, name="legal_center"),
+    path("trust/", views.trust_center, name="trust_center"),
     path("settings/security/", views.security_center, name="security_center"),
     path("settings/security/mfa/", views.mfa_setup, name="mfa_setup"),
     path("settings/preferences/", views.settings_page, name="settings"),

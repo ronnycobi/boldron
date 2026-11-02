@@ -2972,6 +2972,31 @@ def project_performance(request, pk):
     })
 
 
+def trust_center(request):
+    """Public Trust Center (spec §26, §28, §29): the honest security overview, the
+    subprocessor register, and a private responsible-disclosure form. No login
+    required — this is transparency content."""
+    from apps.trust import service
+    if request.method == "POST" and request.POST.get("action") == "disclose":
+        try:
+            service.submit_vulnerability(
+                summary=request.POST.get("summary", ""),
+                details=request.POST.get("details", ""),
+                reporter_email=request.POST.get("reporter_email", ""),
+                severity_estimate=request.POST.get("severity_estimate", ""))
+            messages.success(request, "Thank you — your report was received privately. "
+                                      "We'll follow up if we need more detail.")
+        except service.TrustError as exc:
+            messages.error(request, str(exc))
+        return redirect("dashboard:trust_center")
+    return render(request, "dashboard/trust_center.html", {
+        "active": "settings",
+        "overview": service.security_overview(),
+        "subprocessors": list(service.active_subprocessors()),
+        "disclosure": service.disclosure_info(),
+    })
+
+
 @login_required
 def legal_center(request):
     """The customer Legal Center (spec §53): the current published legal documents,

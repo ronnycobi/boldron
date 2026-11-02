@@ -4,7 +4,10 @@
 {% block content %}
   <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
     <h1>Legal &amp; Privacy</h1>
-    <a class="btn ghost" href="{% url 'dashboard:org_privacy' %}">Privacy &amp; data →</a>
+    <div style="display:flex;gap:8px">
+      <a class="btn ghost" href="{% url 'dashboard:trust_center' %}">Trust &amp; security →</a>
+      <a class="btn ghost" href="{% url 'dashboard:org_privacy' %}">Privacy &amp; data →</a>
+    </div>
   </div>
   <p class="sub">The agreements that govern your use of {{ app_name }}, and the exact versions you accepted.</p>
 
