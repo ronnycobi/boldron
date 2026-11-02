@@ -1,0 +1,59 @@
+{% extends "console/base_console.html" %}
+{% block title %}Legal &amp; documents · Control Center{% endblock %}
+{% block crumb %}Compliance / Legal &amp; documents{% endblock %}
+{% block content %}
+  <h1>Legal &amp; documents</h1>
+  <p class="sub">Author, review, approve and publish legal documents. Publishing freezes a version
+    immutably — a change is always a new version, never an edit to a published one.</p>
+
+  <div class="card" style="display:flex;gap:22px;flex-wrap:wrap;align-items:baseline">
+    <div><strong style="font-size:20px">{{ summary.published }}</strong> <span class="muted">published</span></div>
+    <div class="muted">{{ summary.draft }} draft</div>
+    <div class="muted">{{ summary.under_review }} in review</div>
+    <div class="muted">{{ summary.acceptances }} acceptance record(s)</div>
+  </div>
+
+  <details class="card">
+    <summary style="cursor:pointer;font-weight:700;list-style:none">+ New draft document</summary>
+    <form method="post" style="margin-top:12px">{% csrf_token %}
+      <input type="hidden" name="action" value="create">
+      <label>Document type</label>
+      <select name="document_type">{% for t in document_types %}<option value="{{ t.code }}">{{ t.label }}</option>{% endfor %}</select>
+      <label>Jurisdiction</label>
+      <select name="jurisdiction">{% for j in jurisdictions %}<option value="{{ j.code }}">{{ j.label }}</option>{% endfor %}</select>
+      <label>Title</label><input name="title" placeholder="Terms of Service">
+      <label>Version</label><input name="version" placeholder="1.0" required>
+      <label><input type="checkbox" name="requires_acceptance" style="width:auto"> Requires acceptance</label>
+      <label>Change summary</label><input name="change_summary" placeholder="Initial version">
+      <label>Content</label><textarea name="content" rows="5" placeholder="Document text…"></textarea>
+      <div style="margin-top:10px"><button class="btn" type="submit">Create draft</button></div>
+    </form>
+  </details>
+
+  <div class="card">
+    {% if documents %}
+    <table>
+      <tr><th>Type</th><th>Juris.</th><th>Version</th><th>Status</th><th>Accept?</th><th>Published</th><th>Actions</th></tr>
+      {% for d in documents %}
+      <tr>
+        <td class="strong">{{ d.document_type }}</td>
+        <td class="muted">{{ d.jurisdiction }}</td>
+        <td>{{ d.version }}</td>
+        <td><span class="pill">{{ d.get_status_display }}</span></td>
+        <td class="muted">{% if d.requires_acceptance %}yes{% else %}—{% endif %}</td>
+        <td class="muted">{% if d.published_at %}{{ d.published_at|date:"M j" }}{% else %}—{% endif %}</td>
+        <td>
+          <form method="post" style="display:inline">{% csrf_token %}
+            <input type="hidden" name="document" value="{{ d.id }}">
+            {% if d.status == 'draft' %}<button name="action" value="submit" class="btn ghost" style="padding:3px 8px">Submit</button>{% endif %}
+            {% if d.status == 'draft' or d.status == 'under_review' %}<button name="action" value="approve" class="btn ghost" style="padding:3px 8px">Approve</button>{% endif %}
+            {% if d.status == 'approved' %}<button name="action" value="publish" class="btn" style="padding:3px 8px">Publish</button>{% endif %}
+            {% if d.status == 'published' %}<button name="action" value="archive" class="btn ghost" style="padding:3px 8px">Archive</button>{% endif %}
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}<p class="empty">No legal documents yet. Create a draft above.</p>{% endif %}
+  </div>
+{% endblock %}

@@ -189,6 +189,7 @@ INSTALLED_APPS = [
     "apps.compliance",
     "apps.data_quality",
     "apps.performance",
+    "apps.legal",
 ]
 
 # --- Auth redirects (server-rendered dashboard UI) --------------------------

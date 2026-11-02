@@ -2955,6 +2955,35 @@ def project_performance(request, pk):
 
 
 @login_required
+def legal_center(request):
+    """The customer Legal Center (spec §53): the current published legal documents,
+    the user's own versioned acceptance history, and any pending acceptances. A
+    user only ever sees their own agreements."""
+    from apps.legal import service
+    if request.method == "POST" and request.POST.get("action") == "accept":
+        from apps.legal.models import LegalDocument
+        doc = get_object_or_404(LegalDocument, slug=request.POST.get("document", ""))
+        try:
+            service.record_acceptance(
+                request.user, doc, method="legal_center",
+                ip_address=(request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip()
+                            or request.META.get("REMOTE_ADDR")),
+                user_agent=request.META.get("HTTP_USER_AGENT", ""))
+            messages.success(request, f"Recorded your acceptance of {doc.title} v{doc.version}.")
+        except service.LegalError as exc:
+            messages.error(request, str(exc))
+        return redirect("dashboard:legal_center")
+
+    documents = service.published_documents()
+    accepted = {a.document_id: a for a in service.acceptance_history(request.user)}
+    pending = service.pending_acceptances(request.user)
+    rows = [{"doc": d, "acceptance": accepted.get(d.id)} for d in documents]
+    return render(request, "dashboard/legal_center.html", {
+        "active": "settings", "rows": rows, "pending": pending,
+    })
+
+
+@login_required
 def project_health(request, pk):
     """A project's composed Health Score (spec §30): one honest signal built from
     the real security, test, incident, acceptance and deployment ledgers. Read-only

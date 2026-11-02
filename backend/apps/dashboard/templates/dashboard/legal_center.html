@@ -1,0 +1,58 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}Legal &amp; Privacy · {{ app_name }}{% endblock %}
+{% block crumb %}Settings / Legal &amp; Privacy{% endblock %}
+{% block content %}
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+    <h1>Legal &amp; Privacy</h1>
+    <a class="btn ghost" href="{% url 'dashboard:org_privacy' %}">Privacy &amp; data →</a>
+  </div>
+  <p class="sub">The agreements that govern your use of {{ app_name }}, and the exact versions you accepted.</p>
+
+  {% if pending %}
+  <div class="card" style="border-color:rgba(245,196,84,.45);background:rgba(245,196,84,.07)">
+    <strong style="color:#f5c454">Action needed</strong>
+    <p class="muted" style="font-size:13px;margin:6px 0 10px">These documents have changed since you last accepted them:</p>
+    {% for d in pending %}
+    <form method="post" style="display:flex;gap:8px;align-items:center;margin-bottom:6px">{% csrf_token %}
+      <input type="hidden" name="action" value="accept">
+      <input type="hidden" name="document" value="{{ d.slug }}">
+      <span style="flex:1">{{ d.title }} <span class="muted">v{{ d.version }}</span></span>
+      <a class="btn ghost" href="{% url 'dashboard:legal_center' %}#{{ d.slug }}" style="padding:4px 10px">Review</a>
+      <button class="btn" type="submit" style="padding:4px 10px">I agree</button>
+    </form>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <h2>Documents</h2>
+  <div class="card">
+    {% if rows %}
+    <table>
+      <tr><th>Document</th><th>Version</th><th>Effective</th><th>Your acceptance</th></tr>
+      {% for r in rows %}
+      <tr id="{{ r.doc.slug }}">
+        <td class="strong"><a href="/api/v1/legal/documents/{{ r.doc.slug }}/" target="_blank">{{ r.doc.title }}</a></td>
+        <td>v{{ r.doc.version }}</td>
+        <td class="muted">{% if r.doc.effective_at %}{{ r.doc.effective_at|date:"M j, Y" }}{% else %}—{% endif %}</td>
+        <td class="muted">
+          {% if r.acceptance %}Accepted {{ r.acceptance.accepted_at|date:"M j, Y" }} <span class="muted">(v{{ r.acceptance.version }})</span>
+          {% elif r.doc.requires_acceptance %}<span style="color:#f5c454">Not yet accepted</span>
+          {% else %}—{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}<p class="empty" style="margin:0">No legal documents have been published yet.</p>{% endif %}
+  </div>
+
+  <h2>Your agreements</h2>
+  <div class="card">
+    <table>
+      {% for r in rows %}{% if r.acceptance %}
+      <tr><td class="strong">{{ r.doc.title }}</td><td>v{{ r.acceptance.version }}</td>
+        <td class="muted">{{ r.acceptance.accepted_at|date:"M j, Y H:i" }}</td>
+        <td class="muted" style="font-size:11px">{{ r.acceptance.content_sha256|truncatechars:18 }}</td></tr>
+      {% endif %}{% empty %}<tr><td class="muted">No recorded agreements yet.</td></tr>{% endfor %}
+    </table>
+  </div>
+{% endblock %}

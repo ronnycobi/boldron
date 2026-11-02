@@ -19,5 +19,6 @@ urlpatterns = [
     path("skills/", views.skills, name="skills"),
     path("hooks/", views.hooks, name="hooks"),
     path("leads/", views.leads, name="leads"),
+    path("legal/", views.legal, name="legal"),
     path("audit/", views.audit, name="audit"),
 ]

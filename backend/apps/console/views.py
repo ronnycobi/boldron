@@ -330,3 +330,62 @@ def audit(request):
     return render(request, "console/audit.html", {
         "active": "audit", "rows": qs[:300], "actions": actions, "current": action,
     })
+
+
+@staff_required
+def legal(request):
+    """Legal & Compliance admin (spec §48-52): author, review, approve, publish and
+    archive legal documents, and see acceptance coverage. Staff-only; publishing a
+    version freezes it immutably."""
+    from django.contrib import messages
+    from django.shortcuts import redirect
+
+    from apps.legal import service
+    from apps.legal.models import DocumentStatus, LegalAcceptance, LegalDocument
+    from apps.legal.registry import DOCUMENT_TYPES, JURISDICTIONS
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        try:
+            if action == "create":
+                service.create_draft(
+                    document_type=request.POST.get("document_type", ""),
+                    title=request.POST.get("title", ""),
+                    version=request.POST.get("version", ""),
+                    content=request.POST.get("content", ""),
+                    jurisdiction=request.POST.get("jurisdiction", "global"),
+                    requires_acceptance=bool(request.POST.get("requires_acceptance")),
+                    change_summary=request.POST.get("change_summary", ""),
+                    user=request.user)
+                messages.success(request, "Draft created.")
+            else:
+                doc = get_object_or_404(LegalDocument, pk=request.POST.get("document", 0))
+                fn = {"submit": service.submit_for_review, "approve": service.approve,
+                      "publish": service.publish, "archive": service.archive}.get(action)
+                if action == "edit":
+                    service.update_draft(doc, user=request.user,
+                                         content=request.POST.get("content"),
+                                         change_summary=request.POST.get("change_summary"))
+                    messages.success(request, "Draft updated.")
+                elif fn:
+                    fn(doc, user=request.user)
+                    messages.success(request, f"Document {action}d.")
+        except (service.LegalError, ValueError) as exc:
+            messages.error(request, str(exc))
+        return redirect("console:legal")
+
+    docs = list(LegalDocument.objects.all())
+    by_status = {}
+    for d in docs:
+        by_status[d.status] = by_status.get(d.status, 0) + 1
+    summary = {
+        "published": by_status.get(DocumentStatus.PUBLISHED, 0),
+        "draft": by_status.get(DocumentStatus.DRAFT, 0),
+        "under_review": by_status.get(DocumentStatus.UNDER_REVIEW, 0),
+        "acceptances": LegalAcceptance.objects.count(),
+    }
+    return render(request, "console/legal.html", {
+        "active": "legal", "documents": docs, "summary": summary,
+        "document_types": [{"code": c, "label": l} for c, l in DOCUMENT_TYPES.items()],
+        "jurisdictions": [{"code": c, "label": l} for c, l in JURISDICTIONS.items()],
+    })
