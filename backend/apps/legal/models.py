@@ -160,3 +160,68 @@ class LegalAcceptance(models.Model):
 
     def __str__(self):
         return f"{self.user_id} accepted {self.document_type} {self.version}"
+
+
+class JurisdictionConfig(models.Model):
+    """Legal-counsel-configured requirements for a jurisdiction (spec §5).
+
+    Nothing here is inferred: the platform never claims a specific law applies
+    until staff/counsel explicitly configure it. Unset fields mean "not
+    configured", not "no obligation"."""
+    jurisdiction = models.CharField(max_length=40, unique=True)
+    consent_required = models.BooleanField(default=False)
+    cookie_consent_required = models.BooleanField(default=False)
+    min_age = models.PositiveSmallIntegerField(null=True, blank=True)
+    additional_notices = models.TextField(blank=True)
+    mandatory_disclosures = models.TextField(blank=True)
+    privacy_rights = models.JSONField(default=list, blank=True)
+    data_transfer_notes = models.TextField(blank=True)
+    cancellation_rule = models.TextField(blank=True)
+    refund_rule = models.TextField(blank=True)
+    tax_notes = models.TextField(blank=True)
+    enabled = models.BooleanField(default=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="jurisdiction_configs")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["jurisdiction"]
+
+    def __str__(self):
+        return f"jurisdiction:{self.jurisdiction}"
+
+
+class LawEnforcementRequest(models.Model):
+    """A government / legal data request (spec §71). Sensitive and staff-only.
+    Customer data is NEVER auto-disclosed: a request starts pending and disclosure
+    is an explicit, reviewed decision."""
+    class Decision(models.TextChoices):
+        PENDING = "pending", "Pending review"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
+        PARTIAL = "partial", "Partially disclosed"
+
+    authority = models.CharField(max_length=200)
+    jurisdiction = models.CharField(max_length=40, blank=True)
+    request_type = models.CharField(max_length=80, blank=True)   # subpoena/court order/…
+    data_requested = models.TextField(blank=True)
+    legal_basis = models.TextField(blank=True)
+    affected_organization = models.ForeignKey(
+        "organizations.Organization", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="law_enforcement_requests")
+    decision = models.CharField(max_length=12, choices=Decision.choices,
+                                default=Decision.PENDING)
+    disclosed = models.BooleanField(default=False)
+    disclosure_note = models.TextField(blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="reviewed_law_requests")
+    received_at = models.DateTimeField(default=timezone.now)
+    decided_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-received_at", "-id"]
+
+    def __str__(self):
+        return f"law-request({self.authority}, {self.decision})"

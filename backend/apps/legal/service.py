@@ -200,3 +200,89 @@ def pending_acceptances(user, *, jurisdiction="global", language="en") -> list[L
 
 def acceptance_history(user):
     return LegalAcceptance.objects.filter(user=user).select_related("document")
+
+
+# --- jurisdiction rules engine (spec §5) -------------------------------------
+
+def set_jurisdiction_config(jurisdiction, *, user=None, **fields):
+    """Configure a jurisdiction's requirements (staff/legal counsel only, enforced
+    at the view layer). Never infers law — only what is explicitly set applies."""
+    from apps.legal.models import JurisdictionConfig
+    from apps.legal import registry
+    if not registry.is_valid_jurisdiction(jurisdiction):
+        raise LegalError(f"Unknown jurisdiction '{jurisdiction}'.")
+    allowed = {"consent_required", "cookie_consent_required", "min_age",
+               "additional_notices", "mandatory_disclosures", "privacy_rights",
+               "data_transfer_notes", "cancellation_rule", "refund_rule",
+               "tax_notes", "enabled"}
+    defaults = {k: v for k, v in fields.items() if k in allowed}
+    defaults["updated_by"] = user
+    config, _ = JurisdictionConfig.objects.update_or_create(
+        jurisdiction=jurisdiction, defaults=defaults)
+    audit("legal.jurisdiction", actor=user, target=f"jurisdiction:{jurisdiction}",
+          summary=jurisdiction)
+    return config
+
+
+def jurisdiction_config(jurisdiction):
+    from apps.legal.models import JurisdictionConfig
+    return JurisdictionConfig.objects.filter(jurisdiction=jurisdiction, enabled=True).first()
+
+
+def jurisdiction_notices(jurisdiction) -> dict:
+    """The customer-facing notices configured for a jurisdiction. Returns
+    `configured: False` honestly when counsel hasn't set anything — never a
+    fabricated legal conclusion."""
+    config = jurisdiction_config(jurisdiction)
+    if config is None:
+        return {"jurisdiction": jurisdiction, "configured": False}
+    return {
+        "jurisdiction": jurisdiction, "configured": True,
+        "consent_required": config.consent_required,
+        "cookie_consent_required": config.cookie_consent_required,
+        "min_age": config.min_age,
+        "additional_notices": config.additional_notices,
+        "mandatory_disclosures": config.mandatory_disclosures,
+        "privacy_rights": config.privacy_rights or [],
+        "cancellation_rule": config.cancellation_rule,
+        "refund_rule": config.refund_rule,
+    }
+
+
+# --- law-enforcement requests (spec §71) -------------------------------------
+
+def log_law_request(*, authority, jurisdiction="", request_type="", data_requested="",
+                    legal_basis="", affected_organization=None, user=None):
+    """Record a government / legal data request. Customer data is NEVER disclosed
+    automatically — the request is created pending human/legal review."""
+    from apps.legal.models import LawEnforcementRequest
+    authority = (authority or "").strip()
+    if not authority:
+        raise LegalError("A law-enforcement request needs an authority.")
+    req = LawEnforcementRequest.objects.create(
+        authority=authority[:200], jurisdiction=(jurisdiction or "")[:40],
+        request_type=(request_type or "")[:80], data_requested=data_requested,
+        legal_basis=legal_basis, affected_organization=affected_organization)
+    audit("legal.law_request", actor=user,
+          organization=affected_organization, target=f"law_request:{req.id}",
+          summary=f"{authority}")
+    return req
+
+
+def review_law_request(req, decision, *, disclosed=False, note="", user=None):
+    """Record a reviewed decision on a law-enforcement request. Disclosure is an
+    explicit action — it is never the default."""
+    from django.utils import timezone as _tz
+    from apps.legal.models import LawEnforcementRequest
+    if decision not in LawEnforcementRequest.Decision.values:
+        raise LegalError(f"Unknown decision '{decision}'.")
+    req.decision = decision
+    req.disclosed = bool(disclosed)
+    req.disclosure_note = (note or "")[:4000]
+    req.reviewed_by = user
+    req.decided_at = _tz.now()
+    req.save()
+    audit("legal.law_review", actor=user, organization=req.affected_organization,
+          target=f"law_request:{req.id}",
+          summary=f"{decision}{' · disclosed' if disclosed else ''}")
+    return req

@@ -181,3 +181,39 @@ class AdminActionView(_StaffView):
             return Response({"detail": f"Unknown action '{action}'."}, status=400)
         doc.refresh_from_db()
         return Response({"id": doc.id, **_doc_summary(doc), "status": doc.status})
+
+
+class JurisdictionView(APIView):
+    """Public: the customer-facing notices configured for a jurisdiction. Honest —
+    returns configured:false when counsel hasn't set anything (spec §5)."""
+    permission_classes = [AllowAny]
+
+    def get(self, request, jurisdiction):
+        return Response(service.jurisdiction_notices(jurisdiction))
+
+
+class LawRequestView(_StaffView):
+    """Government / legal data requests (spec §71). Staff-only and sensitive;
+    customer data is never auto-disclosed."""
+
+    def get(self, request):
+        self._require_staff(request)
+        from apps.legal.models import LawEnforcementRequest
+        return Response({"requests": [
+            {"id": r.id, "authority": r.authority, "jurisdiction": r.jurisdiction,
+             "request_type": r.request_type, "decision": r.decision,
+             "disclosed": r.disclosed, "received_at": r.received_at.isoformat()}
+            for r in LawEnforcementRequest.objects.all()[:200]]})
+
+    def post(self, request):
+        self._require_staff(request)
+        try:
+            req = service.log_law_request(
+                authority=request.data.get("authority", ""),
+                jurisdiction=request.data.get("jurisdiction", ""),
+                request_type=request.data.get("request_type", ""),
+                data_requested=request.data.get("data_requested", ""),
+                legal_basis=request.data.get("legal_basis", ""), user=request.user)
+        except service.LegalError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        return Response({"id": req.id, "decision": req.decision}, status=201)

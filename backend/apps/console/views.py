@@ -358,6 +358,21 @@ def legal(request):
                     change_summary=request.POST.get("change_summary", ""),
                     user=request.user)
                 messages.success(request, "Draft created.")
+            elif action == "jurisdiction":
+                service.set_jurisdiction_config(
+                    request.POST.get("jurisdiction", ""), user=request.user,
+                    consent_required=bool(request.POST.get("consent_required")),
+                    cookie_consent_required=bool(request.POST.get("cookie_consent_required")),
+                    additional_notices=request.POST.get("additional_notices", ""))
+                messages.success(request, "Jurisdiction requirements saved.")
+            elif action == "law_request":
+                service.log_law_request(
+                    authority=request.POST.get("authority", ""),
+                    jurisdiction=request.POST.get("jurisdiction", ""),
+                    request_type=request.POST.get("request_type", ""),
+                    data_requested=request.POST.get("data_requested", ""),
+                    user=request.user)
+                messages.success(request, "Request logged — pending review (no data disclosed).")
             else:
                 doc = get_object_or_404(LegalDocument, pk=request.POST.get("document", 0))
                 fn = {"submit": service.submit_for_review, "approve": service.approve,
@@ -384,10 +399,13 @@ def legal(request):
         "under_review": by_status.get(DocumentStatus.UNDER_REVIEW, 0),
         "acceptances": LegalAcceptance.objects.count(),
     }
+    from apps.legal.models import JurisdictionConfig, LawEnforcementRequest
     return render(request, "console/legal.html", {
         "active": "legal", "documents": docs, "summary": summary,
         "document_types": [{"code": c, "label": l} for c, l in DOCUMENT_TYPES.items()],
         "jurisdictions": [{"code": c, "label": l} for c, l in JURISDICTIONS.items()],
+        "jurisdiction_configs": JurisdictionConfig.objects.all(),
+        "law_requests": LawEnforcementRequest.objects.all()[:50],
     })
 
 

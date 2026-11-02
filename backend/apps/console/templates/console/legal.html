@@ -56,4 +56,55 @@
     </table>
     {% else %}<p class="empty">No legal documents yet. Create a draft above.</p>{% endif %}
   </div>
+
+  <h2>Jurisdiction requirements</h2>
+  <p class="sub">Configured by counsel — the platform never assumes a law applies until it's set here.</p>
+  <details class="card">
+    <summary style="cursor:pointer;font-weight:700;list-style:none">+ Configure a jurisdiction</summary>
+    <form method="post" style="margin-top:12px">{% csrf_token %}
+      <input type="hidden" name="action" value="jurisdiction">
+      <label>Jurisdiction</label>
+      <select name="jurisdiction">{% for j in jurisdictions %}<option value="{{ j.code }}">{{ j.label }}</option>{% endfor %}</select>
+      <label><input type="checkbox" name="consent_required" style="width:auto"> Consent required</label>
+      <label><input type="checkbox" name="cookie_consent_required" style="width:auto"> Cookie consent required</label>
+      <label>Additional notices</label><textarea name="additional_notices" rows="2"></textarea>
+      <div style="margin-top:10px"><button class="btn" type="submit">Save requirements</button></div>
+    </form>
+  </details>
+  {% if jurisdiction_configs %}
+  <div class="card"><table>
+    <tr><th>Jurisdiction</th><th>Consent</th><th>Cookies</th><th>Notices</th></tr>
+    {% for c in jurisdiction_configs %}
+    <tr><td class="strong">{{ c.jurisdiction }}</td>
+      <td class="muted">{% if c.consent_required %}required{% else %}—{% endif %}</td>
+      <td class="muted">{% if c.cookie_consent_required %}required{% else %}—{% endif %}</td>
+      <td class="muted">{{ c.additional_notices|truncatechars:60 }}</td></tr>
+    {% endfor %}
+  </table></div>
+  {% endif %}
+
+  <h2>Law-enforcement requests</h2>
+  <p class="sub">Sensitive. Customer data is never auto-disclosed — a request stays pending until reviewed.</p>
+  <details class="card">
+    <summary style="cursor:pointer;font-weight:700;list-style:none">+ Log a request</summary>
+    <form method="post" style="margin-top:12px">{% csrf_token %}
+      <input type="hidden" name="action" value="law_request">
+      <label>Authority</label><input name="authority" placeholder="e.g. Court of …" required>
+      <label>Jurisdiction</label><input name="jurisdiction" placeholder="south_africa">
+      <label>Type</label><input name="request_type" placeholder="subpoena / court order">
+      <label>Data requested</label><textarea name="data_requested" rows="2"></textarea>
+      <div style="margin-top:10px"><button class="btn" type="submit">Log request</button></div>
+    </form>
+  </details>
+  {% if law_requests %}
+  <div class="card"><table>
+    <tr><th>Authority</th><th>Type</th><th>Decision</th><th>Disclosed</th><th>Received</th></tr>
+    {% for r in law_requests %}
+    <tr><td class="strong">{{ r.authority }}</td><td class="muted">{{ r.request_type }}</td>
+      <td><span class="pill">{{ r.get_decision_display }}</span></td>
+      <td class="muted">{% if r.disclosed %}yes{% else %}no{% endif %}</td>
+      <td class="muted">{{ r.received_at|date:"M j" }}</td></tr>
+    {% endfor %}
+  </table></div>
+  {% endif %}
 {% endblock %}

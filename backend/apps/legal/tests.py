@@ -217,3 +217,60 @@ class LegalWebSurfaceTests(TestCase):
         self.client.post(reverse("dashboard:legal_center"),
                          {"action": "accept", "document": doc.slug})
         self.assertTrue(LegalAcceptance.objects.filter(user=self.user, document=doc).exists())
+
+
+class JurisdictionAndLawRequestTests(TestCase):
+    def setUp(self):
+        self.staff = User.objects.create_user(email="s@x.com", password="pw12345!", is_staff=True)
+        self.user = User.objects.create_user(email="u@x.com", password="pw12345!")
+
+    def test_jurisdiction_notices_unconfigured_is_honest(self):
+        notices = service.jurisdiction_notices("south_africa")
+        self.assertFalse(notices["configured"])   # no auto legal conclusion
+
+    def test_configure_jurisdiction(self):
+        service.set_jurisdiction_config("south_africa", consent_required=True,
+                                        additional_notices="POPIA applies.", user=self.staff)
+        notices = service.jurisdiction_notices("south_africa")
+        self.assertTrue(notices["configured"])
+        self.assertTrue(notices["consent_required"])
+        self.assertIn("POPIA", notices["additional_notices"])
+
+    def test_unknown_jurisdiction_rejected(self):
+        with self.assertRaises(service.LegalError):
+            service.set_jurisdiction_config("narnia", user=self.staff)
+
+    def test_jurisdiction_api_is_public(self):
+        service.set_jurisdiction_config("eu_eea", cookie_consent_required=True, user=self.staff)
+        resp = self.client.get(reverse("legal:jurisdiction", args=["eu_eea"]))
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.json()["cookie_consent_required"])
+
+    def test_law_request_starts_pending_and_undisclosed(self):
+        req = service.log_law_request(authority="Court X", request_type="subpoena",
+                                      user=self.staff)
+        self.assertEqual(req.decision, "pending")
+        self.assertFalse(req.disclosed)   # never auto-disclosed
+
+    def test_law_request_review_is_explicit(self):
+        req = service.log_law_request(authority="Court X", user=self.staff)
+        service.review_law_request(req, "rejected", disclosed=False,
+                                   note="No valid basis", user=self.staff)
+        req.refresh_from_db()
+        self.assertEqual(req.decision, "rejected")
+        self.assertFalse(req.disclosed)
+
+    def test_law_request_api_is_staff_only(self):
+        self.assertEqual(
+            self.client.get(reverse("legal:law_requests"), **auth(self.user)).status_code, 403)
+        self.assertEqual(
+            self.client.get(reverse("legal:law_requests"), **auth(self.staff)).status_code, 200)
+
+    def test_console_legal_configures_jurisdiction(self):
+        self.client.force_login(self.staff)
+        self.client.post(reverse("console:legal"),
+                         {"action": "jurisdiction", "jurisdiction": "united_kingdom",
+                          "consent_required": "on"})
+        from apps.legal.models import JurisdictionConfig
+        self.assertTrue(JurisdictionConfig.objects.filter(
+            jurisdiction="united_kingdom", consent_required=True).exists())
