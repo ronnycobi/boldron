@@ -96,8 +96,10 @@ WAITING_FOR_APPROVAL, COMPLETED, FAILED, CANCELLED, TIMEOUT, BLOCKED`.
   repo — for cost, consistency, and long-running projects.
 - **Project digital twin** — a structured model of the built application
   (frontend/backend/db/APIs/auth/payments/jobs/external services/infra/
-  monitoring), updated on change; eventually answers "if I change X, what's
-  affected?"
+  monitoring), updated on change; answers "if I change X, what's affected?".
+  **Built** as the Application Graph + Dependency Intelligence (see §7 platform
+  systems): a node+edge model composed from real project data that powers impact
+  analysis and Explain-my-application.
 - **Build sandbox** — isolated execution with CPU/memory/timeout/network/
   filesystem/process limits; destroyed after use.
 - **Cost & credit engine** — track AI/model/token/compute/storage/bandwidth/db/
@@ -231,6 +233,40 @@ done when implemented + integrated + tested + verified** (see `../CLAUDE.md`).
 | 19 | Credits & usage | **done — CreditAccount (per-org balance/plan) + UsageRecord ledger (org/project/task/model attribution); cost from catalog pricing → credits (config CREDITS_PER_USD); orchestrator records usage+debits on completion and STOPS tasks when balance depleted (budget protection); balance/usage API. 13 tests** |
 | 20 | Cost estimation | **done — project cost analyzer: per-agent + total credit/USD RANGES from real catalog pricing (stub-excluded, meaningful offline), risk level, recommended plan; POST /projects/{id}/cost-estimate/ dry-run. 10 tests** |
 | 21 | Deployment | **done — CloudProvider abstraction (real local target materializes the export; aws/gcp/azure/do/k8s gated as unavailable); Deployment records; production is approval-gated (never autonomous); list/create/approve/run API. 11 tests** |
+
+Beyond the core loop, many further systems are built as their own bounded apps —
+project operations, incidents, comments, settings, auth, publishing & commerce,
+mobile release, support, billing/usage, security & test ledgers, and more. The
+platform-intelligence layer below is the most recent addition.
+
+### Application platform systems (built on the core)
+
+A layer of per-project intelligence and governance systems, each composed from —
+or evaluated against — **real project data only**, honestly gated (unknowns stay
+unknown, nothing is claimed that can't be evidenced), tenant-isolated server-side,
+audited on mutation, customer-safe, and shipped with a web surface, Flutter
+parity, and tests. Several reuse one shared business-rules condition engine.
+
+| System | Status |
+|--------|--------|
+| **Application Graph + Dependency Intelligence** (§4–5) | **done — node+edge model of the app (features/screens/APIs/entities/mobile/…) composed from the capability map, context entries, mobile plan and screen data-needs; edges only connect nodes that exist; answers "what depends on X, affected if it changes". `GET /projects/<id>/graph/`. ~17 tests** |
+| **Acceptance Criteria** (§3) | **done — promotes the criteria embedded in requirements into first-class, verifiable records; pending by default, only a person marks met (with who/when); "accepted" only when all resolved and ≥1 truly met. ~17 tests** |
+| **Business Rules + engine** (§12–13) | **done — formal categorised rules with draft→active→retired lifecycle and a deterministic evaluation engine; reported *enforced* only when the engine can actually decide it, else *documented*. ~14 tests** |
+| **Project Health Score** (§30) | **done — one composed signal from the real security/test/incident/acceptance/deploy ledgers; pillars with no evidence are *unknown*, score is the mean of measured pillars only (None when nothing is measurable — never a fake 100). ~9 tests** |
+| **Workflow / Automation engine** (§10–11) | **done — trigger→conditions→actions firing from real platform events (incident/deploy/tests/security), honest per-action outcomes (done/skipped/failed), loop-safe. ~23 tests** |
+| **Feature flags** (§19) | **done — off unless enabled; deterministic stable-hash percentage rollout + condition targeting (fails closed); `…/flags/evaluate/`. ~13 tests** |
+| **Explain-my-application** (§29) | **done — plain-language, customer-safe account (what it is/does/is made of/state) composed from capabilities, graph, requirements, rules, acceptance, health; can explain one part by tracing the graph. ~13 tests** |
+| **Policy engine** (§44) | **done — declarative governance (block/require-approval/warn) wired into the real deploy pre-flight (a block policy genuinely fails a deploy); only enforced scopes can be targeted; built-in guardrails surfaced read-only. ~23 tests** |
+| **Localization / i18n** (§17–18) | **done — per-project locales (RTL auto-detected), translation strings, honest coverage; missing translations fall back to source and are flagged, never shown as translated; `…/i18n/bundle/`. ~14 tests** |
+| **A/B testing** (§20) | **done — stable weighted assignment, real exposure/conversion counts; a winner is only declared when a two-proportion z-test clears a minimum sample and p<0.05, else inconclusive. ~17 tests** |
+| **Compliance** (§16) | **done — controls per framework (GDPR/POPIA/WCAG/security); platform-provided controls auto-evidenced from real facts, the rest pending until attested *with evidence*; never self-declares "compliant". ~11 tests** |
+| **Data quality** (§9) | **done — deterministic checks (not_null/unique/regex/range/allowed/min_length) evaluated against real rows; true violation counts and scores, never estimated. ~14 tests** |
+| **Performance intelligence** (§41) | **done — real timing samples → honest p50/p95/max per surface, slowest-first, with per-label/default budget flags; empty until measured. ~13 tests** |
+
+All verified end-to-end through the authenticated web app against seeded real
+data (e.g. Health shows "2 measured signals of 5" with unmeasured pillars honestly
+*unknown*; A/B shows a numerically-ahead variant still *inconclusive* until
+significant). Full backend suite ≈1,439 tests green; `flutter analyze` clean.
 
 ## 8. Long-term destination
 
