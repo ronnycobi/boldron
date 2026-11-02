@@ -73,6 +73,9 @@ def _send_now(campaign: EmailCampaign) -> None:
                 subject=campaign.subject,
                 to=r.email,
                 text=_personalise(campaign.body, r.name),
+                # Marketing email is NOT a service message — it must not carry the
+                # transactional legal footer (spec §59/§60 keep the two distinct).
+                legal_footer=False,
             )
             if delivered:
                 r.status, r.sent_at = "sent", timezone.now()
