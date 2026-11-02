@@ -3073,6 +3073,40 @@ def legal_center(request):
 
 
 @login_required
+def project_app_legal(request, pk):
+    """Legal & privacy for the app being built (spec §62-66): what sensitive data
+    it processes, whether its features are matched by legal documents, a pre-deploy
+    checklist, and a draft generator. Advisory only — never a compliance claim."""
+    from apps.app_legal import analysis, generator
+    proj = get_object_or_404(
+        Project.objects.filter(organization__in=organizations_for(request.user)), pk=pk)
+    can_manage = proj.organization_id in _manageable_ids(request.user)
+
+    if request.method == "POST":
+        if not can_manage:
+            messages.error(request, "Owner or admin rights required.")
+            return redirect("dashboard:project_app_legal", pk=pk)
+        try:
+            doc = generator.generate(proj, request.POST.get("doc_type", ""), user=request.user)
+            messages.success(request, f"Draft {doc.doc_type.replace('_', ' ')} generated — "
+                                      "review it with legal counsel before publishing.")
+        except generator.GeneratorError as exc:
+            messages.error(request, str(exc))
+        return redirect("dashboard:project_app_legal", pk=pk)
+
+    from apps.legal.registry import type_label
+    generatable = [{"code": t, "label": type_label(t)} for t in generator.GENERATABLE]
+    return render(request, "dashboard/project_app_legal.html", {
+        "active": "projects", "project": proj, "can_manage": can_manage,
+        "data_types": analysis.scan_data_types(proj),
+        "consistency": analysis.consistency_findings(proj),
+        "compliance": analysis.compliance_check(proj),
+        "generated": list(proj.generated_legal_docs.all()),
+        "generatable": generatable,
+    })
+
+
+@login_required
 def project_health(request, pk):
     """A project's composed Health Score (spec §30): one honest signal built from
     the real security, test, incident, acceptance and deployment ledgers. Read-only

@@ -1,0 +1,61 @@
+{% extends "dashboard/base_dash.html" %}
+{% block title %}{{ project.name }} · Legal &amp; privacy · {{ app_name }}{% endblock %}
+{% block crumb %}Build / Projects / {{ project.name }} / Legal &amp; privacy{% endblock %}
+{% block content %}
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+    <h1>Legal &amp; privacy</h1>
+    <a class="btn ghost" href="{% url 'dashboard:project' project.id %}">← {{ project.name }}</a>
+  </div>
+  <p class="sub">What <strong>{{ project.name }}</strong> processes, and the documents it should have.
+    This is advisory — {{ app_name }} never certifies legal compliance. Have generated documents reviewed
+    by qualified legal counsel before publishing.</p>
+
+  <div class="card">
+    <h2 style="margin-top:0;font-size:15px">Pre-launch check</h2>
+    <table>
+      {% for i in compliance.items %}
+      <tr><td style="width:60%">{{ i.item }}</td>
+        <td><span class="badge b-{% if i.status == 'pass' %}completed{% elif i.status == 'warning' %}waiting_for_approval{% else %}failed{% endif %}">{{ i.status|cut:"_"|default:i.status }}{% if i.status == 'review_required' %} review{% endif %}</span></td></tr>
+      {% endfor %}
+    </table>
+    <p class="muted" style="font-size:12.5px;margin:10px 0 0;padding-top:8px;border-top:1px solid var(--line)">{{ compliance.note }}</p>
+  </div>
+
+  {% if data_types %}
+  <div class="card">
+    <h2 style="margin-top:0;font-size:15px">Sensitive data this app may process</h2>
+    <table>
+      {% for d in data_types %}
+      <tr><td class="strong" style="width:30%;text-transform:capitalize">{{ d.category }}</td>
+        <td class="muted">Consider: {% for c in d.recommended_controls %}{{ c }}{% if not forloop.last %}, {% endif %}{% endfor %}.</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+
+  {% if consistency %}
+  <div class="card" style="border-color:rgba(245,196,84,.45);background:rgba(245,196,84,.07)">
+    <h2 style="margin-top:0;font-size:15px">Review required</h2>
+    {% for f in consistency %}<p style="margin:4px 0">{{ f.message }}</p>{% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <h2 style="margin-top:0;font-size:15px">Generated document drafts</h2>
+    {% if generated %}
+    <table>
+      {% for d in generated %}
+      <tr><td class="strong">{{ d.doc_type|cut:"_"|title }}</td>
+        <td class="muted">generated {{ d.created_at|date:"M j" }}{% if d.reviewed %} · reviewed{% else %} · not yet reviewed by counsel{% endif %}</td></tr>
+      {% endfor %}
+    </table>
+    {% else %}<p class="muted" style="margin:0 0 10px">No drafts generated yet.</p>{% endif %}
+    {% if can_manage %}
+    <form method="post" style="margin-top:10px;display:flex;gap:6px;align-items:end;flex-wrap:wrap">{% csrf_token %}
+      <div><label>Generate a draft</label><select name="doc_type">{% for g in generatable %}<option value="{{ g.code }}">{{ g.label }}</option>{% endfor %}</select></div>
+      <button class="btn" type="submit">Generate draft</button>
+    </form>
+    <p class="muted" style="font-size:11.5px;margin:8px 0 0">Generated documents are drafts for information only, not legal advice. Review with qualified legal counsel before publishing.</p>
+    {% endif %}
+  </div>
+{% endblock %}
