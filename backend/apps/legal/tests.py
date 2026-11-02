@@ -274,3 +274,21 @@ class JurisdictionAndLawRequestTests(TestCase):
         from apps.legal.models import JurisdictionConfig
         self.assertTrue(JurisdictionConfig.objects.filter(
             jurisdiction="united_kingdom", consent_required=True).exists())
+
+
+class BillingTermsLinkageTests(TestCase):
+    """Billing/refund/trial terms are surfaced on the billing page from the legal
+    engine (single source) — not duplicated (spec §31-34)."""
+    def setUp(self):
+        self.staff = User.objects.create_user(email="bs@x.com", password="pw12345!", is_staff=True)
+        self.user = User.objects.create_user(email="bu@x.com", password="pw12345!")
+
+    def test_usage_page_links_published_billing_terms(self):
+        doc = service.create_draft(document_type="billing_terms", title="Billing Terms",
+                                   version="1.0", content="Billing terms text", user=self.staff)
+        service.approve(doc, user=self.staff)
+        service.publish(doc, user=self.staff)
+        self.client.force_login(self.user)
+        html = self.client.get(reverse("dashboard:usage")).content.decode()
+        self.assertIn("Billing terms", html)
+        self.assertIn(doc.slug, html)   # links the real published document

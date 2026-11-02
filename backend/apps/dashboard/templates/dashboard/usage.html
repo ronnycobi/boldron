@@ -57,4 +57,16 @@
     </table>
     {% else %}<p class="empty">No usage recorded yet. Runs on the offline stub cost nothing.</p>{% endif %}
   </div>
+
+  {% if billing_terms %}
+  <div class="card">
+    <h2 style="margin-top:0">Billing terms</h2>
+    <p class="muted" style="font-size:13px;margin:-4px 0 10px">The agreements that govern your plan, usage, refunds and cancellation.</p>
+    <div>
+      {% for d in billing_terms %}
+      <a class="chip" href="/api/v1/legal/documents/{{ d.slug }}/" target="_blank">{{ d.title }} <span class="muted" style="font-size:10px">v{{ d.version }}</span></a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
 {% endblock %}

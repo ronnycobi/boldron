@@ -1619,10 +1619,17 @@ def usage(request):
     credits = sum((r.credits_charged for r in records), Decimal("0"))
     accounts = CreditAccount.objects.filter(organization__in=orgs)
     invoices = Invoice.objects.filter(organization__in=orgs).select_related("organization")
+    # The governing terms come from the legal engine (single source) — the billing
+    # UI links the same published documents, never a duplicated copy (spec §34).
+    from apps.legal.service import current as legal_current
+    _billing_types = ["billing_terms", "subscription_terms", "usage_terms",
+                      "refund_policy", "cancellation_policy", "free_trial_terms"]
+    billing_terms = [d for d in (legal_current(t) for t in _billing_types) if d]
     return render(request, "dashboard/usage.html", {
         "active": "usage", "records": records, "spend": spend,
         "credits": credits, "accounts": accounts, "invoices": invoices,
         "manageable_orgs": [o for o in orgs if o.id in manageable],
+        "billing_terms": billing_terms,
     })
 
 
