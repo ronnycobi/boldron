@@ -19,6 +19,7 @@ urlpatterns = [
     path("skills/", views.skills, name="skills"),
     path("hooks/", views.hooks, name="hooks"),
     path("leads/", views.leads, name="leads"),
+    path("governance/", views.governance, name="governance"),
     path("legal/", views.legal, name="legal"),
     path("privacy/", views.privacy, name="privacy"),
     path("trust/", views.trust, name="trust"),

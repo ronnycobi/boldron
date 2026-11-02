@@ -1,0 +1,63 @@
+{% extends "console/base_console.html" %}
+{% block title %}Governance &amp; compliance · Control Center{% endblock %}
+{% block crumb %}Compliance / Governance overview{% endblock %}
+{% block content %}
+  <h1>Governance &amp; compliance</h1>
+  <p class="sub">Live figures across the legal, privacy, trust, accounts and security systems — every number
+    comes from real database state.</p>
+
+  <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))">
+    <div class="card">
+      <h2 style="margin-top:0;font-size:14px">Legal documents</h2>
+      <p style="margin:0"><strong style="font-size:22px">{{ d.documents.published }}</strong> <span class="muted">published</span></p>
+      <p class="muted" style="font-size:12.5px;margin:6px 0 0">{{ d.documents.draft }} draft · {{ d.documents.awaiting_review }} awaiting review</p>
+      <p class="muted" style="font-size:12.5px;margin:4px 0 0">{{ d.documents.mandatory }} mandatory · {{ d.documents.acceptances }} acceptance record(s)</p>
+    </div>
+    <div class="card">
+      <h2 style="margin-top:0;font-size:14px">Privacy requests</h2>
+      <p style="margin:0"><strong style="font-size:22px">{{ d.privacy.open }}</strong> <span class="muted">open</span></p>
+      <p class="muted" style="font-size:12.5px;margin:6px 0 0">{{ d.privacy.total }} total{% if d.privacy.overdue %} · <span style="color:#c0392b">{{ d.privacy.overdue }} overdue</span>{% endif %}</p>
+    </div>
+    <div class="card">
+      <h2 style="margin-top:0;font-size:14px">Subprocessors</h2>
+      <p style="margin:0"><strong style="font-size:22px">{{ d.subprocessors_active }}</strong> <span class="muted">active</span></p>
+      {% if d.subprocessors_pending %}<p class="muted" style="font-size:12.5px;margin:6px 0 0">{{ d.subprocessors_pending }} pending review</p>{% endif %}
+    </div>
+    <div class="card">
+      <h2 style="margin-top:0;font-size:14px">Security</h2>
+      <p style="margin:0"><strong style="font-size:22px">{{ d.security_incidents.open }}</strong> <span class="muted">open incident(s)</span></p>
+      <p class="muted" style="font-size:12.5px;margin:6px 0 0">{{ d.vuln_open }} open vulnerability report(s){% if d.security_incidents.critical_open %} · <span style="color:#c0392b">{{ d.security_incidents.critical_open }} critical</span>{% endif %}</p>
+    </div>
+    <div class="card">
+      <h2 style="margin-top:0;font-size:14px">Accounts</h2>
+      <p style="margin:0"><strong style="font-size:22px">{{ d.accounts.suspended }}</strong> <span class="muted">suspended</span></p>
+      <p class="muted" style="font-size:12.5px;margin:6px 0 0">{{ d.accounts.terminated }} terminated · {{ d.accounts.restricted }} restricted · {{ d.accounts.open_appeals }} open appeal(s)</p>
+    </div>
+  </div>
+
+  <h2>Recent legal activity</h2>
+  <div class="card">
+    {% if recent_legal %}
+    <table>
+      {% for e in recent_legal %}
+      <tr><td class="muted" style="width:20%">{{ e.created_at|date:"M j, H:i" }}</td>
+        <td class="strong">{{ e.action }}</td>
+        <td>{{ e.actor.email|default:"system" }}</td>
+        <td class="muted">{{ e.summary|truncatechars:60 }}</td></tr>
+      {% endfor %}
+    </table>
+    {% else %}<p class="empty">No legal activity recorded yet.</p>{% endif %}
+  </div>
+
+  {% if recent_privacy %}
+  <h2>Recent privacy activity</h2>
+  <div class="card">
+    <table>
+      {% for e in recent_privacy %}
+      <tr><td class="muted" style="width:20%">{{ e.created_at|date:"M j, H:i" }}</td>
+        <td class="strong">{{ e.action }}</td><td class="muted">{{ e.summary|truncatechars:60 }}</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+{% endblock %}

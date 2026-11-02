@@ -530,3 +530,49 @@ def trust(request):
         "incident_severities": SecurityIncident.Severity.choices,
         "incident_statuses": SecurityIncident.Status.choices,
     })
+
+
+@staff_required
+def governance(request):
+    """Governance & compliance overview (spec §69). Every figure comes from real
+    database state across the legal, privacy, trust, accounts and security systems."""
+    from apps.legal.models import DocumentStatus, LegalAcceptance, LegalDocument
+    from apps.privacy import service as privacy
+    from apps.trust import service as trust
+    from apps.trust.models import Subprocessor, VulnerabilityReport
+    from apps.governance import service as gov
+
+    doc_counts = {s: 0 for s in DocumentStatus.values}
+    for d in LegalDocument.objects.all():
+        doc_counts[d.status] = doc_counts.get(d.status, 0) + 1
+
+    documents = {
+        "published": doc_counts[DocumentStatus.PUBLISHED],
+        "draft": doc_counts[DocumentStatus.DRAFT],
+        "awaiting_review": doc_counts[DocumentStatus.UNDER_REVIEW],
+        "mandatory": LegalDocument.objects.filter(
+            status=DocumentStatus.PUBLISHED, requires_acceptance=True).count(),
+        "acceptances": LegalAcceptance.objects.count(),
+    }
+    inc = trust.security_incident_summary()
+    data = {
+        "documents": documents,
+        "privacy": privacy.summary(),
+        "subprocessors_active": Subprocessor.objects.filter(status="active").count(),
+        "subprocessors_pending": Subprocessor.objects.filter(status="pending_review").count(),
+        "vuln_open": VulnerabilityReport.objects.exclude(
+            status__in=("fixed", "duplicate", "not_applicable")).count(),
+        "security_incidents": inc,
+        "accounts": gov.summary(),
+    }
+    from apps.audit.models import AuditEvent
+    recent = (AuditEvent.objects
+              .filter(action__startswith="legal.")
+              .select_related("actor")[:10])
+    recent_privacy = (AuditEvent.objects
+                      .filter(action__startswith="privacy.")
+                      .select_related("actor")[:6])
+    return render(request, "console/governance.html", {
+        "active": "governance", "d": data,
+        "recent_legal": recent, "recent_privacy": recent_privacy,
+    })

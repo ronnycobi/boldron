@@ -26,6 +26,7 @@
   </div>
   <div class="navgroup">
     <div class="lbl">Compliance</div>
+    <a href="{% url 'console:governance' %}" class="{% if active == 'governance' %}on{% endif %}">Governance overview</a>
     <a href="{% url 'console:legal' %}" class="{% if active == 'legal' %}on{% endif %}">Legal &amp; documents</a>
     <a href="{% url 'console:privacy' %}" class="{% if active == 'privacy' %}on{% endif %}">Privacy requests</a>
     <a href="{% url 'console:trust' %}" class="{% if active == 'trust' %}on{% endif %}">Trust &amp; security</a>
